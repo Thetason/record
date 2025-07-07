@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background: #FAFAFA;
+    --foreground: #2D3748;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  ::selection {
+    @apply bg-primary text-white;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-50;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary to-primary-600;
+  }
+
+  .gradient-secondary {
+    @apply bg-gradient-to-r from-secondary-400 to-secondary;
+  }
+
+  .gradient-mixed {
+    @apply bg-gradient-to-r from-primary via-primary-400 to-secondary;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+  }
+
+  .transition-base {
+    @apply transition-all duration-250 ease-in-out;
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  .hover-lift {
+    @apply hover:-translate-y-0.5 hover:shadow-medium;
+  }
+
+  .active-press {
+    @apply active:scale-[0.98];
+  }
+}
