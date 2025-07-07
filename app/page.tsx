@@ -59,12 +59,7 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-white">
-        {/* Animated Background */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-3xl animate-pulse-soft" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-accent/10 to-primary/10 rounded-full blur-3xl animate-pulse-soft delay-300" />
-        </div>
+      <main className="min-h-screen" style={{ backgroundColor: "#FF0000" }}>
 
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-white">
@@ -73,9 +68,9 @@ export default function Home() {
               <div className="max-w-4xl mx-auto animate-fade-in-up">
                 
                 <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-neutral-900 mb-8 leading-tight tracking-tight font-display">
-                  NEW DESIGN<br />
-                  <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-transparent">
-                    LINKTREE STYLE
+                  DESIGN CHANGED<br />
+                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    변경사항 확인
                   </span>
                 </h1>
                 <p className="text-xl sm:text-2xl text-neutral-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
