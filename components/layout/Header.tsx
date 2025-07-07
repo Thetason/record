@@ -59,13 +59,15 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-lg border-b border-gray-100">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-neutral-100">
+      <nav className="mx-auto max-w-6xl px-6 sm:px-8">
+        <div className="flex h-20 items-center justify-between">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg gradient-primary" />
-              <span className="text-xl font-bold gradient-mixed text-gradient">
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
+                <span className="text-lg font-black text-white font-display">R</span>
+              </div>
+              <span className="text-2xl font-black text-neutral-900 font-display">
                 Re:cord
               </span>
             </Link>
@@ -78,10 +80,10 @@ export function Header() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'text-sm font-medium transition-base',
+                  'text-base font-semibold transition-all duration-200',
                   isActive(item.href)
-                    ? 'text-primary'
-                    : 'text-gray-600 hover:text-primary'
+                    ? 'text-neutral-900'
+                    : 'text-neutral-600 hover:text-neutral-900'
                 )}
               >
                 {item.name}
@@ -90,20 +92,14 @@ export function Header() {
           </div>
 
           {/* Desktop Auth */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             {user && profile ? (
-              <div className="flex items-center gap-3">
-                <Link
-                  href={`/${profile.username}`}
-                  className="text-sm text-gray-600 hover:text-primary transition-base"
-                >
-                  내 프로필
-                </Link>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-sm font-bold">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold">
                     {profile.name[0]}
                   </div>
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-semibold text-neutral-900">
                     {profile.name}
                   </span>
                 </div>
@@ -111,19 +107,25 @@ export function Header() {
                   variant="ghost" 
                   size="sm" 
                   onClick={handleSignOut}
-                  className="gap-2"
+                  className="text-neutral-600 hover:text-neutral-900"
                 >
-                  <LogOut className="h-4 w-4" />
                   로그아웃
                 </Button>
               </div>
             ) : (
               <>
-                <Button variant="ghost" size="sm" asChild>
+                <Button 
+                  variant="ghost" 
+                  className="text-neutral-900 font-semibold hover:bg-neutral-100"
+                  asChild
+                >
                   <Link href="/login">로그인</Link>
                 </Button>
-                <Button size="sm" asChild>
-                  <Link href="/register">시작하기</Link>
+                <Button 
+                  className="bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-6 py-2 rounded-full"
+                  asChild
+                >
+                  <Link href="/register">무료로 시작</Link>
                 </Button>
               </>
             )}

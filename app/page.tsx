@@ -66,50 +66,39 @@ export default function Home() {
         </div>
 
         {/* Hero Section */}
-        <section className="relative overflow-hidden">
+        <section className="relative overflow-hidden bg-gradient-to-br from-neutral-50 to-white">
           <Container>
-            <div className="flex min-h-[calc(100vh-64px)] flex-col items-center justify-center text-center py-24 relative z-10">
-              <div className="animate-fade-in-up">
-                {/* Logo/Brand */}
-                <div className="mb-8 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-3xl flex items-center justify-center shadow-2xl shadow-primary/25 float">
-                    <span className="text-2xl font-bold text-white">R</span>
-                  </div>
-                </div>
+            <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center text-center py-20 relative z-10">
+              <div className="max-w-4xl mx-auto animate-fade-in-up">
                 
-                <h1 className="text-6xl sm:text-8xl font-black bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-6 leading-tight tracking-tight font-display">
-                  Re:cord
+                <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-neutral-900 mb-8 leading-tight tracking-tight font-display">
+                  리뷰로 성장하는<br />
+                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    프리랜서 포트폴리오
+                  </span>
                 </h1>
-                <p className="text-2xl sm:text-4xl font-semibold text-neutral-800 mb-6 leading-snug font-display">
-                  리뷰는 누군가의 기억입니다
-                </p>
-                <p className="text-xl text-neutral-600 mb-16 max-w-4xl mx-auto leading-relaxed">
-                  여러 플랫폼에서 받은 소중한 리뷰들을 한 곳에 모아<br className="hidden sm:block" />
-                  나만의 프리랜서 포트폴리오를 만들어보세요
+                <p className="text-xl sm:text-2xl text-neutral-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
+                  여러 플랫폼의 리뷰를 한 곳에 모아 신뢰할 수 있는 전문가 이미지를 구축하세요
                 </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-6 animate-fade-in-up delay-200 mb-20">
+              <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up delay-200 mb-16">
                 <Button 
                   size="xl" 
-                  className="gap-3 px-12 py-4 text-lg font-semibold shadow-2xl shadow-primary/25 hover:shadow-3xl hover:shadow-primary/30" 
-                  shimmer
-                  glow
+                  className="bg-neutral-900 hover:bg-neutral-800 text-white font-bold px-8 py-4 text-lg rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
                   asChild
                 >
                   <Link href="/register">
                     무료로 시작하기
-                    <ArrowRight className="h-6 w-6" />
                   </Link>
                 </Button>
                 <Button 
                   size="xl" 
-                  variant="glass" 
-                  className="gap-3 px-12 py-4 text-lg font-semibold backdrop-blur-xl border-white/30" 
+                  variant="outline"
+                  className="border-2 border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold px-8 py-4 text-lg rounded-full transition-all duration-300"
                   asChild
                 >
                   <Link href="/designer_kim">
-                    <Play className="h-6 w-6" />
                     데모 보기
                   </Link>
                 </Button>
@@ -140,40 +129,34 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="py-32 bg-gradient-to-b from-white to-neutral-50 relative">
+        <section className="py-24 bg-white relative">
           <Container>
-            <div className="text-center mb-20 animate-fade-in-up">
-              <h2 className="text-4xl sm:text-6xl font-black text-neutral-900 mb-6 tracking-tight font-display">
-                왜 Re:cord인가요?
+            <div className="text-center mb-16 animate-fade-in-up">
+              <h2 className="text-4xl sm:text-5xl font-black text-neutral-900 mb-6 tracking-tight font-display">
+                모든 리뷰를 한 곳에서
               </h2>
-              <p className="text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">
-                흩어진 리뷰들을 하나로 모아 더 강력한 포트폴리오를 만들어보세요
+              <p className="text-lg text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+                흩어진 리뷰들을 통합 관리하고 전문적인 포트폴리오로 변환하세요
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {features.map((feature, index) => (
-                <Card 
+                <div 
                   key={index} 
-                  variant="glass"
-                  glow
-                  shimmer
-                  className={`text-center border-0 p-8 group hover:scale-105 animate-fade-in-up delay-${index + 1}00`}
+                  className="text-center p-8 group animate-fade-in-up"
+                  style={{ animationDelay: `${(index + 1) * 100}ms` }}
                 >
-                  <CardHeader className="pb-6">
-                    <div className={`mx-auto w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-3xl flex items-center justify-center text-white mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500 float`}>
-                      {feature.icon}
-                    </div>
-                    <CardTitle className="text-2xl font-bold mb-3 text-neutral-900">
-                      {feature.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-lg leading-relaxed text-neutral-600">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
+                  <div className={`mx-auto w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-bold mb-4 text-neutral-900 font-display">
+                    {feature.title}
+                  </h3>
+                  <p className="text-neutral-600 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
               ))}
             </div>
           </Container>
@@ -256,46 +239,30 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-32 bg-gradient-to-br from-primary via-secondary to-accent relative overflow-hidden">
-          {/* Background patterns */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse-soft" />
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse-soft delay-500" />
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
-          </div>
-
+        <section className="py-24 bg-neutral-900 relative overflow-hidden">
           <Container className="relative z-10">
-            <div className="text-center text-white animate-fade-in-up">
-              {/* Icon */}
-              <div className="mb-8 flex items-center justify-center">
-                <div className="w-24 h-24 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/30 float">
-                  <ArrowRight className="h-12 w-12 text-white" />
-                </div>
-              </div>
-
-              <h2 className="text-4xl sm:text-7xl font-black mb-8 tracking-tight leading-tight">
-                지금 바로 시작해보세요
+            <div className="text-center text-white animate-fade-in-up max-w-3xl mx-auto">
+              <h2 className="text-4xl sm:text-5xl font-black mb-6 tracking-tight leading-tight font-display">
+                지금 바로 시작하세요
               </h2>
-              <p className="text-xl sm:text-2xl mb-12 opacity-90 max-w-4xl mx-auto leading-relaxed font-medium">
-                무료로 계정을 만들고 몇 분 만에 나만의 리뷰 포트폴리오를 완성하세요
+              <p className="text-lg text-neutral-300 mb-10 leading-relaxed">
+                무료로 계정을 만들고 몇 분 만에 전문적인 리뷰 포트폴리오를 완성하세요
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button 
                   size="xl" 
-                  variant="outline" 
-                  className="bg-white text-primary border-white hover:bg-neutral-50 px-12 py-4 text-lg font-semibold shadow-2xl hover:shadow-3xl hover:scale-105" 
-                  shimmer
+                  className="bg-white text-neutral-900 hover:bg-neutral-100 px-8 py-4 text-lg font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105" 
                   asChild
                 >
                   <Link href="/register">
-                    무료 계정 만들기
+                    무료로 시작하기
                   </Link>
                 </Button>
                 <Button 
                   size="xl" 
-                  variant="glass" 
-                  className="text-white border-white/30 hover:bg-white/20 px-12 py-4 text-lg font-semibold backdrop-blur-xl hover:scale-105" 
+                  variant="outline"
+                  className="border-2 border-white text-white hover:bg-white hover:text-neutral-900 px-8 py-4 text-lg font-bold rounded-full transition-all duration-300"
                   asChild
                 >
                   <Link href="/login">
@@ -305,18 +272,18 @@ export default function Home() {
               </div>
 
               {/* Additional CTA info */}
-              <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-8 text-white/80">
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-neutral-400 text-sm">
                 <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  <span className="text-sm font-medium">100% 무료</span>
+                  <Shield className="h-4 w-4" />
+                  <span>100% 무료</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  <span className="text-sm font-medium">3분만에 설정</span>
+                  <Zap className="h-4 w-4" />
+                  <span>3분만에 설정</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  <span className="text-sm font-medium">무제한 리뷰</span>
+                  <Users className="h-4 w-4" />
+                  <span>무제한 리뷰</span>
                 </div>
               </div>
             </div>

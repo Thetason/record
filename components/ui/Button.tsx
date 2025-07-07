@@ -5,36 +5,27 @@ import { type VariantProps, cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'relative inline-flex items-center justify-center font-semibold rounded-2xl transition-smooth focus-ring disabled:opacity-50 disabled:pointer-events-none overflow-hidden group',
+  'relative inline-flex items-center justify-center font-bold rounded-full transition-all duration-300 focus-ring disabled:opacity-50 disabled:pointer-events-none overflow-hidden group',
   {
     variants: {
       variant: {
-        primary: 'bg-gradient-to-r from-primary to-primary-600 text-white shadow-lg hover:shadow-xl hover:shadow-primary/25 hover:scale-105 active:scale-95',
-        secondary: 'bg-gradient-to-r from-secondary to-secondary-600 text-white shadow-lg hover:shadow-xl hover:shadow-secondary/25 hover:scale-105 active:scale-95',
-        accent: 'bg-gradient-to-r from-accent to-accent-600 text-white shadow-lg hover:shadow-xl hover:shadow-accent/25 hover:scale-105 active:scale-95',
+        primary: 'bg-neutral-900 hover:bg-neutral-800 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95',
+        secondary: 'bg-white hover:bg-neutral-50 text-neutral-900 border border-neutral-200 hover:border-neutral-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95',
         ghost: 'bg-transparent hover:bg-neutral-100 text-neutral-700 hover:text-neutral-900 hover:scale-105 active:scale-95',
-        outline: 'border-2 border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 hover:scale-105 active:scale-95',
-        glass: 'glass-button text-white hover:scale-105 active:scale-95',
-        gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95',
+        outline: 'border-2 border-neutral-900 bg-transparent hover:bg-neutral-900 text-neutral-900 hover:text-white transition-all duration-300 hover:scale-105 active:scale-95',
+        glass: 'bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white transition-all duration-300 hover:scale-105 active:scale-95',
+        gradient: 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95',
       },
       size: {
-        sm: 'h-9 px-4 text-sm min-w-[80px]',
-        md: 'h-11 px-6 text-sm min-w-[100px]',
-        lg: 'h-13 px-8 text-base min-w-[120px]',
+        sm: 'h-10 px-4 text-sm min-w-[80px]',
+        md: 'h-12 px-6 text-base min-w-[100px]',
+        lg: 'h-14 px-8 text-base min-w-[120px]',
         xl: 'h-16 px-10 text-lg min-w-[140px]',
-      },
-      rounded: {
-        none: 'rounded-none',
-        sm: 'rounded-lg',
-        md: 'rounded-xl',
-        lg: 'rounded-2xl',
-        full: 'rounded-full',
       },
     },
     defaultVariants: {
       variant: 'primary',
       size: 'md',
-      rounded: 'lg',
     },
   }
 )
@@ -51,13 +42,13 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, rounded, loading, children, disabled, asChild, icon, iconPosition = 'left', shimmer = false, glow = false, ...props }, ref) => {
+  ({ className, variant, size, loading, children, disabled, asChild, icon, iconPosition = 'left', shimmer = false, glow = false, ...props }, ref) => {
     const Comp = asChild ? 'span' : 'button'
     
     return (
       <Comp
         className={cn(
-          buttonVariants({ variant, size, rounded }),
+          buttonVariants({ variant, size }),
           shimmer && 'shimmer',
           glow && 'hover-glow',
           className
