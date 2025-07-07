@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { Badge, PlatformBadge } from '@/components/ui/Badge'
 import { Star, Users, Zap, Shield, ArrowRight, Play } from 'lucide-react'
 
+// Force revalidation - timestamp: 2025-01-07T14:00:00Z
 export default function Home() {
   const features = [
     {
