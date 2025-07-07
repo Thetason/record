@@ -67,13 +67,13 @@ export default function Home() {
             <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center text-center py-20 relative z-10">
               <div className="max-w-4xl mx-auto animate-fade-in-up">
                 
-                <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-neutral-900 mb-8 leading-tight tracking-tight">
+                <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-gray-900 mb-8 leading-tight tracking-tight">
                   리뷰로 성장하는<br />
                   <span className="text-primary">
                     프리랜서 포트폴리오
                   </span>
                 </h1>
-                <p className="text-xl sm:text-2xl text-neutral-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
+                <p className="text-xl sm:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
                   여러 플랫폼의 리뷰를 한 곳에 모아 신뢰할 수 있는 전문가 이미지를 구축하세요
                 </p>
               </div>
@@ -81,7 +81,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up delay-200 mb-16">
                 <Button 
                   size="xl" 
-                  className="bg-neutral-900 hover:bg-neutral-800 text-white font-bold px-8 py-4 text-lg rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                  className="font-bold px-8 py-4 text-lg"
                   asChild
                 >
                   <Link href="/register">
@@ -91,7 +91,7 @@ export default function Home() {
                 <Button 
                   size="xl" 
                   variant="outline"
-                  className="border-2 border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold px-8 py-4 text-lg rounded-full transition-all duration-300"
+                  className="font-bold px-8 py-4 text-lg"
                   asChild
                 >
                   <Link href="/designer_kim">
@@ -102,7 +102,7 @@ export default function Home() {
 
               {/* Enhanced Platform Badges */}
               <div className="animate-fade-in-up delay-400">
-                <p className="text-sm text-neutral-500 mb-6 font-medium tracking-wide uppercase">
+                <p className="text-sm text-gray-500 mb-6 font-medium tracking-wide uppercase">
                   지원하는 플랫폼
                 </p>
                 <div className="flex flex-wrap justify-center gap-4 max-w-2xl mx-auto">
@@ -114,7 +114,7 @@ export default function Home() {
                     >
                       <PlatformBadge 
                         platform={platform as any} 
-                        className="transform hover:scale-110 transition-transform duration-300 shadow-lg hover:shadow-xl" 
+                        className="transition-base" 
                       />
                     </div>
                   ))}
@@ -128,10 +128,10 @@ export default function Home() {
         <section className="py-24 bg-white relative">
           <Container>
             <div className="text-center mb-16 animate-fade-in-up">
-              <h2 className="text-4xl sm:text-5xl font-black text-neutral-900 mb-6 tracking-tight font-display">
+              <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-6 tracking-tight">
                 모든 리뷰를 한 곳에서
               </h2>
-              <p className="text-lg text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
                 흩어진 리뷰들을 통합 관리하고 전문적인 포트폴리오로 변환하세요
               </p>
             </div>
@@ -143,13 +143,13 @@ export default function Home() {
                   className="text-center p-8 group animate-fade-in-up"
                   style={{ animationDelay: `${(index + 1) * 100}ms` }}
                 >
-                  <div className={`mx-auto w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`mx-auto w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg transition-base`}>
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-bold mb-4 text-neutral-900 font-display">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">
                     {feature.title}
                   </h3>
-                  <p className="text-neutral-600 leading-relaxed">
+                  <p className="text-gray-600 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -159,19 +159,14 @@ export default function Home() {
         </section>
 
         {/* Social Proof Section */}
-        <section className="py-32 bg-gradient-to-br from-neutral-50 to-white relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-10 right-10 w-64 h-64 bg-gradient-to-br from-primary/5 to-secondary/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-10 left-10 w-64 h-64 bg-gradient-to-br from-accent/5 to-primary/5 rounded-full blur-3xl" />
-          </div>
+        <section className="py-32 bg-gray-50 relative overflow-hidden">
 
           <Container className="relative z-10">
             <div className="text-center mb-20 animate-fade-in-up">
-              <h2 className="text-4xl sm:text-6xl font-black text-neutral-900 mb-6 tracking-tight">
+              <h2 className="text-4xl sm:text-6xl font-black text-gray-900 mb-6 tracking-tight">
                 이미 많은 프리랜서들이 사용하고 있어요
               </h2>
-              <p className="text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
                 실제 사용자들의 생생한 후기를 확인해보세요
               </p>
             </div>
@@ -181,30 +176,29 @@ export default function Home() {
                 <Card 
                   key={index} 
                   variant="elevated"
-                  glow
-                  className={`group hover:scale-105 animate-fade-in-up delay-${index + 2}00`}
+                  className={`group animate-fade-in-up delay-${index + 2}00`}
                 >
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-4 mb-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg transition-base">
                         {testimonial.name[0]}
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg text-neutral-900">{testimonial.name}</h4>
-                        <p className="text-neutral-600">{testimonial.profession}</p>
+                        <h4 className="font-bold text-lg text-gray-900">{testimonial.name}</h4>
+                        <p className="text-gray-600">{testimonial.profession}</p>
                       </div>
                     </div>
                     <div className="flex gap-1 mb-4">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star 
                           key={i} 
-                          className={`h-5 w-5 ${i < testimonial.rating ? 'text-yellow-400 fill-current' : 'text-neutral-300'}`} 
+                          className={`h-5 w-5 ${i < testimonial.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
                         />
                       ))}
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <blockquote className="text-neutral-700 mb-6 leading-relaxed text-lg italic">
+                    <blockquote className="text-gray-700 mb-6 leading-relaxed text-lg italic">
                       "{testimonial.review}"
                     </blockquote>
                     <div className="flex flex-wrap gap-2 mb-4">
@@ -213,14 +207,14 @@ export default function Home() {
                           key={platform} 
                           platform={platform} 
                           showIcon={false}
-                          className="transform hover:scale-105 transition-transform duration-200" 
+                          className="transition-base" 
                         />
                       ))}
                     </div>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="mt-2 group-hover:bg-primary group-hover:text-white transition-colors duration-300" 
+                      className="mt-2" 
                       asChild
                     >
                       <Link href={`/${testimonial.username}`}>
@@ -235,20 +229,20 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-24 bg-neutral-900 relative overflow-hidden">
+        <section className="py-24 bg-gray-900 relative overflow-hidden">
           <Container className="relative z-10">
             <div className="text-center text-white animate-fade-in-up max-w-3xl mx-auto">
-              <h2 className="text-4xl sm:text-5xl font-black mb-6 tracking-tight leading-tight font-display">
+              <h2 className="text-4xl sm:text-5xl font-black mb-6 tracking-tight leading-tight">
                 지금 바로 시작하세요
               </h2>
-              <p className="text-lg text-neutral-300 mb-10 leading-relaxed">
+              <p className="text-lg text-gray-300 mb-10 leading-relaxed">
                 무료로 계정을 만들고 몇 분 만에 전문적인 리뷰 포트폴리오를 완성하세요
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button 
                   size="xl" 
-                  className="bg-white text-neutral-900 hover:bg-neutral-100 px-8 py-4 text-lg font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105" 
+                  className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-bold" 
                   asChild
                 >
                   <Link href="/register">
@@ -258,7 +252,7 @@ export default function Home() {
                 <Button 
                   size="xl" 
                   variant="outline"
-                  className="border-2 border-white text-white hover:bg-white hover:text-neutral-900 px-8 py-4 text-lg font-bold rounded-full transition-all duration-300"
+                  className="border-2 border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg font-bold"
                   asChild
                 >
                   <Link href="/login">
@@ -268,7 +262,7 @@ export default function Home() {
               </div>
 
               {/* Additional CTA info */}
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-neutral-400 text-sm">
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-gray-400 text-sm">
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4" />
                   <span>100% 무료</span>
