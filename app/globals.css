@@ -2,77 +2,212 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cal+Sans:wght@400;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: #FAFAFA;
-    --foreground: #2D3748;
+    --background: #FFFFFF;
+    --foreground: #111827;
+    --card: #FFFFFF;
+    --card-foreground: #111827;
+    --popover: #FFFFFF;
+    --popover-foreground: #111827;
+    --primary: #5D39FF;
+    --primary-foreground: #FFFFFF;
+    --secondary: #00D4AA;
+    --secondary-foreground: #111827;
+    --muted: #F3F4F6;
+    --muted-foreground: #6B7280;
+    --accent: #FF3B8C;
+    --accent-foreground: #FFFFFF;
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #5D39FF;
+    --radius: 0.75rem;
   }
 
   * {
-    @apply border-gray-200;
+    @apply border-border;
   }
 
   html {
-    @apply antialiased;
+    @apply antialiased scroll-smooth;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground selection:bg-primary/20 selection:text-primary-900;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  ::selection {
-    @apply bg-primary text-white;
-  }
-
+  /* Custom Scrollbar */
   ::-webkit-scrollbar {
-    @apply w-2;
+    @apply w-1.5;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-50;
+    @apply bg-neutral-50;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-neutral-300 rounded-full hover:bg-neutral-400;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+  /* Glass morphism base */
+  .glass {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Custom focus styles */
+  .focus-visible {
+    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background;
   }
 }
 
 @layer utilities {
+  /* Modern Gradients */
   .gradient-primary {
-    @apply bg-gradient-to-r from-primary to-primary-600;
+    @apply bg-gradient-to-br from-primary via-primary-500 to-primary-700;
   }
 
   .gradient-secondary {
-    @apply bg-gradient-to-r from-secondary-400 to-secondary;
+    @apply bg-gradient-to-br from-secondary via-secondary-500 to-secondary-700;
   }
 
-  .gradient-mixed {
-    @apply bg-gradient-to-r from-primary via-primary-400 to-secondary;
+  .gradient-accent {
+    @apply bg-gradient-to-br from-accent via-accent-500 to-accent-700;
   }
 
+  .gradient-sunset {
+    @apply bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600;
+  }
+
+  .gradient-ocean {
+    @apply bg-gradient-to-br from-blue-400 via-cyan-500 to-teal-600;
+  }
+
+  .gradient-rainbow {
+    @apply bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500;
+    background-size: 300% 300%;
+    animation: gradient 3s ease infinite;
+  }
+
+  .gradient-mesh {
+    @apply bg-mesh-gradient opacity-40;
+  }
+
+  /* Text Effects */
   .text-gradient {
     @apply bg-clip-text text-transparent;
   }
 
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-rainbow {
+    @apply bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent;
+  }
+
+  /* Transitions */
   .transition-base {
-    @apply transition-all duration-250 ease-in-out;
+    @apply transition-all duration-300 ease-out;
   }
 
-  .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  .transition-smooth {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  .transition-bounce {
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Interactive Effects */
   .hover-lift {
-    @apply hover:-translate-y-0.5 hover:shadow-medium;
+    @apply hover:-translate-y-1 hover:shadow-xl transition-smooth;
+  }
+
+  .hover-scale {
+    @apply hover:scale-105 transition-smooth;
+  }
+
+  .hover-glow {
+    @apply hover:shadow-glow transition-smooth;
   }
 
   .active-press {
-    @apply active:scale-[0.98];
+    @apply active:scale-[0.98] transition-smooth;
+  }
+
+  .active-bounce {
+    @apply active:scale-[1.02] transition-bounce;
+  }
+
+  /* Glass Morphism */
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-glass;
+  }
+
+  .glass-button {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-smooth;
+  }
+
+  /* Focus States */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2;
+  }
+
+  .focus-glow {
+    @apply focus-visible:outline-none focus-visible:shadow-glow;
+  }
+
+  /* Layout Utilities */
+  .container-narrow {
+    @apply max-w-2xl mx-auto px-4;
+  }
+
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Animation Delays */
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+  .delay-500 { animation-delay: 0.5s; }
+
+  /* Custom Shadows */
+  .shadow-primary {
+    box-shadow: 0 10px 40px rgba(93, 57, 255, 0.15);
+  }
+
+  .shadow-secondary {
+    box-shadow: 0 10px 40px rgba(0, 212, 170, 0.15);
+  }
+
+  .shadow-accent {
+    box-shadow: 0 10px 40px rgba(255, 59, 140, 0.15);
+  }
+
+  /* Shimmer Effect */
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Floating Animation */
+  .float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Pulse Animation */
+  .pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
   }
 }

@@ -97,14 +97,52 @@ export default function DashboardPage() {
     return acc
   }, {} as Record<string, number>)
 
+  const quickActions = [
+    {
+      title: "새 리뷰 추가",
+      description: "고객 리뷰를 추가하여 포트폴리오를 강화하세요",
+      href: "/dashboard/add-review",
+      icon: <Plus className="h-6 w-6" />,
+      gradient: "from-green-500 to-emerald-500",
+      urgent: reviews.length === 0
+    },
+    {
+      title: "리뷰 관리",
+      description: "기존 리뷰를 편집하고 정리하세요",
+      href: "/dashboard/reviews",
+      icon: <Edit3 className="h-6 w-6" />,
+      gradient: "from-blue-500 to-cyan-500",
+      urgent: false
+    },
+    {
+      title: "프로필 설정",
+      description: "프로필 정보를 업데이트하세요",
+      href: "/dashboard/settings",
+      icon: <Users className="h-6 w-6" />,
+      gradient: "from-purple-500 to-pink-500",
+      urgent: !profile?.bio || !profile?.profession
+    },
+    {
+      title: "공개 프로필 보기",
+      description: "고객이 보는 화면을 확인하세요",
+      href: `/${profile?.username}`,
+      icon: <ExternalLink className="h-6 w-6" />,
+      gradient: "from-orange-500 to-red-500",
+      urgent: false
+    }
+  ]
+
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
         <Header />
         <main className="py-8">
           <Container>
             <div className="flex items-center justify-center min-h-[400px]">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-lg text-neutral-600 font-medium">대시보드를 로딩중입니다...</p>
+              </div>
             </div>
           </Container>
         </main>
@@ -118,19 +156,22 @@ export default function DashboardPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
         <Header />
         <main className="py-8">
           <Container>
-            <Card className="max-w-md mx-auto text-center">
-              <CardHeader>
-                <CardTitle>프로필을 설정해주세요</CardTitle>
-                <CardDescription>
+            <Card variant="glass" glow className="max-w-lg mx-auto text-center animate-fade-in-up">
+              <CardHeader className="pb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl">
+                  <Users className="h-10 w-10 text-white" />
+                </div>
+                <CardTitle className="text-2xl">프로필을 설정해주세요</CardTitle>
+                <CardDescription className="text-lg">
                   먼저 프로필 정보를 입력하여 포트폴리오를 시작하세요
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button asChild>
+                <Button size="lg" shimmer glow asChild>
                   <Link href="/profile/setup">프로필 설정하기</Link>
                 </Button>
               </CardContent>
@@ -142,31 +183,48 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-3xl animate-pulse-soft" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-accent/10 to-primary/10 rounded-full blur-3xl animate-pulse-soft delay-300" />
+      </div>
+
       <Header />
       
-      <main className="py-8">
+      <main className="py-12 relative z-10">
         <Container>
-          <div className="space-y-8">
+          <div className="space-y-12">
             {/* Welcome Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 animate-fade-in-up">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-4xl sm:text-6xl font-black text-neutral-900 mb-4 tracking-tight">
                   안녕하세요, {profile.name}님!
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-xl text-neutral-600 font-medium">
                   {profile.profession && `${profile.profession} • `}
-                  리뷰 {visibleReviews.length}개
+                  리뷰 {visibleReviews.length}개로 성장중
                 </p>
               </div>
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={copyProfileUrl} className="gap-2">
-                  {copySuccess ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  variant="glass" 
+                  onClick={copyProfileUrl} 
+                  className="gap-3 px-6 py-3 text-lg font-semibold backdrop-blur-xl border-white/30" 
+                  glow
+                >
+                  {copySuccess ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
                   {copySuccess ? '복사됨!' : 'URL 복사'}
                 </Button>
-                <Button asChild className="gap-2">
+                <Button 
+                  size="lg" 
+                  className="gap-3 px-6 py-3 text-lg font-semibold shadow-2xl hover:shadow-3xl" 
+                  shimmer 
+                  glow 
+                  asChild
+                >
                   <Link href={`/${profile.username}`} target="_blank">
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink className="h-5 w-5" />
                     프로필 보기
                   </Link>
                 </Button>
@@ -174,58 +232,66 @@ export default function DashboardPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">총 리뷰</CardTitle>
-                  <MessageCircle className="h-4 w-4 text-gray-500" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-100">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="text-lg font-bold text-neutral-900">총 리뷰</CardTitle>
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <MessageCircle className="h-6 w-6 text-white" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{visibleReviews.length}</div>
-                  <p className="text-xs text-gray-500">
+                  <div className="text-4xl font-black text-neutral-900 mb-2">{visibleReviews.length}</div>
+                  <p className="text-sm text-neutral-600 font-medium">
                     {reviews.length - visibleReviews.length}개 숨김
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">평균 평점</CardTitle>
-                  <Star className="h-4 w-4 text-gray-500" />
+              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="text-lg font-bold text-neutral-900">평균 평점</CardTitle>
+                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Star className="h-6 w-6 text-white" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-4xl font-black text-neutral-900 mb-2">
                     {averageRating > 0 ? averageRating.toFixed(1) : '-'}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm text-neutral-600 font-medium">
                     5.0 만점
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">플랫폼</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-gray-500" />
+              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="text-lg font-bold text-neutral-900">플랫폼</CardTitle>
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <BarChart3 className="h-6 w-6 text-white" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-4xl font-black text-neutral-900 mb-2">
                     {Object.keys(platformCounts).length}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm text-neutral-600 font-medium">
                     연결된 플랫폼
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">프로필 조회</CardTitle>
-                  <Users className="h-4 w-4 text-gray-500" />
+              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-400">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="text-lg font-bold text-neutral-900">프로필 조회</CardTitle>
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">-</div>
-                  <p className="text-xs text-gray-500">
+                  <div className="text-4xl font-black text-neutral-900 mb-2">-</div>
+                  <p className="text-sm text-neutral-600 font-medium">
                     곧 제공될 예정
                   </p>
                 </CardContent>
@@ -233,57 +299,40 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>빠른 작업</CardTitle>
-                <CardDescription>
-                  자주 사용하는 기능들에 빠르게 접근하세요
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-                    <Link href="/dashboard/reviews/add">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
-                          <Plus className="h-4 w-4 text-primary" />
+            <div className="animate-fade-in-up delay-500">
+              <div className="mb-8">
+                <h2 className="text-3xl font-black text-neutral-900 mb-2 tracking-tight">빠른 작업</h2>
+                <p className="text-lg text-neutral-600">자주 사용하는 기능들에 빠르게 접근하세요</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                {quickActions.map((action, index) => (
+                  <Card 
+                    key={action.title}
+                    variant="elevated"
+                    glow
+                    className={`group hover:scale-105 transition-all duration-300 ${action.urgent ? 'ring-2 ring-accent/50 animate-pulse-soft' : ''}`}
+                  >
+                    <Link href={action.href} className="block p-6">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-16 h-16 bg-gradient-to-br ${action.gradient} rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300 float`}>
+                          <span className="text-white">{action.icon}</span>
                         </div>
-                        <div className="text-left">
-                          <div className="font-medium">리뷰 추가</div>
-                          <div className="text-sm text-gray-500">새 리뷰 등록</div>
-                        </div>
-                      </div>
-                    </Link>
-                  </Button>
-
-                  <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-                    <Link href="/dashboard/profile">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-secondary-50 flex items-center justify-center">
-                          <Edit3 className="h-4 w-4 text-secondary" />
-                        </div>
-                        <div className="text-left">
-                          <div className="font-medium">프로필 편집</div>
-                          <div className="text-sm text-gray-500">정보 수정</div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-neutral-900 mb-2 group-hover:text-primary transition-colors">
+                            {action.title}
+                            {action.urgent && <span className="ml-2 text-accent">!</span>}
+                          </h3>
+                          <p className="text-neutral-600 leading-relaxed">
+                            {action.description}
+                          </p>
                         </div>
                       </div>
                     </Link>
-                  </Button>
-
-                  <Button variant="outline" className="h-auto p-4 justify-start" onClick={copyProfileUrl}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
-                        <Share2 className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div className="text-left">
-                        <div className="font-medium">공유하기</div>
-                        <div className="text-sm text-gray-500">URL 복사</div>
-                      </div>
-                    </div>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </Card>
+                ))}
+              </div>
+            </div>
 
             {/* Recent Reviews */}
             <Card>
