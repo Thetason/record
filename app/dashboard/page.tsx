@@ -160,7 +160,7 @@ export default function DashboardPage() {
         <Header />
         <main className="py-8">
           <Container>
-            <Card variant="glass" glow className="max-w-lg mx-auto text-center animate-fade-in-up">
+            <Card variant="elevated" className="max-w-lg mx-auto text-center animate-fade-in-up">
               <CardHeader className="pb-6">
                 <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl">
                   <Users className="h-10 w-10 text-white" />
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button size="lg" shimmer glow asChild>
+                <Button size="lg" asChild>
                   <Link href="/profile/setup">프로필 설정하기</Link>
                 </Button>
               </CardContent>
@@ -208,10 +208,9 @@ export default function DashboardPage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
-                  variant="glass" 
+                  variant="secondary" 
                   onClick={copyProfileUrl} 
-                  className="gap-3 px-6 py-3 text-lg font-semibold backdrop-blur-xl border-white/30" 
-                  glow
+                  className="gap-3 px-6 py-3 text-lg font-semibold backdrop-blur-xl border-white/30"
                 >
                   {copySuccess ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
                   {copySuccess ? '복사됨!' : 'URL 복사'}
@@ -219,8 +218,6 @@ export default function DashboardPage() {
                 <Button 
                   size="lg" 
                   className="gap-3 px-6 py-3 text-lg font-semibold shadow-2xl hover:shadow-3xl" 
-                  shimmer 
-                  glow 
                   asChild
                 >
                   <Link href={`/${profile.username}`} target="_blank">
@@ -233,7 +230,7 @@ export default function DashboardPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-100">
+              <Card variant="elevated" className="group hover:scale-105 animate-fade-in-up delay-100">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                   <CardTitle className="text-lg font-bold text-neutral-900">총 리뷰</CardTitle>
                   <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -248,7 +245,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-200">
+              <Card variant="elevated" className="group hover:scale-105 animate-fade-in-up delay-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                   <CardTitle className="text-lg font-bold text-neutral-900">평균 평점</CardTitle>
                   <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -265,7 +262,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-300">
+              <Card variant="elevated" className="group hover:scale-105 animate-fade-in-up delay-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                   <CardTitle className="text-lg font-bold text-neutral-900">플랫폼</CardTitle>
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -282,7 +279,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card variant="glass" glow className="group hover:scale-105 animate-fade-in-up delay-400">
+              <Card variant="elevated" className="group hover:scale-105 animate-fade-in-up delay-400">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                   <CardTitle className="text-lg font-bold text-neutral-900">프로필 조회</CardTitle>
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -310,7 +307,6 @@ export default function DashboardPage() {
                   <Card 
                     key={action.title}
                     variant="elevated"
-                    glow
                     className={`group hover:scale-105 transition-all duration-300 ${action.urgent ? 'ring-2 ring-accent/50 animate-pulse-soft' : ''}`}
                   >
                     <Link href={action.href} className="block p-6">

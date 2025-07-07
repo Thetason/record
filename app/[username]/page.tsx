@@ -49,20 +49,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-3xl animate-pulse-soft" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-accent/10 to-primary/10 rounded-full blur-3xl animate-pulse-soft delay-300" />
-      </div>
+    <div className="min-h-screen bg-gray-50">
 
       {/* Profile Header */}
-      <section className="bg-gradient-to-br from-primary via-secondary to-accent text-white py-24 relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse-soft" />
-          <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse-soft delay-500" />
-        </div>
+      <section className="bg-gray-900 text-white py-24 relative overflow-hidden">
 
         <Container className="relative z-10">
           <div className="max-w-5xl mx-auto animate-fade-in-up">
@@ -73,20 +63,18 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   <img
                     src={profile.avatar_url}
                     alt={profile.name}
-                    className="w-40 h-40 rounded-3xl border-4 border-white/30 object-cover shadow-2xl group-hover:scale-105 transition-transform duration-500"
+                    className="w-40 h-40 rounded-3xl border-4 border-white/30 object-cover shadow-2xl transition-base"
                   />
                 ) : (
-                  <div className="w-40 h-40 rounded-3xl border-4 border-white/30 bg-white/20 backdrop-blur-xl flex items-center justify-center text-5xl font-black shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                  <div className="w-40 h-40 rounded-3xl border-4 border-white/30 bg-white/20 backdrop-blur-xl flex items-center justify-center text-5xl font-black shadow-2xl transition-base">
                     {profile.name[0]}
                   </div>
                 )}
-                {/* Floating decoration */}
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-white/30 rounded-full animate-bounce-gentle" />
               </div>
 
               {/* Profile Info */}
               <div className="flex-1 text-center lg:text-left">
-                <h1 className="text-5xl lg:text-7xl font-black mb-4 leading-tight tracking-tight font-display">
+                <h1 className="text-5xl lg:text-7xl font-black mb-4 leading-tight tracking-tight">
                   {profile.name}
                 </h1>
                 {profile.profession && (
@@ -138,30 +126,29 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           <Container>
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-12 animate-fade-in-up">
-                <h2 className="text-3xl font-black text-neutral-900 mb-4 tracking-tight">플랫폼별 리뷰</h2>
-                <p className="text-lg text-neutral-600">각 플랫폼에서 받은 리뷰 현황을 확인하세요</p>
+                <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">플랫폼별 리뷰</h2>
+                <p className="text-lg text-gray-600">각 플랫폼에서 받은 리뷰 현황을 확인하세요</p>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
                 {(stats || []).map((stat: any, index: number) => (
                   <Card 
                     key={stat.source} 
-                    variant="glass"
-                    glow
-                    className={`text-center group hover:scale-110 animate-fade-in-up delay-${index * 100}`}
+                    variant="elevated"
+                    className={`text-center group animate-fade-in-up delay-${index * 100}`}
                   >
                     <CardContent className="p-6">
                       <PlatformBadge 
                         platform={stat.source as any} 
-                        className="mb-4 mx-auto transform group-hover:scale-110 transition-transform duration-300"
+                        className="mb-4 mx-auto transition-base"
                       />
-                      <div className="text-3xl font-black text-neutral-900 mb-2">
+                      <div className="text-3xl font-black text-gray-900 mb-2">
                         {stat.count}
                       </div>
                       {stat.average_rating > 0 && (
                         <div className="flex items-center justify-center gap-1">
                           <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <span className="text-sm font-semibold text-neutral-700">
+                          <span className="text-sm font-semibold text-gray-700">
                             {stat.average_rating}
                           </span>
                         </div>
@@ -176,22 +163,22 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       )}
 
       {/* Reviews Section */}
-      <section className="py-20 bg-gradient-to-b from-white to-neutral-50 relative z-10">
+      <section className="py-20 bg-gray-50 relative z-10">
         <Container>
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-12 animate-fade-in-up">
               <div className="mb-6 lg:mb-0">
-                <h2 className="text-4xl font-black text-neutral-900 mb-2 tracking-tight">
+                <h2 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">
                   고객 리뷰 ({totalReviews})
                 </h2>
-                <p className="text-lg text-neutral-600">실제 고객들의 생생한 후기를 확인하세요</p>
+                <p className="text-lg text-gray-600">실제 고객들의 생생한 후기를 확인하세요</p>
               </div>
               {averageRating > 0 && (
-                <div className="flex items-center gap-4 bg-white rounded-2xl px-6 py-4 shadow-lg border border-neutral-200">
+                <div className="flex items-center gap-4 bg-white rounded-2xl px-6 py-4 shadow-lg border border-gray-200">
                   <div className="flex gap-1">
                     {renderStars(Math.round(averageRating))}
                   </div>
-                  <span className="text-2xl font-bold text-neutral-900">
+                  <span className="text-2xl font-bold text-gray-900">
                     {averageRating.toFixed(1)}
                   </span>
                 </div>
@@ -199,15 +186,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
 
             {(reviews?.length || 0) === 0 ? (
-              <Card variant="glass" className="text-center py-16 animate-fade-in-up">
+              <Card variant="elevated" className="text-center py-16 animate-fade-in-up">
                 <CardContent>
-                  <div className="w-20 h-20 bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <MessageCircle className="h-10 w-10 text-neutral-400" />
+                  <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <MessageCircle className="h-10 w-10 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-neutral-900 mb-3">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
                     아직 리뷰가 없습니다
                   </h3>
-                  <p className="text-lg text-neutral-600">
+                  <p className="text-lg text-gray-600">
                     첫 번째 리뷰를 기다리고 있어요!
                   </p>
                 </CardContent>
@@ -218,24 +205,23 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   <Card 
                     key={review.id} 
                     variant="elevated"
-                    glow
-                    className={`group hover:scale-[1.02] animate-fade-in-up delay-${index * 100}`}
+                    className={`group animate-fade-in-up delay-${index * 100}`}
                   >
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                          <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg transition-base">
                             {review.reviewer_name[0]}
                           </div>
                           <div>
-                            <h4 className="text-xl font-bold text-neutral-900 mb-1">
+                            <h4 className="text-xl font-bold text-gray-900 mb-1">
                               {review.reviewer_name}
                             </h4>
                             <div className="flex items-center gap-3 mb-2">
                               <PlatformBadge 
                                 platform={review.source as any}
                                 showIcon={true}
-                                className="transform hover:scale-105 transition-transform duration-200"
+                                className="transition-base"
                               />
                               {review.rating && (
                                 <div className="flex items-center gap-1">
@@ -245,13 +231,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                             </div>
                           </div>
                         </div>
-                        <time className="text-sm text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full">
+                        <time className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                           {new Date(review.created_at).toLocaleDateString('ko-KR')}
                         </time>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <blockquote className="text-lg text-neutral-700 leading-relaxed mb-6 italic">
+                      <blockquote className="text-lg text-gray-700 leading-relaxed mb-6 italic">
                         "{review.review_text}"
                       </blockquote>
                       
@@ -260,7 +246,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                           <img
                             src={review.image_url}
                             alt="리뷰 이미지"
-                            className="rounded-2xl max-w-full h-auto shadow-lg hover:shadow-xl transition-shadow duration-300"
+                            className="rounded-2xl max-w-full h-auto shadow-lg transition-base"
                           />
                         </div>
                       )}
@@ -322,9 +308,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button 
                 size="lg"
-                className="px-8 py-3 text-lg font-semibold shadow-2xl hover:shadow-3xl hover:scale-105"
-                shimmer
-                glow
+                className="px-8 py-3 text-lg font-semibold"
                 asChild
               >
                 <a href="/">Re:cord 시작하기</a>
@@ -332,7 +316,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <Button 
                 variant="ghost" 
                 size="lg"
-                className="text-white border-white/30 hover:bg-white/10 px-8 py-3 text-lg font-semibold hover:scale-105"
+                className="text-white border-white/30 hover:bg-white/10 px-8 py-3 text-lg font-semibold"
                 asChild
               >
                 <a href="/login">로그인</a>
