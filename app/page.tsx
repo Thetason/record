@@ -77,10 +77,10 @@ export default function Home() {
                   </div>
                 </div>
                 
-                <h1 className="text-6xl sm:text-8xl font-black bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-6 leading-tight tracking-tight">
+                <h1 className="text-6xl sm:text-8xl font-black bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-6 leading-tight tracking-tight font-display">
                   Re:cord
                 </h1>
-                <p className="text-2xl sm:text-4xl font-semibold text-neutral-800 mb-6 leading-snug">
+                <p className="text-2xl sm:text-4xl font-semibold text-neutral-800 mb-6 leading-snug font-display">
                   리뷰는 누군가의 기억입니다
                 </p>
                 <p className="text-xl text-neutral-600 mb-16 max-w-4xl mx-auto leading-relaxed">
@@ -143,7 +143,7 @@ export default function Home() {
         <section className="py-32 bg-gradient-to-b from-white to-neutral-50 relative">
           <Container>
             <div className="text-center mb-20 animate-fade-in-up">
-              <h2 className="text-4xl sm:text-6xl font-black text-neutral-900 mb-6 tracking-tight">
+              <h2 className="text-4xl sm:text-6xl font-black text-neutral-900 mb-6 tracking-tight font-display">
                 왜 Re:cord인가요?
               </h2>
               <p className="text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">

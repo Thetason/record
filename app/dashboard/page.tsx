@@ -198,7 +198,7 @@ export default function DashboardPage() {
             {/* Welcome Header */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 animate-fade-in-up">
               <div>
-                <h1 className="text-4xl sm:text-6xl font-black text-neutral-900 mb-4 tracking-tight">
+                <h1 className="text-4xl sm:text-6xl font-black text-neutral-900 mb-4 tracking-tight font-display">
                   안녕하세요, {profile.name}님!
                 </h1>
                 <p className="text-xl text-neutral-600 font-medium">

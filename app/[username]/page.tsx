@@ -86,7 +86,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
               {/* Profile Info */}
               <div className="flex-1 text-center lg:text-left">
-                <h1 className="text-5xl lg:text-7xl font-black mb-4 leading-tight tracking-tight">
+                <h1 className="text-5xl lg:text-7xl font-black mb-4 leading-tight tracking-tight font-display">
                   {profile.name}
                 </h1>
                 {profile.profession && (

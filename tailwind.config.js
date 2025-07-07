@@ -76,8 +76,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Manrope', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Cal Sans', 'Manrope', 'sans-serif'],
+        sans: ['var(--font-manrope)', 'Manrope', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Cal Sans', 'var(--font-manrope)', 'Manrope', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
