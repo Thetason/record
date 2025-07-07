@@ -58,7 +58,7 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
+      <main className="min-h-screen bg-white">
         {/* Animated Background */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-3xl animate-pulse-soft" />
@@ -66,15 +66,15 @@ export default function Home() {
         </div>
 
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-neutral-50 to-white">
+        <section className="relative overflow-hidden bg-white">
           <Container>
             <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center text-center py-20 relative z-10">
               <div className="max-w-4xl mx-auto animate-fade-in-up">
                 
                 <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-neutral-900 mb-8 leading-tight tracking-tight font-display">
-                  리뷰로 성장하는<br />
-                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                    프리랜서 포트폴리오
+                  NEW DESIGN<br />
+                  <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-transparent">
+                    LINKTREE STYLE
                   </span>
                 </h1>
                 <p className="text-xl sm:text-2xl text-neutral-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
