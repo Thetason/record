@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Container } from '@/components/layout/Container'
