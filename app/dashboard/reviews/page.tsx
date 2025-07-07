@@ -28,29 +28,8 @@ import {
   ExternalLink,
   MoreVertical,
   Grid3X3,
-  List,
-  GripVertical
+  List
 } from 'lucide-react'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  rectSortingStrategy
-} from '@dnd-kit/sortable'
-import {
-  useSortable
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 
 type ViewMode = 'grid' | 'list'
 type SortBy = 'created_at' | 'display_order' | 'rating' | 'reviewer_name'
@@ -69,15 +48,6 @@ export default function ReviewsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [sortBy, setSortBy] = useState<SortBy>('display_order')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
-  const [isDragging, setIsDragging] = useState(false)
-  const [reorderLoading, setReorderLoading] = useState(false)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
 
   const loadReviews = async () => {
     try {
@@ -203,68 +173,6 @@ export default function ReviewsPage() {
     }
   }
 
-  const handleDragStart = () => {
-    setIsDragging(true)
-  }
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    setIsDragging(false)
-    const { active, over } = event
-
-    if (!over || active.id === over.id) {
-      return
-    }
-
-    const oldIndex = filteredReviews.findIndex(review => review.id === active.id)
-    const newIndex = filteredReviews.findIndex(review => review.id === over.id)
-
-    if (oldIndex === -1 || newIndex === -1) return
-
-    try {
-      setReorderLoading(true)
-      
-      // Reorder the reviews array
-      const reorderedReviews = arrayMove(filteredReviews, oldIndex, newIndex)
-      
-      // Update display_order for all affected reviews
-      const updatedReviews = reorderedReviews.map((review, index) => ({
-        id: review.id,
-        display_order: index + 1
-      }))
-
-      // Update local state immediately for better UX
-      setReviews(prev => {
-        const newReviews = [...prev]
-        reorderedReviews.forEach((review, index) => {
-          const originalIndex = newReviews.findIndex(r => r.id === review.id)
-          if (originalIndex !== -1) {
-            newReviews[originalIndex] = {
-              ...newReviews[originalIndex],
-              display_order: index + 1
-            }
-          }
-        })
-        return newReviews
-      })
-
-      // Update server
-      const result = await reviewApi.updateOrder(updatedReviews)
-      
-      if (result.success) {
-        success('순서가 변경되었습니다', '리뷰 순서가 성공적으로 업데이트되었습니다.')
-      } else {
-        // Revert on error
-        loadReviews()
-        error('순서 변경 실패', result.error || '알 수 없는 오류가 발생했습니다.')
-      }
-    } catch (err) {
-      console.error('Error updating review order:', err)
-      loadReviews()
-      error('순서 변경 실패', '네트워크 오류가 발생했습니다.')
-    } finally {
-      setReorderLoading(false)
-    }
-  }
 
   const platformOptions = [
     { value: '', label: '모든 플랫폼' },
@@ -287,234 +195,148 @@ export default function ReviewsPage() {
   const visibleReviewsCount = reviews.filter(r => r.is_visible).length
   const hiddenReviewsCount = reviews.length - visibleReviewsCount
 
-  const renderReviewCard = (review: Review) => {
-    const SortableCard = ({ children }: { children: React.ReactNode }) => {
-      const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-      } = useSortable({ id: review.id })
-
-      const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1
-      }
-
-      return (
-        <div ref={setNodeRef} style={style} {...attributes}>
-          {children}
-        </div>
-      )
-    }
-
-    const cardContent = (
-      <Card className={`relative group ${!review.is_visible ? 'opacity-60' : ''} ${isDragging ? 'cursor-grabbing' : ''}`}>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              {sortBy === 'display_order' && (
-                <div 
-                  className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                  {...listeners}
-                >
-                  <GripVertical className="h-4 w-4" />
-                </div>
-              )}
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold">
-                {review.reviewer_name[0]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-gray-900 truncate">
-                  {review.reviewer_name}
-                </h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <PlatformBadge platform={review.source as any} />
-                  {review.rating && (
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                      <span className="text-xs text-gray-600">{review.rating}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+  const renderReviewCard = (review: Review) => (
+    <Card key={review.id} className={`relative group ${!review.is_visible ? 'opacity-60' : ''}`}>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold">
+              {review.reviewer_name[0]}
             </div>
-            <div className="flex items-center gap-1">
-              {!review.is_visible && (
-                <Badge variant="outline" className="text-xs">
-                  숨김
-                </Badge>
-              )}
-              <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleVisibility(review)}
-                  className="h-8 w-8 p-0"
-                >
-                  {review.is_visible ? (
-                    <Eye className="h-4 w-4" />
-                  ) : (
-                    <EyeOff className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="h-8 w-8 p-0"
-                >
-                  <Link href={`/dashboard/edit-review/${review.id}`}>
-                    <Edit3 className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteReview(review)}
-                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-gray-900 truncate">
+                {review.reviewer_name}
+              </h4>
+              <div className="flex items-center gap-2 mt-1">
+                <PlatformBadge platform={review.source as any} />
+                {review.rating && (
+                  <div className="flex items-center gap-1">
+                    <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                    <span className="text-xs text-gray-600">{review.rating}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
-            {review.review_text}
-          </p>
-          {review.external_link && (
-            <div className="mt-3">
-              <Button variant="ghost" size="sm" className="gap-1 h-6 px-2 text-xs" asChild>
-                <a href={review.external_link} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3 w-3" />
-                  원본 보기
-                </a>
+          <div className="flex items-center gap-1">
+            {!review.is_visible && (
+              <Badge variant="outline" className="text-xs">
+                숨김
+              </Badge>
+            )}
+            <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleVisibility(review)}
+                className="h-8 w-8 p-0"
+              >
+                {review.is_visible ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="h-8 w-8 p-0"
+              >
+                <Link href={`/dashboard/edit-review/${review.id}`}>
+                  <Edit3 className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => deleteReview(review)}
+                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-          )}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs text-gray-500">
-            <span>{new Date(review.created_at).toLocaleDateString('ko-KR')}</span>
-            <span>순서: {review.display_order}</span>
-          </div>
-        </CardContent>
-      </Card>
-    )
-
-    return sortBy === 'display_order' ? (
-      <SortableCard key={review.id}>
-        {cardContent}
-      </SortableCard>
-    ) : (
-      <div key={review.id}>
-        {cardContent}
-      </div>
-    )
-  }
-
-  const renderReviewRow = (review: Review) => {
-    const SortableRow = ({ children }: { children: React.ReactNode }) => {
-      const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-      } = useSortable({ id: review.id })
-
-      const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1
-      }
-
-      return (
-        <div ref={setNodeRef} style={style} {...attributes}>
-          {children}
-        </div>
-      )
-    }
-
-    const rowContent = (
-      <Card className={`p-4 ${!review.is_visible ? 'opacity-60' : ''} ${isDragging ? 'cursor-grabbing' : ''}`}>
-        <div className="flex items-center gap-4">
-          {sortBy === 'display_order' && (
-            <div 
-              className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4" />
-            </div>
-          )}
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-            {review.reviewer_name[0]}
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-semibold text-gray-900">{review.reviewer_name}</h4>
-              <PlatformBadge platform={review.source as any} />
-              {review.rating && (
-                <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                  <span className="text-xs text-gray-600">{review.rating}</span>
-                </div>
-              )}
-              {!review.is_visible && (
-                <Badge variant="outline" className="text-xs">
-                  숨김
-                </Badge>
-              )}
-            </div>
-            <p className="text-gray-700 text-sm line-clamp-2">{review.review_text}</p>
-          </div>
-          
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs text-gray-500 hidden sm:block">
-              {new Date(review.created_at).toLocaleDateString('ko-KR')}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleVisibility(review)}
-              className="h-8 w-8 p-0"
-            >
-              {review.is_visible ? (
-                <Eye className="h-4 w-4" />
-              ) : (
-                <EyeOff className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="h-8 w-8 p-0"
-            >
-              <Link href={`/dashboard/edit-review/${review.id}`}>
-                <Edit3 className="h-4 w-4" />
-              </Link>
-            </Button>
           </div>
         </div>
-      </Card>
-    )
+      </CardHeader>
+      <CardContent>
+        <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
+          {review.review_text}
+        </p>
+        {review.external_link && (
+          <div className="mt-3">
+            <Button variant="ghost" size="sm" className="gap-1 h-6 px-2 text-xs" asChild>
+              <a href={review.external_link} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3 w-3" />
+                원본 보기
+              </a>
+            </Button>
+          </div>
+        )}
+        <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs text-gray-500">
+          <span>{new Date(review.created_at).toLocaleDateString('ko-KR')}</span>
+          <span>순서: {review.display_order}</span>
+        </div>
+      </CardContent>
+    </Card>
+  )
 
-    return sortBy === 'display_order' ? (
-      <SortableRow key={review.id}>
-        {rowContent}
-      </SortableRow>
-    ) : (
-      <div key={review.id}>
-        {rowContent}
+  const renderReviewRow = (review: Review) => (
+    <Card key={review.id} className={`p-4 ${!review.is_visible ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+          {review.reviewer_name[0]}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-semibold text-gray-900">{review.reviewer_name}</h4>
+            <PlatformBadge platform={review.source as any} />
+            {review.rating && (
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                <span className="text-xs text-gray-600">{review.rating}</span>
+              </div>
+            )}
+            {!review.is_visible && (
+              <Badge variant="outline" className="text-xs">
+                숨김
+              </Badge>
+            )}
+          </div>
+          <p className="text-gray-700 text-sm line-clamp-2">{review.review_text}</p>
+        </div>
+        
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs text-gray-500 hidden sm:block">
+            {new Date(review.created_at).toLocaleDateString('ko-KR')}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleVisibility(review)}
+            className="h-8 w-8 p-0"
+          >
+            {review.is_visible ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="h-8 w-8 p-0"
+          >
+            <Link href={`/dashboard/edit-review/${review.id}`}>
+              <Edit3 className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
-    )
-  }
+    </Card>
+  )
 
   if (loading) {
     return (
@@ -593,7 +415,7 @@ export default function ReviewsPage() {
 
                     <div className="flex border rounded-lg overflow-hidden">
                       <Button
-                        variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                        variant={viewMode === 'grid' ? 'primary' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('grid')}
                         className="rounded-none border-0 px-3"
@@ -601,7 +423,7 @@ export default function ReviewsPage() {
                         <Grid3X3 className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant={viewMode === 'list' ? 'default' : 'ghost'}
+                        variant={viewMode === 'list' ? 'primary' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('list')}
                         className="rounded-none border-0 px-3"
@@ -651,37 +473,15 @@ export default function ReviewsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={filteredReviews.map(review => review.id)}
-                  strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
-                >
-                  {sortBy === 'display_order' && (
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-700 flex items-center gap-2">
-                        <GripVertical className="h-4 w-4" />
-                        드래그하여 리뷰 순서를 변경할 수 있습니다
-                        {reorderLoading && <span className="animate-spin">⏳</span>}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className={
-                    viewMode === 'grid' 
-                      ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
-                      : 'space-y-4'
-                  }>
-                    {filteredReviews.map(review => 
-                      viewMode === 'grid' ? renderReviewCard(review) : renderReviewRow(review)
-                    )}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              <div className={
+                viewMode === 'grid' 
+                  ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
+                  : 'space-y-4'
+              }>
+                {filteredReviews.map(review => 
+                  viewMode === 'grid' ? renderReviewCard(review) : renderReviewRow(review)
+                )}
+              </div>
             )}
           </div>
         </Container>

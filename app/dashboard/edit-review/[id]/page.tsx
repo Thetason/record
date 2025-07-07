@@ -15,12 +15,12 @@ import { ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface EditReviewPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default function EditReviewPage({ params }: EditReviewPageProps) {
+export default function EditReviewPage(props: EditReviewPageProps) {
   const router = useRouter()
   const { user } = useAuth()
   const { success, error } = useToast()
@@ -32,6 +32,8 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
   const loadReview = async () => {
     try {
       setPageLoading(true)
+      
+      const params = await props.params
       
       // Get all user reviews and find the one with matching ID
       const result = await reviewApi.getCurrent()
@@ -58,7 +60,7 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
 
   useEffect(() => {
     loadReview()
-  }, [params.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Redirect if not authenticated
   if (!user) {

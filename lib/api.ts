@@ -8,9 +8,9 @@ import type {
   ReviewUpdate,
   ProfileFormData,
   ReviewFormData,
-  Platform,
-  VALIDATION_RULES
+  Platform
 } from '@/types/database'
+import { VALIDATION_RULES } from '@/types/database'
 
 // Validation helpers
 export const validateUsername = (username: string): string | null => {
@@ -130,13 +130,15 @@ export const profileApi = {
       }
 
       // Check username availability if creating new profile
-      const { data: user } = await auth.getUser()
-      if (!user.success || !user.data?.user) {
+      const userResult = await auth.getUser()
+      if (!userResult.success || !userResult.data?.user) {
         return {
           success: false,
           error: 'Not authenticated'
         }
       }
+      
+      const user = userResult.data.user
 
       // Check if username is available (skip if it's the current user's username)
       const currentProfile = await db.profiles.getCurrent()
@@ -153,7 +155,7 @@ export const profileApi = {
       }
 
       const profileData: ProfileInsert = {
-        id: user.data.user.id,
+        id: user.id,
         username: data.username.toLowerCase(),
         name: data.name,
         bio: data.bio || null,
@@ -173,17 +175,18 @@ export const profileApi = {
   // Update profile settings
   updateSettings: async (updates: Partial<ProfileUpdate>): Promise<ApiResponse<Profile>> => {
     try {
-      const { data: user } = await auth.getUser()
-      if (!user.success || !user.data?.user) {
+      const userResult = await auth.getUser()
+      if (!userResult.success || !userResult.data?.user) {
         return {
           success: false,
           error: 'Not authenticated'
         }
       }
 
+      const user = userResult.data.user
       const profileData: ProfileUpdate = {
         ...updates,
-        id: user.data.user.id
+        id: user.id
       }
 
       return await db.profiles.upsert(profileData as ProfileInsert)
@@ -264,16 +267,17 @@ export const reviewApi = {
         }
       }
 
-      const { data: user } = await auth.getUser()
-      if (!user.success || !user.data?.user) {
+      const userResult = await auth.getUser()
+      if (!userResult.success || !userResult.data?.user) {
         return {
           success: false,
           error: 'Not authenticated'
         }
       }
 
+      const user = userResult.data.user
       const reviewData: ReviewInsert = {
-        user_id: user.data.user.id,
+        user_id: user.id,
         reviewer_name: data.reviewer_name,
         review_text: data.review_text,
         rating: data.rating || null,
@@ -325,7 +329,18 @@ export const reviewApi = {
   // Delete review
   delete: async (id: string): Promise<ApiResponse<void>> => {
     try {
-      return await db.reviews.delete(id)
+      const result = await db.reviews.delete(id)
+      if (result.success) {
+        return {
+          success: true,
+          data: undefined
+        }
+      } else {
+        return {
+          success: false,
+          error: result.error
+        }
+      }
     } catch (error) {
       console.error('Error deleting review:', error)
       return {
@@ -443,7 +458,18 @@ export const authApi = {
   // Sign out
   signOut: async (): Promise<ApiResponse<void>> => {
     try {
-      return await auth.signOut()
+      const result = await auth.signOut()
+      if (result.success) {
+        return {
+          success: true,
+          data: undefined
+        }
+      } else {
+        return {
+          success: false,
+          error: result.error
+        }
+      }
     } catch (error) {
       console.error('Error signing out:', error)
       return {

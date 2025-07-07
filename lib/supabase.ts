@@ -60,6 +60,24 @@ export function handleSupabaseResponse<T>(
   }
 }
 
+// Helper function to handle Supabase auth responses
+export function handleSupabaseAuthResponse(
+  response: any
+): ApiResponse<any> {
+  if (response.error) {
+    console.error('Supabase auth error:', response.error)
+    return {
+      success: false,
+      error: response.error.message || 'An unexpected error occurred'
+    }
+  }
+
+  return {
+    success: true,
+    data: response.data
+  }
+}
+
 // Auth helpers
 export const auth = {
   // Sign up with email and password
@@ -71,7 +89,7 @@ export const auth = {
         data: metadata
       }
     })
-    return handleSupabaseResponse(response)
+    return handleSupabaseAuthResponse(response)
   },
 
   // Sign in with email and password
@@ -80,25 +98,25 @@ export const auth = {
       email,
       password
     })
-    return handleSupabaseResponse(response)
+    return handleSupabaseAuthResponse(response)
   },
 
   // Sign out
   signOut: async () => {
     const response = await supabase.auth.signOut()
-    return handleSupabaseResponse(response)
+    return handleSupabaseAuthResponse(response)
   },
 
   // Get current user
   getUser: async () => {
     const response = await supabase.auth.getUser()
-    return handleSupabaseResponse(response)
+    return handleSupabaseAuthResponse(response)
   },
 
   // Get current session
   getSession: async () => {
     const response = await supabase.auth.getSession()
-    return handleSupabaseResponse(response)
+    return handleSupabaseAuthResponse(response)
   }
 }
 

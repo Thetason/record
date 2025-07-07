@@ -8,13 +8,13 @@ import { Star, MapPin, Calendar, ExternalLink, Share2, MessageCircle } from 'luc
 import { ShareButton } from '@/components/ShareButton'
 
 interface ProfilePageProps {
-  params: {
+  params: Promise<{
     username: string
-  }
+  }>
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const { username } = params
+  const { username } = await params
 
   // Fetch profile and reviews data
   const [profileResult, reviewsResult, statsResult] = await Promise.all([
@@ -32,9 +32,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const stats = statsResult.success ? statsResult.data : []
 
   // Calculate statistics
-  const totalReviews = reviews.length
+  const totalReviews = reviews?.length || 0
   const averageRating = totalReviews > 0 
-    ? reviews.reduce((sum: number, review: any) => sum + (review.rating || 0), 0) / totalReviews 
+    ? (reviews || []).reduce((sum: number, review: any) => sum + (review.rating || 0), 0) / totalReviews 
     : 0
 
   const renderStars = (rating: number) => {
@@ -119,13 +119,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       </section>
 
       {/* Platform Stats */}
-      {stats.length > 0 && (
+      {(stats?.length || 0) > 0 && (
         <section className="py-12 bg-white border-b">
           <Container>
             <div className="max-w-4xl mx-auto">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">플랫폼별 리뷰</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {stats.map((stat: any) => (
+                {(stats || []).map((stat: any) => (
                   <Card key={stat.source} className="text-center">
                     <CardContent className="p-4">
                       <PlatformBadge 
@@ -172,7 +172,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               )}
             </div>
 
-            {reviews.length === 0 ? (
+            {(reviews?.length || 0) === 0 ? (
               <Card className="text-center py-12">
                 <CardContent>
                   <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -186,7 +186,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </Card>
             ) : (
               <div className="grid gap-6">
-                {reviews.map((review: any) => (
+                {(reviews || []).map((review: any) => (
                   <Card key={review.id} className="hover-lift">
                     <CardHeader>
                       <div className="flex items-start justify-between">
