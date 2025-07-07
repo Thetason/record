@@ -30,7 +30,7 @@
   }
 
   * {
-    @apply border-border;
+    border-color: #E5E7EB;
   }
 
   html {
