@@ -59,7 +59,7 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="min-h-screen" style={{ backgroundColor: "#FF0000" }}>
+      <main className="min-h-screen bg-white">
 
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-white">
@@ -67,10 +67,10 @@ export default function Home() {
             <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center text-center py-20 relative z-10">
               <div className="max-w-4xl mx-auto animate-fade-in-up">
                 
-                <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-neutral-900 mb-8 leading-tight tracking-tight font-display">
-                  DESIGN CHANGED<br />
-                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                    변경사항 확인
+                <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-neutral-900 mb-8 leading-tight tracking-tight">
+                  리뷰로 성장하는<br />
+                  <span className="text-primary">
+                    프리랜서 포트폴리오
                   </span>
                 </h1>
                 <p className="text-xl sm:text-2xl text-neutral-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
