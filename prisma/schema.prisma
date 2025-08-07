@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  name      String
+  bio       String?
+  location  String?
+  website   String?
+  phone     String?
+  avatar    String?
+  
+  // 프로필 설정
+  isPublic  Boolean  @default(true)
+  
+  // 통계
+  profileViews Int     @default(0)
+  
+  // 타임스탬프
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 관계
+  reviews   Review[]
+  sessions  Session[]
+  accounts  Account[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  platform    String   // 네이버, 카카오맵, 구글, 크몽 등
+  business    String   // 업체명
+  rating      Int      // 평점 (1-5)
+  content     String   @db.Text // 리뷰 내용
+  author      String   // 리뷰 작성자 (익명화된 이름)
+  reviewDate  DateTime // 실제 리뷰 작성일
+  
+  // 메타데이터
+  isVerified  Boolean  @default(false) // 검증 여부
+  isPublic    Boolean  @default(true)  // 공개 여부
+  
+  // 이미지 (OCR용)
+  imageUrl    String?
+  
+  // 소유자
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 타임스탬프
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("reviews")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
