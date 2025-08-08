@@ -177,7 +177,7 @@ export default function HomePage() {
 
                   {/* 리뷰 통계 및 최근 리뷰 */}
                   <div className="flex-grow">
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="text-center">
                         <div className="text-2xl md:text-3xl font-bold text-[#FF6B35]">
                           {reviewCount}
@@ -189,12 +189,6 @@ export default function HomePage() {
                           {avgRating.toFixed(1)}
                         </div>
                         <div className="text-xs md:text-sm text-gray-600">평균 평점</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl md:text-3xl font-bold text-[#FF6B35]">
-                          3
-                        </div>
-                        <div className="text-xs md:text-sm text-gray-600">스튜디오</div>
                       </div>
                     </div>
 
