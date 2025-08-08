@@ -109,7 +109,7 @@ export default function HomePage() {
             
             <h1 className="text-3xl md:text-6xl font-bold mb-4 md:mb-6 leading-tight">
               흩어진 리뷰를 모아<br />
-              <span className="text-[#FF6B35]">신뢰를 쌓으세요</span>
+              <span className="text-[#FF6B35]">당신의 실력을 더 쉽게 전달해보세요</span>
             </h1>
             
             <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
