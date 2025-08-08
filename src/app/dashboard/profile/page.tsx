@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { 
   HomeIcon, 
@@ -18,31 +20,121 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-// 임시 데이터
-const mockUser = {
-  name: "김서연",
-  username: "seoyeon",
-  email: "seoyeon@example.com",
-  bio: "요가 강사 & 교육 전문가 🧘‍♀️\n마음챙김과 몸의 균형을 통해 일상의 평화를 찾아드립니다.",
-  avatar: "김",
-  location: "서울, 한국",
-  website: "https://seoyeon-yoga.com",
-  phone: "010-1234-5678"
+interface UserProfile {
+  id: string
+  email: string
+  name: string
+  username: string
+  bio: string | null
+  location: string | null
+  website: string | null
+  phone: string | null
+  avatar: string | null
+  _count?: {
+    reviews: number
+  }
+}
+
+interface ProfileStats {
+  totalReviews: number
+  averageRating: number
+  profileViews: number
+  thisMonthReviews: number
 }
 
 export default function ProfilePage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [formData, setFormData] = useState({
-    name: mockUser.name,
-    username: mockUser.username,
-    email: mockUser.email,
-    bio: mockUser.bio,
-    location: mockUser.location,
-    website: mockUser.website,
-    phone: mockUser.phone
+    name: "",
+    username: "",
+    email: "",
+    bio: "",
+    location: "",
+    website: "",
+    phone: ""
   })
-  
-  const [isLoading, setIsLoading] = useState(false)
+  const [stats, setStats] = useState<ProfileStats>({
+    totalReviews: 0,
+    averageRating: 0,
+    profileViews: 0,
+    thisMonthReviews: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login")
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    fetchUserProfile()
+    fetchStats()
+  }, [session])
+
+  const fetchUserProfile = async () => {
+    if (!session) return
+
+    try {
+      const res = await fetch("/api/user")
+      if (res.ok) {
+        const data = await res.json()
+        setUserProfile(data)
+        setFormData({
+          name: data.name || "",
+          username: data.username || "",
+          email: data.email || "",
+          bio: data.bio || "",
+          location: data.location || "",
+          website: data.website || "",
+          phone: data.phone || ""
+        })
+        if (data.avatar) {
+          setPreviewImage(data.avatar)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch("/api/reviews")
+      if (res.ok) {
+        const data = await res.json()
+        const reviewsList = data.reviews || data
+        
+        const total = reviewsList.length
+        const avgRating = total > 0 
+          ? reviewsList.reduce((sum: number, r: any) => sum + r.rating, 0) / total
+          : 0
+        
+        const thisMonth = reviewsList.filter((r: any) => {
+          const reviewDate = new Date(r.createdAt)
+          const now = new Date()
+          return reviewDate.getMonth() === now.getMonth() && 
+                 reviewDate.getFullYear() === now.getFullYear()
+        }).length
+
+        setStats({
+          totalReviews: total,
+          averageRating: Math.round(avgRating * 10) / 10,
+          profileViews: userProfile?.profileViews || 0,
+          thisMonthReviews: thisMonth
+        })
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -65,18 +157,39 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setIsSaving(true)
+    setError("")
     
     try {
-      console.log("Profile update data:", formData)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const res = await fetch("/api/user", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          avatar: previewImage
+        })
+      })
+
+      if (!res.ok) {
+        throw new Error("프로필 업데이트 실패")
+      }
+
       alert("프로필이 성공적으로 업데이트되었습니다!")
-    } catch (error) {
+      fetchUserProfile()
+    } catch (error: any) {
       console.error("Profile update error:", error)
-      alert("프로필 업데이트 중 오류가 발생했습니다.")
+      setError(error.message || "프로필 업데이트 중 오류가 발생했습니다.")
     } finally {
-      setIsLoading(false)
+      setIsSaving(false)
     }
+  }
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/" })
+  }
+
+  if (status === "loading" || isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>
   }
 
   const profileUrl = `re-cord.kr/${formData.username}`
@@ -107,17 +220,17 @@ export default function ProfilePage() {
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-medium text-[#FF6B35]">
-                {mockUser.avatar}
+                {session?.user?.name?.charAt(0).toUpperCase() || "U"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {mockUser.name}
+                  {session?.user?.name || "사용자"}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  @{mockUser.username}
+                  @{session?.user?.username || "user"}
                 </p>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <ExitIcon className="w-4 h-4" />
               </Button>
             </div>
@@ -156,7 +269,9 @@ export default function ProfilePage() {
                           {previewImage ? (
                             <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-2xl font-bold text-gray-400">{formData.name.charAt(0)}</span>
+                            <span className="text-2xl font-bold text-gray-400">
+                              {formData.name.charAt(0).toUpperCase() || "U"}
+                            </span>
                           )}
                         </div>
                         <div>
@@ -227,7 +342,11 @@ export default function ProfilePage() {
                         onChange={handleChange}
                         placeholder="연락 가능한 이메일"
                         required
+                        disabled
                       />
+                      <p className="text-xs text-gray-500">
+                        이메일은 변경할 수 없습니다
+                      </p>
                     </div>
 
                     {/* Bio */}
@@ -296,28 +415,26 @@ export default function ProfilePage() {
                       </p>
                     </div>
 
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+                        {error}
+                      </div>
+                    )}
+
                     <div className="flex justify-end gap-4 pt-6 border-t">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setFormData({
-                          name: mockUser.name,
-                          username: mockUser.username,
-                          email: mockUser.email,
-                          bio: mockUser.bio,
-                          location: mockUser.location,
-                          website: mockUser.website,
-                          phone: mockUser.phone
-                        })}
+                        onClick={fetchUserProfile}
                       >
                         취소
                       </Button>
                       <Button
                         type="submit"
                         className="bg-[#FF6B35] hover:bg-[#E55A2B]"
-                        disabled={isLoading}
+                        disabled={isSaving}
                       >
-                        {isLoading ? "저장 중..." : "변경사항 저장"}
+                        {isSaving ? "저장 중..." : "변경사항 저장"}
                       </Button>
                     </div>
                   </form>
@@ -340,11 +457,11 @@ export default function ProfilePage() {
                       {previewImage ? (
                         <img src={previewImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
                       ) : (
-                        formData.name.charAt(0)
+                        formData.name.charAt(0).toUpperCase() || "U"
                       )}
                     </div>
-                    <h3 className="font-bold text-lg">{formData.name}</h3>
-                    <p className="text-gray-600 text-sm">@{formData.username}</p>
+                    <h3 className="font-bold text-lg">{formData.name || "이름 없음"}</h3>
+                    <p className="text-gray-600 text-sm">@{formData.username || "username"}</p>
                     {formData.location && (
                       <p className="text-gray-500 text-xs mt-1">{formData.location}</p>
                     )}
@@ -391,19 +508,19 @@ export default function ProfilePage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">총 리뷰</span>
-                      <span className="font-medium">47개</span>
+                      <span className="font-medium">{stats.totalReviews}개</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">평균 평점</span>
-                      <span className="font-medium">4.8점</span>
+                      <span className="font-medium">{stats.averageRating}점</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">프로필 조회</span>
-                      <span className="font-medium">324회</span>
+                      <span className="font-medium">{stats.profileViews}회</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">이번 달 리뷰</span>
-                      <span className="font-medium">12개</span>
+                      <span className="font-medium">{stats.thisMonthReviews}개</span>
                     </div>
                   </div>
                 </CardContent>

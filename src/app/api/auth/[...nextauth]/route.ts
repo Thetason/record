@@ -33,12 +33,15 @@ const handler = NextAuth({
           return null
         }
 
-        // Note: 실제 구현에서는 password 필드를 User 모델에 추가해야 합니다
-        // const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+        if (!user.password) {
+          return null
+        }
+
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
         
-        // if (!isPasswordValid) {
-        //   return null
-        // }
+        if (!isPasswordValid) {
+          return null
+        }
 
         return {
           id: user.id,

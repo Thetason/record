@@ -1,5 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { 
   HomeIcon, 
@@ -7,60 +10,106 @@ import {
   PlusIcon, 
   BarChartIcon,
   GearIcon,
-  ExitIcon 
+  ExitIcon,
+  UploadIcon 
 } from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-// 임시 데이터
-const mockUser = {
-  name: "김서연",
-  username: "seoyeon",
-  email: "seoyeon@example.com",
-  avatar: "김",
-  stats: {
-    totalReviews: 47,
-    averageRating: 4.8,
-    platforms: 4,
-    thisMonth: 12
-  }
+interface Review {
+  id: string
+  platform: string
+  business: string
+  rating: number
+  content: string
+  author: string
+  reviewDate: string
+  createdAt: string
 }
 
-const mockReviews = [
-  {
-    id: 1,
-    platform: "네이버",
-    business: "마인드홈 스튜디오", 
-    rating: 5,
-    content: "서연 선생님의 요가 수업은 제 연습을 완전히 바꿔놓았어요...",
-    author: "김**",
-    date: "2024-01-15",
-    platformColor: "bg-green-100 text-green-800"
-  },
-  {
-    id: 2,
-    platform: "카카오맵",
-    business: "세렌디피티 요가",
-    rating: 5, 
-    content: "소맞은 요가 수업을 들어봤지만, 서연 선생님의 마음챙김...",
-    author: "이**",
-    date: "2024-01-12",
-    platformColor: "bg-yellow-100 text-yellow-800"
-  },
-  {
-    id: 3,
-    platform: "구글",
-    business: "프라임 교육센터",
-    rating: 4,
-    content: "김서연 강사님의 강의는 매우 체계적이고 논리적입니다...",
-    author: "박**", 
-    date: "2024-01-10",
-    platformColor: "bg-blue-100 text-blue-800"
-  }
-]
+interface UserStats {
+  totalReviews: number
+  averageRating: number
+  platforms: number
+  thisMonth: number
+}
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [stats, setStats] = useState<UserStats>({
+    totalReviews: 0,
+    averageRating: 0,
+    platforms: 0,
+    thisMonth: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login")
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    fetchReviews()
+  }, [session])
+
+  const fetchReviews = async () => {
+    try {
+      setIsLoading(true)
+      const res = await fetch("/api/reviews")
+      if (res.ok) {
+        const data = await res.json()
+        const reviewsList = data.reviews || data
+        setReviews(reviewsList.slice(0, 3))
+        
+        // 통계 계산
+        if (reviewsList.length > 0) {
+          const total = reviewsList.length
+          const avgRating = reviewsList.reduce((sum: number, r: Review) => sum + r.rating, 0) / total
+          const platforms = new Set(reviewsList.map((r: Review) => r.platform)).size
+          const thisMonth = reviewsList.filter((r: Review) => {
+            const reviewDate = new Date(r.createdAt)
+            const now = new Date()
+            return reviewDate.getMonth() === now.getMonth() && 
+                   reviewDate.getFullYear() === now.getFullYear()
+          }).length
+
+          setStats({
+            totalReviews: total,
+            averageRating: Math.round(avgRating * 10) / 10,
+            platforms: platforms,
+            thisMonth: thisMonth
+          })
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/" })
+  }
+
+  const getPlatformColor = (platform: string) => {
+    const colors: { [key: string]: string } = {
+      "네이버": "bg-green-100 text-green-800",
+      "카카오맵": "bg-yellow-100 text-yellow-800",
+      "구글": "bg-blue-100 text-blue-800",
+      "크몽": "bg-purple-100 text-purple-800"
+    }
+    return colors[platform] || "bg-gray-100 text-gray-800"
+  }
+
+  if (status === "loading" || isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -87,17 +136,17 @@ export default function DashboardPage() {
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-medium text-[#FF6B35]">
-                {mockUser.avatar}
+                {session?.user?.name?.charAt(0).toUpperCase() || "U"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {mockUser.name}
+                  {session?.user?.name || "사용자"}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  @{mockUser.username}
+                  @{session?.user?.username || "user"}
                 </p>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <ExitIcon className="w-4 h-4" />
               </Button>
             </div>
@@ -111,7 +160,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
-              안녕하세요, {mockUser.name}님! 👋
+              안녕하세요, {session?.user?.name || "사용자"}님! 👋
             </h1>
             <p className="text-gray-600 mt-2">
               오늘도 소중한 리뷰들을 관리해보세요
@@ -122,31 +171,31 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
               title="총 리뷰"
-              value={mockUser.stats.totalReviews}
+              value={stats.totalReviews}
               suffix="개"
-              trend="+3"
+              trend={stats.totalReviews > 0 ? "+3" : "0"}
               trendLabel="이번 주"
             />
             <StatCard
               title="평균 평점"
-              value={mockUser.stats.averageRating}
+              value={stats.averageRating || 0}
               suffix="점"
-              trend="+0.2"
+              trend={stats.averageRating > 0 ? "+0.2" : "0"}
               trendLabel="지난 달 대비"
             />
             <StatCard
               title="연동 플랫폼"
-              value={mockUser.stats.platforms}
+              value={stats.platforms}
               suffix="개"
               trend="stable"
               trendLabel="안정적"
             />
             <StatCard
               title="이번 달 리뷰"
-              value={mockUser.stats.thisMonth}
+              value={stats.thisMonth}
               suffix="개" 
-              trend="+4"
-              trendLabel="지난 달 대비"
+              trend={stats.thisMonth > 0 ? `+${stats.thisMonth}` : "0"}
+              trendLabel="신규 등록"
             />
           </div>
 
@@ -159,22 +208,35 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button className="h-auto p-6 flex flex-col items-center gap-3 bg-[#FF6B35] hover:bg-[#E55A2B]">
-                  <PlusIcon className="w-6 h-6" />
-                  <div className="text-center">
-                    <div className="font-medium">리뷰 추가</div>
-                    <div className="text-xs opacity-90">새로운 리뷰 등록</div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-6 flex flex-col items-center gap-3">
-                  <PersonIcon className="w-6 h-6" />
-                  <div className="text-center">
-                    <div className="font-medium">프로필 보기</div>
-                    <div className="text-xs text-gray-500">공개 프로필 확인</div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-6 flex flex-col items-center gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link href="/dashboard/bulk-upload">
+                  <Button className="w-full h-auto p-6 flex flex-col items-center gap-3 bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    <UploadIcon className="w-6 h-6" />
+                    <div className="text-center">
+                      <div className="font-medium">대량 업로드</div>
+                      <div className="text-xs opacity-90">여러 리뷰 한번에</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link href="/dashboard/add-review">
+                  <Button variant="outline" className="w-full h-auto p-6 flex flex-col items-center gap-3 hover:bg-gray-50">
+                    <PlusIcon className="w-6 h-6" />
+                    <div className="text-center">
+                      <div className="font-medium">리뷰 추가</div>
+                      <div className="text-xs text-gray-500">개별 리뷰 등록</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link href="/dashboard/profile">
+                  <Button variant="outline" className="w-full h-auto p-6 flex flex-col items-center gap-3 hover:bg-gray-50">
+                    <PersonIcon className="w-6 h-6" />
+                    <div className="text-center">
+                      <div className="font-medium">프로필 보기</div>
+                      <div className="text-xs text-gray-500">공개 프로필 확인</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Button variant="outline" className="w-full h-auto p-6 flex flex-col items-center gap-3 hover:bg-gray-50">
                   <BarChartIcon className="w-6 h-6" />
                   <div className="text-center">
                     <div className="font-medium">분석 보기</div>
@@ -201,34 +263,45 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {mockReviews.map((review) => (
-                  <div key={review.id} className="flex gap-4 p-4 border rounded-lg">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${review.platformColor}`}>
-                          {review.platform}
-                        </span>
-                        <span className="text-sm font-medium">{review.business}</span>
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <span key={i} className={`text-sm ${i < review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>
-                              ★
-                            </span>
-                          ))}
+              {reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="flex gap-4 p-4 border rounded-lg">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPlatformColor(review.platform)}`}>
+                            {review.platform}
+                          </span>
+                          <span className="text-sm font-medium">{review.business}</span>
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} className={`text-sm ${i < review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {review.content}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span>{review.author}</span>
+                          <span>{new Date(review.reviewDate).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {review.content}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>{review.author}</span>
-                        <span>{review.date}</span>
-                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="mb-4">아직 등록된 리뷰가 없습니다</p>
+                  <Link href="/dashboard/add-review">
+                    <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+                      첫 리뷰 추가하기
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

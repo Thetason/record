@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { 
   HomeIcon, 
@@ -11,100 +13,138 @@ import {
   ExitIcon,
   Pencil1Icon,
   TrashIcon,
-  MagnifyingGlassIcon,
-  DotsVerticalIcon
+  MagnifyingGlassIcon
 } from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-// 임시 데이터
-const mockUser = {
-  name: "김서연",
-  username: "seoyeon",
-  email: "seoyeon@example.com",
-  avatar: "김"
+interface Review {
+  id: string
+  platform: string
+  business: string
+  rating: number
+  content: string
+  author: string
+  reviewDate: string
+  createdAt: string
 }
 
-const initialReviews = [
-  {
-    id: 1,
-    platform: "네이버",
-    business: "마인드홈 스튜디오", 
-    rating: 5,
-    content: "서연 선생님의 요가 수업은 제 연습을 완전히 바꿔놓았어요. 매일 아침 명상과 함께 시작하는 하타 요가는 정말 마음을 평온하게 해주고, 몸도 한층 유연해졌습니다. 특히 개인별 맞춤 지도가 인상적이었어요.",
-    author: "김**",
-    date: "2024-01-15",
-    platformColor: "bg-green-100 text-green-800"
-  },
-  {
-    id: 2,
-    platform: "카카오맵",
-    business: "세렌디피티 요가",
-    rating: 5, 
-    content: "소수정예 요가 수업을 들어봤지만, 서연 선생님의 마음챙김 요가는 차별화되어 있어요. 단순히 동작만 배우는 게 아니라, 호흡과 명상을 통해 진정한 요가의 정신을 배울 수 있었습니다.",
-    author: "이**",
-    date: "2024-01-12",
-    platformColor: "bg-yellow-100 text-yellow-800"
-  },
-  {
-    id: 3,
-    platform: "구글",
-    business: "프라임 교육센터",
-    rating: 4,
-    content: "김서연 강사님의 강의는 매우 체계적이고 논리적입니다. 복잡한 개념도 쉽게 설명해주시고, 실습 위주의 수업 방식이 정말 효과적이었어요. 다음 기수 강의도 꼭 들을 예정입니다.",
-    author: "박**", 
-    date: "2024-01-10",
-    platformColor: "bg-blue-100 text-blue-800"
-  },
-  {
-    id: 4,
-    platform: "크몽",
-    business: "서연의 맞춤형 과외",
-    rating: 5,
-    content: "1:1 맞춤 과외를 받았는데 정말 만족스러웠습니다. 제가 부족한 부분을 정확히 짚어주시고, 단계별로 차근차근 가르쳐주셔서 실력이 많이 늘었어요.",
-    author: "최**",
-    date: "2024-01-08",
-    platformColor: "bg-purple-100 text-purple-800"
-  },
-  {
-    id: 5,
-    platform: "네이버",
-    business: "힐링 요가 스튜디오",
-    rating: 5,
-    content: "임신 중에 받은 산전 요가 수업이었는데, 임산부의 몸 상태를 정말 세심하게 배려해주셨어요. 안전하면서도 효과적인 동작들로 구성된 수업이었습니다.",
-    author: "정**",
-    date: "2024-01-05",
-    platformColor: "bg-green-100 text-green-800"
-  }
-]
-
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState(initialReviews)
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [filteredReviews, setFilteredReviews] = useState<Review[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterPlatform, setFilterPlatform] = useState("all")
-
-  const platforms = ["all", "네이버", "카카오맵", "구글", "크몽"]
-  
-  const filteredReviews = reviews.filter(review => {
-    const matchesSearch = review.business.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.author.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesPlatform = filterPlatform === "all" || review.platform === filterPlatform
-    
-    return matchesSearch && matchesPlatform
+  const [isLoading, setIsLoading] = useState(true)
+  const [stats, setStats] = useState({
+    total: 0,
+    avgRating: 0,
+    platforms: 0,
+    fiveStars: 0
   })
 
-  const handleDelete = (id: number) => {
-    if (confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
-      setReviews(reviews.filter(review => review.id !== id))
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login")
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    fetchReviews()
+  }, [session])
+
+  useEffect(() => {
+    // 필터링 적용
+    const filtered = reviews.filter(review => {
+      const matchesSearch = 
+        review.business.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        review.author.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesPlatform = filterPlatform === "all" || review.platform === filterPlatform
+      
+      return matchesSearch && matchesPlatform
+    })
+    setFilteredReviews(filtered)
+  }, [reviews, searchTerm, filterPlatform])
+
+  const fetchReviews = async () => {
+    if (!session) return
+
+    try {
+      const res = await fetch("/api/reviews")
+      if (res.ok) {
+        const data = await res.json()
+        const reviewsList = data.reviews || data
+        setReviews(reviewsList)
+        
+        // 통계 계산
+        if (reviewsList.length > 0) {
+          const total = reviewsList.length
+          const avgRating = reviewsList.reduce((sum: number, r: Review) => sum + r.rating, 0) / total
+          const platforms = new Set(reviewsList.map((r: Review) => r.platform)).size
+          const fiveStars = reviewsList.filter((r: Review) => r.rating === 5).length
+
+          setStats({
+            total,
+            avgRating: Math.round(avgRating * 10) / 10,
+            platforms,
+            fiveStars
+          })
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleEdit = (id: number) => {
-    // 편집 로직 구현 예정
-    alert(`리뷰 ${id} 편집 기능은 곧 구현됩니다!`)
+  const handleDelete = async (id: string) => {
+    if (!confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: "DELETE"
+      })
+
+      if (res.ok) {
+        setReviews(reviews.filter(review => review.id !== id))
+      } else {
+        alert("리뷰 삭제에 실패했습니다.")
+      }
+    } catch (error) {
+      console.error("Delete error:", error)
+      alert("리뷰 삭제 중 오류가 발생했습니다.")
+    }
+  }
+
+  const handleEdit = (id: string) => {
+    router.push(`/dashboard/reviews/edit/${id}`)
+  }
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/" })
+  }
+
+  const getPlatformColor = (platform: string) => {
+    const colors: { [key: string]: string } = {
+      "네이버": "bg-green-100 text-green-800",
+      "카카오맵": "bg-yellow-100 text-yellow-800",
+      "구글": "bg-blue-100 text-blue-800",
+      "크몽": "bg-purple-100 text-purple-800"
+    }
+    return colors[platform] || "bg-gray-100 text-gray-800"
+  }
+
+  const platforms = ["all", ...Array.from(new Set(reviews.map(r => r.platform)))]
+
+  if (status === "loading" || isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>
   }
 
   return (
@@ -133,17 +173,17 @@ export default function ReviewsPage() {
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-medium text-[#FF6B35]">
-                {mockUser.avatar}
+                {session?.user?.name?.charAt(0).toUpperCase() || "U"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {mockUser.name}
+                  {session?.user?.name || "사용자"}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  @{mockUser.username}
+                  @{session?.user?.username || "user"}
                 </p>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <ExitIcon className="w-4 h-4" />
               </Button>
             </div>
@@ -167,7 +207,7 @@ export default function ReviewsPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{reviews.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                   <p className="text-sm text-gray-600">총 리뷰</p>
                 </div>
               </CardContent>
@@ -176,7 +216,7 @@ export default function ReviewsPage() {
               <CardContent className="p-6">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900">
-                    {(reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)}
+                    {stats.avgRating || 0}
                   </p>
                   <p className="text-sm text-gray-600">평균 평점</p>
                 </div>
@@ -185,9 +225,7 @@ export default function ReviewsPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {new Set(reviews.map(r => r.platform)).size}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.platforms}</p>
                   <p className="text-sm text-gray-600">플랫폼</p>
                 </div>
               </CardContent>
@@ -195,9 +233,7 @@ export default function ReviewsPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {reviews.filter(r => r.rating === 5).length}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.fiveStars}</p>
                   <p className="text-sm text-gray-600">5점 리뷰</p>
                 </div>
               </CardContent>
@@ -233,7 +269,7 @@ export default function ReviewsPage() {
                     </option>
                   ))}
                 </select>
-                <Button asChild>
+                <Button asChild className="bg-[#FF6B35] hover:bg-[#E55A2B]">
                   <Link href="/dashboard/add-review">
                     <PlusIcon className="w-4 h-4 mr-2" />
                     리뷰 추가
@@ -254,8 +290,10 @@ export default function ReviewsPage() {
               <div className="space-y-4">
                 {filteredReviews.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-500 mb-4">검색 결과가 없습니다</p>
-                    <Button asChild variant="outline">
+                    <p className="text-gray-500 mb-4">
+                      {reviews.length === 0 ? "아직 등록된 리뷰가 없습니다" : "검색 결과가 없습니다"}
+                    </p>
+                    <Button asChild className="bg-[#FF6B35] hover:bg-[#E55A2B]">
                       <Link href="/dashboard/add-review">
                         첫 번째 리뷰 추가하기
                       </Link>
@@ -267,7 +305,7 @@ export default function ReviewsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-3">
                           <div className="flex items-center gap-3">
-                            <span className={`px-3 py-1 text-sm font-medium rounded-full ${review.platformColor}`}>
+                            <span className={`px-3 py-1 text-sm font-medium rounded-full ${getPlatformColor(review.platform)}`}>
                               {review.platform}
                             </span>
                             <span className="text-lg font-semibold">{review.business}</span>
@@ -287,7 +325,7 @@ export default function ReviewsPage() {
                           <div className="flex items-center gap-4 text-sm text-gray-500">
                             <span>작성자: {review.author}</span>
                             <span>•</span>
-                            <span>작성일: {review.date}</span>
+                            <span>작성일: {new Date(review.reviewDate).toLocaleDateString()}</span>
                           </div>
                         </div>
                         

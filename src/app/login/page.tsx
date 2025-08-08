@@ -1,9 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import Link from "next/link"
 
 export default function LoginPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -11,26 +14,28 @@ export default function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     
     setIsLoading(true)
     try {
-      console.log("Login data:", formData)
-      
-      // 임시 로그인 로직
-      if (formData.email === "test@example.com" && formData.password === "password") {
-        alert("로그인 성공! 대시보드로 이동합니다.")
-        window.location.href = "/dashboard"
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false
+      })
+
+      if (result?.error) {
+        setError("이메일 또는 비밀번호가 올바르지 않습니다.")
       } else {
-        alert("이메일 또는 비밀번호가 올바르지 않습니다.\n\n테스트 계정:\n이메일: test@example.com\n비밀번호: password")
+        router.push("/dashboard")
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000))
     } catch (error) {
       console.error("Login error:", error)
-      alert("로그인 중 오류가 발생했습니다.")
+      setError("로그인 중 오류가 발생했습니다.")
     } finally {
       setIsLoading(false)
     }
@@ -124,14 +129,11 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* 테스트 정보 */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">테스트 계정</h3>
-            <p className="text-sm text-blue-600">
-              이메일: test@example.com<br />
-              비밀번호: password
-            </p>
-          </div>
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
           <div className="mt-6 text-center text-sm">
             <span className="text-gray-600">계정이 없으신가요? </span>

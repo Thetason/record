@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { ArrowLeftIcon, UploadIcon, CameraIcon } from "@radix-ui/react-icons"
@@ -20,16 +22,21 @@ interface ReviewForm {
 }
 
 const platforms = [
-  { value: "naver", label: "네이버", color: "bg-green-100 text-green-800" },
-  { value: "kakao", label: "카카오맵", color: "bg-yellow-100 text-yellow-800" },
-  { value: "google", label: "구글", color: "bg-blue-100 text-blue-800" },
-  { value: "kmong", label: "크몽", color: "bg-purple-100 text-purple-800" },
-  { value: "other", label: "기타", color: "bg-gray-100 text-gray-800" }
+  { value: "네이버", label: "네이버", color: "bg-green-100 text-green-800" },
+  { value: "카카오맵", label: "카카오맵", color: "bg-yellow-100 text-yellow-800" },
+  { value: "구글", label: "구글", color: "bg-blue-100 text-blue-800" },
+  { value: "크몽", label: "크몽", color: "bg-purple-100 text-purple-800" },
+  { value: "기타", label: "기타", color: "bg-gray-100 text-gray-800" }
 ]
 
 export default function AddReviewPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [error, setError] = useState("")
 
   const {
     register,
@@ -41,15 +48,39 @@ export default function AddReviewPage() {
 
   const selectedPlatform = watch("platform")
 
+  if (status === "unauthenticated") {
+    router.push("/login")
+    return null
+  }
+
   const onSubmit = async (data: ReviewForm) => {
     setIsLoading(true)
+    setError("")
+    
     try {
-      console.log("Review data:", data)
-      console.log("Uploaded image:", uploadedImage)
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      alert("리뷰가 성공적으로 추가되었습니다!")
-    } catch (error) {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: data.platform,
+          business: data.businessName,
+          author: data.customerName,
+          content: data.content,
+          rating: parseInt(data.rating.toString()),
+          reviewDate: data.reviewDate,
+          imageUrl: uploadedImage
+        })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "리뷰 추가 실패")
+      }
+
+      router.push("/dashboard/reviews")
+    } catch (error: any) {
       console.error("Add review error:", error)
+      setError(error.message || "리뷰 추가 중 오류가 발생했습니다")
     } finally {
       setIsLoading(false)
     }
@@ -58,13 +89,87 @@ export default function AddReviewPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      setUploadedFile(file)
       const reader = new FileReader()
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string)
-        // 여기서 OCR 처리 로직을 추가할 수 있습니다
-        alert("이미지가 업로드되었습니다! OCR 기능은 추후 구현 예정입니다.")
       }
       reader.readAsDataURL(file)
+    }
+  }
+
+  const handleOCRExtract = async () => {
+    if (!uploadedFile) {
+      alert("이미지를 먼저 업로드해주세요")
+      return
+    }
+
+    setIsExtracting(true)
+    setError("")
+
+    try {
+      const formData = new FormData()
+      formData.append("image", uploadedFile)
+
+      const res = await fetch("/api/ocr", {
+        method: "POST",
+        body: formData
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "텍스트 추출 실패")
+      }
+
+      const data = await res.json()
+      
+      // 추출된 데이터를 폼에 자동 입력
+      console.log('OCR 결과:', data)
+      
+      if (data.processedData) {
+        const { businessName, authorName, rating, reviewDate, platform, content } = data.processedData
+        
+        // 비즈니스명 설정
+        if (businessName) setValue("businessName", businessName)
+        
+        // 작성자명 설정
+        if (authorName) setValue("customerName", authorName)
+        
+        // 평점 설정
+        if (rating) setValue("rating", rating.toString())
+        
+        // 날짜 설정
+        if (reviewDate) setValue("reviewDate", reviewDate)
+        
+        // 플랫폼 설정
+        if (platform && platform !== "기타") {
+          setValue("platform", platform)
+        }
+        
+        // 리뷰 내용 설정
+        if (content) {
+          setValue("content", content)
+        } else if (data.text) {
+          setValue("content", data.text)
+        }
+      } else if (data.text) {
+        // processedData가 없어도 텍스트만 있으면 내용에 입력
+        setValue("content", data.text)
+      }
+      
+      // 전체 텍스트를 리뷰 내용에 입력
+      if (data.text) {
+        setValue("content", data.text)
+      }
+
+      alert(data.isDemo 
+        ? "데모 텍스트가 입력되었습니다. Google Vision API 키를 설정하면 실제 OCR이 가능합니다." 
+        : "텍스트가 성공적으로 추출되었습니다!")
+    } catch (error: any) {
+      console.error("OCR error:", error)
+      setError(error.message || "텍스트 추출 중 오류가 발생했습니다")
+    } finally {
+      setIsExtracting(false)
     }
   }
 
@@ -102,11 +207,20 @@ export default function AddReviewPage() {
                 이미지 업로드
               </CardTitle>
               <CardDescription>
-                리뷰 스크린샷을 업로드하세요 (OCR 기능 준비중)
+                리뷰 스크린샷을 업로드하세요
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                  <p className="font-semibold mb-1">💡 OCR 기능 사용법</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    <li>리뷰 스크린샷을 업로드</li>
+                    <li>'텍스트 추출' 버튼 클릭</li>
+                    <li>자동으로 입력된 정보 확인</li>
+                    <li>필요시 수정 후 저장</li>
+                  </ol>
+                </div>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   {uploadedImage ? (
                     <div className="space-y-4">
@@ -115,13 +229,26 @@ export default function AddReviewPage() {
                         alt="Uploaded review" 
                         className="w-full h-48 object-cover rounded-lg"
                       />
-                      <Button
-                        onClick={() => setUploadedImage(null)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        다른 이미지 선택
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleOCRExtract}
+                          className="bg-[#FF6B35] hover:bg-[#E55A2B] text-white"
+                          size="sm"
+                          disabled={isExtracting}
+                        >
+                          {isExtracting ? "추출 중..." : "텍스트 추출"}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setUploadedImage(null)
+                            setUploadedFile(null)
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          다른 이미지
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -148,12 +275,6 @@ export default function AddReviewPage() {
                     </div>
                   )}
                 </div>
-                
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-xs text-blue-600">
-                    💡 OCR 기능으로 이미지에서 자동으로 텍스트를 추출하는 기능이 곧 추가됩니다!
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -161,7 +282,7 @@ export default function AddReviewPage() {
           {/* Manual Input Section */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>수동 입력</CardTitle>
+              <CardTitle>리뷰 정보 입력</CardTitle>
               <CardDescription>
                 리뷰 정보를 직접 입력하세요
               </CardDescription>
@@ -275,6 +396,12 @@ export default function AddReviewPage() {
                   />
                   {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
                 </FormItem>
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
                 <div className="flex gap-4 pt-4">
                   <Button

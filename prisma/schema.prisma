@@ -6,14 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   username  String   @unique
+  password  String   // 비밀번호 필드 추가
   name      String
   bio       String?
   location  String?
@@ -45,12 +46,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -74,7 +75,7 @@ model Review {
   platform    String   // 네이버, 카카오맵, 구글, 크몽 등
   business    String   // 업체명
   rating      Int      // 평점 (1-5)
-  content     String   @db.Text // 리뷰 내용
+  content     String   // 리뷰 내용
   author      String   // 리뷰 작성자 (익명화된 이름)
   reviewDate  DateTime // 실제 리뷰 작성일
   
