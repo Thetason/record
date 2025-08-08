@@ -1,9 +1,74 @@
+'use client'
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowRightIcon, CheckIcon, StarFilledIcon } from "@radix-ui/react-icons"
+import { useState, useEffect } from "react"
 
 export default function HomePage() {
+  const [reviewCount, setReviewCount] = useState(0)
+  const [avgRating, setAvgRating] = useState(0)
+  const [showDemo, setShowDemo] = useState(false)
+
+  useEffect(() => {
+    // 리뷰 카운트 애니메이션
+    const timer = setTimeout(() => {
+      setShowDemo(true)
+      let count = 0
+      const interval = setInterval(() => {
+        if (count <= 156) {
+          setReviewCount(count)
+          count += 3
+        } else {
+          clearInterval(interval)
+        }
+      }, 20)
+    }, 500)
+
+    // 평점 애니메이션
+    const ratingTimer = setTimeout(() => {
+      let rating = 0
+      const interval = setInterval(() => {
+        if (rating <= 4.9) {
+          setAvgRating(rating)
+          rating += 0.1
+        } else {
+          clearInterval(interval)
+        }
+      }, 40)
+    }, 800)
+
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(ratingTimer)
+    }
+  }, [])
+
+  const demoReviews = [
+    {
+      platform: "네이버",
+      rating: 5,
+      content: "디자인 작업 정말 만족스러웠습니다. 포트폴리오도 꼼꼼하게 보여주시고, 소통도 원활해서 믿고 맡길 수 있었어요.",
+      author: "김**",
+      date: "2024.08.07"
+    },
+    {
+      platform: "카카오",
+      rating: 5,
+      content: "요가 수업 너무 좋았어요! 초보자도 쉽게 따라할 수 있게 설명해주셔서 감사했습니다.",
+      author: "이**",
+      date: "2024.08.06"
+    },
+    {
+      platform: "크몽",
+      rating: 5,
+      content: "웹사이트 개발 의뢰했는데 기대 이상으로 잘 만들어주셨습니다. 반응형 디자인까지 완벽해요!",
+      author: "박**",
+      date: "2024.08.05"
+    }
+  ]
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* 네비게이션 */}
@@ -54,9 +119,9 @@ export default function HomePage() {
                   <ArrowRightIcon className="ml-2 w-4 md:w-5 h-4 md:h-5" />
                 </Button>
               </Link>
-              <Link href="#demo">
+              <Link href="#live-demo">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-5 md:py-6">
-                  30초 데모 보기
+                  실시간 데모 보기
                 </Button>
               </Link>
             </div>
@@ -77,8 +142,102 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* 실시간 데모 프로필 섹션 */}
+          <div className="max-w-4xl mx-auto mb-12 md:mb-16" id="live-demo">
+            {showDemo && (
+              <Card className="p-6 md:p-8 border-2 border-[#FF6B35] shadow-2xl animate-fadeIn relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-[#FF6B35] text-white px-3 py-1 rounded-bl-lg text-xs md:text-sm font-bold">
+                  LIVE DEMO
+                </div>
+                
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+                  {/* 프로필 정보 */}
+                  <div className="flex-shrink-0">
+                    <div className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-2xl md:text-3xl">
+                      김서연
+                    </div>
+                    <div className="mt-4 text-center">
+                      <h3 className="font-bold text-lg md:text-xl">김서연</h3>
+                      <p className="text-sm text-gray-600">프리랜서 디자이너</p>
+                      <div className="flex items-center justify-center gap-1 mt-2">
+                        <div className="flex text-yellow-500">
+                          {[...Array(5)].map((_, i) => (
+                            <StarFilledIcon key={i} className="w-4 h-4" />
+                          ))}
+                        </div>
+                        <span className="text-sm font-bold">{avgRating.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 리뷰 통계 및 최근 리뷰 */}
+                  <div className="flex-grow">
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="text-center">
+                        <div className="text-2xl md:text-3xl font-bold text-[#FF6B35]">
+                          {reviewCount}
+                        </div>
+                        <div className="text-xs md:text-sm text-gray-600">총 리뷰</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl md:text-3xl font-bold text-[#FF6B35]">
+                          {avgRating.toFixed(1)}
+                        </div>
+                        <div className="text-xs md:text-sm text-gray-600">평균 평점</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl md:text-3xl font-bold text-[#FF6B35]">
+                          5
+                        </div>
+                        <div className="text-xs md:text-sm text-gray-600">플랫폼</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-sm md:text-base">최근 리뷰</h4>
+                      {demoReviews.map((review, i) => (
+                        <div key={i} className="p-3 bg-gray-50 rounded-lg text-xs md:text-sm animate-slideIn" 
+                             style={{ animationDelay: `${1000 + i * 200}ms` }}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              review.platform === "네이버" ? "bg-green-100 text-green-700" :
+                              review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
+                              "bg-purple-100 text-purple-700"
+                            }`}>
+                              {review.platform}
+                            </span>
+                            <div className="flex text-yellow-500">
+                              {[...Array(review.rating)].map((_, j) => (
+                                <StarFilledIcon key={j} className="w-3 h-3" />
+                              ))}
+                            </div>
+                            <span className="text-gray-500 ml-auto">{review.date}</span>
+                          </div>
+                          <p className="text-gray-700 line-clamp-2">{review.content}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex gap-3">
+                      <Link href="/profile/kimseoyeon" className="flex-1">
+                        <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
+                          전체 프로필 보기
+                        </Button>
+                      </Link>
+                      <Link href="/signup" className="flex-1">
+                        <Button variant="outline" className="w-full">
+                          나도 만들기
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+
           {/* 비포/애프터 비교 - 모바일 최적화 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto" id="demo">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
             {/* Before */}
             <Card className="p-4 md:p-6 border-2 border-gray-200 relative">
               <div className="absolute -top-3 left-4 md:left-6 bg-white px-2 md:px-3">
