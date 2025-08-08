@@ -104,17 +104,18 @@ export default function HomePage() {
           <div className="text-center mb-8 md:mb-16">
             <div className="inline-flex items-center gap-2 bg-orange-50 text-[#FF6B35] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium mb-4 md:mb-6">
               <span className="animate-pulse">🔴</span>
-              <span>5분 만에 리뷰 포트폴리오 완성</span>
+              <span>이미 2,847명의 프리랜서가 사용 중</span>
             </div>
             
             <h1 className="text-3xl md:text-6xl font-bold mb-4 md:mb-6 leading-tight">
-              흩어진 리뷰를 <span className="text-[#FF6B35]">한 곳에</span><br />
-              나만의 신뢰 자산으로
+              당신의 단골 고객,<br />
+              <span className="text-[#FF6B35]">평생 관리하세요</span>
             </h1>
             
             <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-              네이버, 카카오, 구글, 인스타... 여기저기 흩어진 리뷰들을<br className="hidden md:block" />
-              <strong>3초 만에 업로드</strong>하고 <strong>평생 관리</strong>하세요
+              미용실, 헬스장, 학원, 네일샵... <br className="md:hidden" />
+              <strong>독립을 준비하는 당신</strong>을 위한<br className="hidden md:block" />
+              가장 스마트한 고객 관리 솔루션
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-6 md:mb-8 px-4">
@@ -134,15 +135,15 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-8 text-xs md:text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <CheckIcon className="text-green-500 w-4 h-4" />
-                <span>신용카드 불필요</span>
+                <span>고객 관리 자동화</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckIcon className="text-green-500 w-4 h-4" />
-                <span>5분 만에 완성</span>
+                <span>단골 고객 분석</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckIcon className="text-green-500 w-4 h-4" />
-                <span>평생 무료</span>
+                <span>리뷰 요청 문자</span>
               </div>
             </div>
           </div>
@@ -247,35 +248,35 @@ export default function HomePage() {
                 <span className="text-xs md:text-sm font-bold text-gray-400">BEFORE</span>
               </div>
               <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-gray-700">
-                ❌ 지금 당신의 리뷰는...
+                ❌ 지금 당신의 고객 관리는...
               </h3>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">📱</span>
+                  <span className="text-xl md:text-2xl">😰</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">네이버 리뷰 35개</p>
-                    <p className="text-xs md:text-sm text-gray-500">링크 복사... 붙여넣기... 반복</p>
+                    <p className="text-sm md:text-base font-medium">단골인지 신규인지 모름</p>
+                    <p className="text-xs md:text-sm text-gray-500">고객 히스토리 파악 불가</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">💬</span>
+                  <span className="text-xl md:text-2xl">📝</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">카톡 리뷰 50개</p>
-                    <p className="text-xs md:text-sm text-gray-500">스크린샷... 저장... 찾기 어려움</p>
+                    <p className="text-sm md:text-base font-medium">수기로 관리하는 고객 정보</p>
+                    <p className="text-xs md:text-sm text-gray-500">독립할 때 데이터 소실 위험</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">📷</span>
+                  <span className="text-xl md:text-2xl">💔</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">인스타 DM 리뷰 20개</p>
-                    <p className="text-xs md:text-sm text-gray-500">휘발성... 나중에 못 찾음</p>
+                    <p className="text-sm md:text-base font-medium">리뷰 요청이 어색함</p>
+                    <p className="text-xs md:text-sm text-gray-500">체계적인 리뷰 수집 시스템 부재</p>
                   </div>
                 </div>
               </div>
               <div className="mt-4 md:mt-6 p-3 md:p-4 bg-gray-50 rounded-lg">
                 <p className="text-center text-sm md:text-base text-gray-600">
-                  "어... 제 리뷰요? 잠시만요..."<br />
-                  <span className="text-xs md:text-sm">😰 신뢰도 하락</span>
+                  "이 고객님이 몇 번 오셨더라...?"<br />
+                  <span className="text-xs md:text-sm">😰 전문성 의심받음</span>
                 </p>
               </div>
             </Card>
@@ -286,35 +287,35 @@ export default function HomePage() {
                 <span className="text-xs md:text-sm font-bold text-[#FF6B35]">AFTER</span>
               </div>
               <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-[#FF6B35]">
-                ✅ Re:cord와 함께라면!
+                ✅ Re:cord로 독립 준비!
               </h3>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">🔗</span>
+                  <span className="text-xl md:text-2xl">👥</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">단 하나의 링크</p>
-                    <p className="text-xs md:text-sm text-gray-500">re-cord.kr/당신이름</p>
+                    <p className="text-sm md:text-base font-medium">단골 고객 자동 분류</p>
+                    <p className="text-xs md:text-sm text-gray-500">2회 이상 방문 시 VIP 표시</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">✨</span>
+                  <span className="text-xl md:text-2xl">📊</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">모든 리뷰 한눈에</p>
-                    <p className="text-xs md:text-sm text-gray-500">105개 리뷰 • 평균 4.9점</p>
+                    <p className="text-sm md:text-base font-medium">고객별 히스토리 관리</p>
+                    <p className="text-xs md:text-sm text-gray-500">언제, 어떤 서비스 받았는지 한눈에</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">🚀</span>
+                  <span className="text-xl md:text-2xl">💌</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">3초 만에 업로드</p>
-                    <p className="text-xs md:text-sm text-gray-500">OCR로 자동 텍스트 추출</p>
+                    <p className="text-sm md:text-base font-medium">리뷰 요청 자동화</p>
+                    <p className="text-xs md:text-sm text-gray-500">서비스 후 자동 문자 발송</p>
                   </div>
                 </div>
               </div>
               <div className="mt-4 md:mt-6 p-3 md:p-4 bg-orange-50 rounded-lg">
                 <p className="text-center text-sm md:text-base text-[#FF6B35] font-medium">
-                  "여기 제 리뷰 포트폴리오입니다"<br />
-                  <span className="text-xs md:text-sm">💪 즉시 신뢰도 상승</span>
+                  "김00님, 벌써 10번째 방문이시네요!"<br />
+                  <span className="text-xs md:text-sm">💪 프로페셔널한 고객 관리</span>
                 </p>
               </div>
             </Card>
@@ -322,88 +323,88 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 실제 리뷰 예시 - 모바일 최적화 */}
+      {/* 실제 사용 사례 - 모바일 최적화 */}
       <section className="py-12 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 max-w-6xl">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
-            실제 리코드 사용자들의 리뷰
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">
+            이미 성공한 프리랜서들의 선택
           </h2>
+          <p className="text-center text-gray-600 mb-8 md:mb-12">
+            독립을 준비하는 프로페셔널들이 리코드를 선택한 이유
+          </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {/* 리뷰 카드 1 */}
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                  네이버
-                </span>
-                <div className="flex text-yellow-500">
-                  {[...Array(5)].map((_, i) => (
-                    <StarFilledIcon key={i} className="w-3 md:w-4 h-3 md:h-4" />
-                  ))}
+            {/* 사례 1 - 헤어디자이너 */}
+            <Card className="p-4 md:p-6 border-2 hover:border-[#FF6B35] transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                  ✂️
+                </div>
+                <div>
+                  <p className="font-bold text-sm">박소연 헤어디자이너</p>
+                  <p className="text-xs text-gray-500">프리랜서 3년차</p>
                 </div>
               </div>
-              <p className="text-xs md:text-sm text-gray-700 mb-3">
-                "디자인 작업 정말 만족스러웠습니다. 소통도 원활하고 수정사항도 빠르게 반영해주셨어요. 
-                다음에도 꼭 다시 의뢰하고 싶습니다!"
+              <p className="text-sm text-gray-700 mb-3">
+                "리코드 덕분에 <strong>단골 고객이 87%</strong>로 늘었어요. 
+                고객님들이 몇 번 오셨는지 바로 알 수 있어서 
+                맞춤 서비스 제공이 가능해졌습니다."
               </p>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>김** 고객님</span>
-                <span>2024.08.07</span>
+              <div className="bg-orange-50 p-2 rounded text-xs">
+                <span className="text-[#FF6B35] font-bold">📈 매출 42% 상승</span>
               </div>
             </Card>
 
-            {/* 리뷰 카드 2 */}
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
-                  카카오
-                </span>
-                <div className="flex text-yellow-500">
-                  {[...Array(5)].map((_, i) => (
-                    <StarFilledIcon key={i} className="w-3 md:w-4 h-3 md:h-4" />
-                  ))}
+            {/* 사례 2 - PT 트레이너 */}
+            <Card className="p-4 md:p-6 border-2 hover:border-[#FF6B35] transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  💪
+                </div>
+                <div>
+                  <p className="font-bold text-sm">김준호 PT 트레이너</p>
+                  <p className="text-xs text-gray-500">독립 준비 중</p>
                 </div>
               </div>
-              <p className="text-xs md:text-sm text-gray-700 mb-3">
-                "요가 수업 너무 좋았어요! 선생님이 정말 친절하시고 초보자도 따라하기 쉽게 
-                설명해주셔서 감사했습니다."
+              <p className="text-sm text-gray-700 mb-3">
+                "내년 개인 짐 오픈 준비 중인데, 
+                <strong>3년간 관리한 회원 238명</strong>의 리뷰를 
+                모두 보여줄 수 있어서 투자자 미팅에 큰 도움이 됐어요."
               </p>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>이** 고객님</span>
-                <span>2024.08.06</span>
+              <div className="bg-orange-50 p-2 rounded text-xs">
+                <span className="text-[#FF6B35] font-bold">🏆 투자 유치 성공</span>
               </div>
             </Card>
 
-            {/* 리뷰 카드 3 */}
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                  크몽
-                </span>
-                <div className="flex text-yellow-500">
-                  {[...Array(5)].map((_, i) => (
-                    <StarFilledIcon key={i} className="w-3 md:w-4 h-3 md:h-4" />
-                  ))}
+            {/* 사례 3 - 네일 아티스트 */}
+            <Card className="p-4 md:p-6 border-2 hover:border-[#FF6B35] transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  💅
+                </div>
+                <div>
+                  <p className="font-bold text-sm">이하나 네일아티스트</p>
+                  <p className="text-xs text-gray-500">프리랜서 5년차</p>
                 </div>
               </div>
-              <p className="text-xs md:text-sm text-gray-700 mb-3">
-                "웹사이트 개발 의뢰했는데 기대 이상으로 잘 만들어주셨습니다. 
-                특히 반응형 디자인이 완벽해요!"
+              <p className="text-sm text-gray-700 mb-3">
+                "<strong>리뷰 요청 문자 자동화</strong>로 시간이 엄청 절약됐어요. 
+                예전에는 일일이 부탁드렸는데, 이제 자동으로 
+                리뷰가 쌓여서 신규 고객 유치가 쉽습니다."
               </p>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>박** 고객님</span>
-                <span>2024.08.05</span>
+              <div className="bg-orange-50 p-2 rounded text-xs">
+                <span className="text-[#FF6B35] font-bold">✨ 주 5명 신규 고객</span>
               </div>
             </Card>
           </div>
 
           <div className="text-center mt-8 md:mt-12">
             <p className="text-sm md:text-base text-gray-600 mb-4">
-              이 모든 리뷰를 <strong>한 곳에서</strong> 관리하세요
+              당신도 <strong>체계적인 고객 관리</strong>로 독립을 준비하세요
             </p>
             <Link href="/signup">
               <Button size="lg" className="bg-[#FF6B35] hover:bg-[#E55A2B] text-sm md:text-base">
-                지금 시작하기 →
+                무료로 시작하기 →
               </Button>
             </Link>
           </div>
@@ -414,40 +415,40 @@ export default function HomePage() {
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4 max-w-6xl">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
-            단 3단계로 완성하는 리뷰 포트폴리오
+            독립을 위한 필수 기능
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             <div className="text-center">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <span className="text-xl md:text-2xl font-bold text-[#FF6B35]">1</span>
+                <span className="text-xl md:text-2xl">📈</span>
               </div>
-              <h3 className="font-bold text-base md:text-lg mb-2">가입하기</h3>
+              <h3 className="font-bold text-base md:text-lg mb-2">리뷰 분석</h3>
               <p className="text-sm md:text-base text-gray-600">
-                이메일만으로 5초 가입<br />
-                신용카드 불필요
+                자주 언급되는 강점 파악<br />
+                가장 인기 있는 서비스 TOP 3
               </p>
             </div>
             
             <div className="text-center">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <span className="text-xl md:text-2xl font-bold text-[#FF6B35]">2</span>
+                <span className="text-xl md:text-2xl">👥</span>
               </div>
-              <h3 className="font-bold text-base md:text-lg mb-2">리뷰 업로드</h3>
+              <h3 className="font-bold text-base md:text-lg mb-2">고객 관리</h3>
               <p className="text-sm md:text-base text-gray-600">
-                스크린샷 드래그 앤 드롭<br />
-                OCR로 자동 텍스트 추출
+                단골 고객 자동 분류<br />
+                고객별 히스토리 추적
               </p>
             </div>
             
             <div className="text-center">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <span className="text-xl md:text-2xl font-bold text-[#FF6B35]">3</span>
+                <span className="text-xl md:text-2xl">💌</span>
               </div>
-              <h3 className="font-bold text-base md:text-lg mb-2">공유하기</h3>
+              <h3 className="font-bold text-base md:text-lg mb-2">리뷰 요청</h3>
               <p className="text-sm md:text-base text-gray-600">
-                re-cord.kr/당신이름<br />
-                링크 하나로 끝
+                서비스 후 자동 문자 발송<br />
+                간편 리뷰 작성 링크
               </p>
             </div>
           </div>
@@ -458,10 +459,10 @@ export default function HomePage() {
       <section className="py-12 md:py-20 bg-gradient-to-r from-[#FF6B35] to-[#E55A2B]">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">
-            지금 시작하면 평생 무료
+            독립을 꿈꾸는 당신을 응원합니다
           </h2>
           <p className="text-white/90 text-base md:text-lg mb-6 md:mb-8">
-            베타 기간 특별 혜택 • 선착순 1,000명
+            지금 시작하면 모든 기능 평생 무료
           </p>
           <Link href="/signup">
             <Button size="lg" className="bg-white text-[#FF6B35] hover:bg-gray-100 text-base md:text-lg px-6 md:px-8 py-5 md:py-6">
