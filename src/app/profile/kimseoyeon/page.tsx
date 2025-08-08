@@ -12,11 +12,12 @@ export default function KimSeoyeonProfilePage() {
 
   const profileData = {
     name: "김서연",
-    title: "프리랜서 디자이너",
-    bio: "10년차 브랜드 디자이너입니다. 로고, 패키지, 웹디자인 전문입니다.",
-    totalReviews: 156,
-    avgRating: 4.9,
-    platforms: 5,
+    title: "필라테스 강사",
+    bio: "8년차 필라테스 전문 강사입니다. 기구/매트/소도구 필라테스 전문, 체형교정 및 재활 전문가입니다.",
+    totalReviews: 69,
+    avgRating: 4.8,
+    platforms: 2,
+    studios: 3,
     avatar: "김서연"
   }
 
@@ -24,89 +25,113 @@ export default function KimSeoyeonProfilePage() {
     {
       id: 1,
       platform: "네이버",
-      business: "브랜드 로고 디자인",
+      business: "비너스필라테스",
       rating: 5,
-      content: "디자인 작업 정말 만족스러웠습니다. 포트폴리오도 꼼꼼하게 보여주시고, 소통도 원활해서 믿고 맡길 수 있었어요. 수정사항도 빠르게 반영해주셔서 감사했습니다.",
-      author: "김**",
+      content: "김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요. 허리 통증이 많이 개선됐습니다.",
+      author: "정**",
       date: "2024.08.07"
     },
     {
       id: 2,
       platform: "카카오",
-      business: "명함 디자인",
+      business: "밸런스드필라테스",
       rating: 5,
-      content: "깔끔하고 세련된 디자인으로 만들어주셨어요. 여러 시안 보여주시고 선택할 수 있게 해주셔서 좋았습니다.",
+      content: "서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요. 체형이 예뻐지고 있어요!",
       author: "이**",
       date: "2024.08.06"
     },
     {
       id: 3,
-      platform: "크몽",
-      business: "웹사이트 UI 디자인",
+      platform: "네이버",
+      business: "필라오라인",
       rating: 5,
-      content: "웹사이트 디자인 의뢰했는데 기대 이상으로 잘 만들어주셨습니다. 특히 반응형 디자인이 완벽해요! 사용자 경험까지 고려한 디자인이라 매우 만족합니다.",
+      content: "6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님! 골반 교정 전문가시네요.",
       author: "박**",
       date: "2024.08.05"
     },
     {
       id: 4,
-      platform: "숨고",
-      business: "패키지 디자인",
+      platform: "네이버",
+      business: "비너스필라테스",
       rating: 5,
-      content: "제품 패키지 디자인 너무 예쁘게 잘 나왔어요. 트렌디하면서도 우리 브랜드 아이덴티티를 잘 살려주셨습니다.",
-      author: "정**",
+      content: "김서연 강사님 덕분에 필라테스의 매력에 빠졌어요! 초보자도 쉽게 따라할 수 있게 설명해주시고, 매시간 동기부여도 해주셔서 좋아요.",
+      author: "최**",
       date: "2024.08.04"
     },
     {
       id: 5,
-      platform: "탈잉",
-      business: "디자인 레슨",
+      platform: "카카오",
+      business: "필라오라인",
       rating: 5,
-      content: "포토샵 기초부터 차근차근 알려주셔서 너무 좋았어요. 실무에서 바로 쓸 수 있는 팁들도 많이 알려주셨습니다.",
-      author: "최**",
+      content: "서연쌤 진짜 전문가세요. 제 몸 상태 분석해주시고 맞춤 운동 짜주셨어요. 매트 필라테스도 기구도 다 잘 가르쳐주세요!",
+      author: "강**",
       date: "2024.08.03"
     },
     {
       id: 6,
       platform: "네이버",
-      business: "SNS 템플릿 디자인",
+      business: "밸런스드필라테스",
       rating: 5,
-      content: "인스타그램 피드 디자인 템플릿 제작 의뢰했는데 통일감 있고 예쁘게 만들어주셨어요. 덕분에 팔로워가 늘었습니다!",
-      author: "강**",
+      content: "임산부 필라테스 전문가세요! 임신 중에도 안전하게 운동할 수 있게 도와주셨고, 출산 후 회복 운동도 친절하게 알려주셨어요.",
+      author: "윤**",
       date: "2024.08.02"
     },
     {
       id: 7,
       platform: "카카오",
-      business: "프레젠테이션 디자인",
+      business: "비너스필라테스",
       rating: 4,
-      content: "투자 제안서 디자인 도움받았는데 깔끔하고 전문적으로 만들어주셨습니다. 덕분에 발표 잘 마쳤어요.",
-      author: "윤**",
+      content: "김서연 강사님 수업 좋아요! 다만 인기가 많아서 예약이 어려워요. 그래도 수업 퀄리티는 최고입니다.",
+      author: "조**",
       date: "2024.08.01"
     },
     {
       id: 8,
-      platform: "크몽",
-      business: "앱 UI/UX 디자인",
+      platform: "네이버",
+      business: "필라오라인",
       rating: 5,
-      content: "모바일 앱 디자인 의뢰했습니다. 사용자 플로우부터 상세 화면까지 완벽하게 작업해주셨어요. 개발자분들도 만족하셨습니다.",
-      author: "조**",
+      content: "재활 필라테스 전문가세요. 디스크 수술 후 재활로 받았는데 정말 많이 좋아졌어요. 안전하게 운동할 수 있게 도와주셨어요.",
+      author: "황**",
       date: "2024.07.31"
+    },
+    {
+      id: 9,
+      platform: "카카오",
+      business: "밸런스드필라테스",
+      rating: 5,
+      content: "서연쌤은 진짜 프로페셔널해요! 매번 수업 시간이 기다려져요. 솔츄한 성격에 열정이 넘치세요!",
+      author: "임**",
+      date: "2024.07.30"
+    },
+    {
+      id: 10,
+      platform: "네이버",
+      business: "비너스필라테스",
+      rating: 5,
+      content: "김서연 강사님 수업 들으면서 몸매가 정말 달라졌어요. 탄탄해지고 자세도 많이 교정됐어요. 최고의 강사님!",
+      author: "서**",
+      date: "2024.07.29"
     }
   ]
 
-  const platforms = ["전체", "네이버", "카카오", "크몽", "숨고", "탈잉"]
+  const platforms = ["전체", "네이버", "카카오"]
+  const studios = ["전체", "비너스필라테스", "밸런스드필라테스", "필라오라인"]
   
   const filteredReviews = selectedPlatform === "전체" 
     ? reviews 
-    : reviews.filter(r => r.platform === selectedPlatform)
+    : selectedPlatform === "네이버" || selectedPlatform === "카카오"
+    ? reviews.filter(r => r.platform === selectedPlatform)
+    : reviews.filter(r => r.business === selectedPlatform)
 
   const platformStats = {
     "네이버": reviews.filter(r => r.platform === "네이버").length,
     "카카오": reviews.filter(r => r.platform === "카카오").length,
-    "크몽": reviews.filter(r => r.platform === "크몽").length,
-    "숨고": reviews.filter(r => r.platform === "숨고").length,
-    "탈잉": reviews.filter(r => r.platform === "탈잉").length,
+  }
+
+  const studioStats = {
+    "비너스필라테스": reviews.filter(r => r.business === "비너스필라테스").length,
+    "밸런스드필라테스": reviews.filter(r => r.business === "밸런스드필라테스").length,
+    "필라오라인": reviews.filter(r => r.business === "필라오라인").length,
   }
 
   return (
@@ -144,7 +169,7 @@ export default function KimSeoyeonProfilePage() {
                 <p className="text-gray-700 mb-4">{profileData.bio}</p>
                 
                 {/* 통계 */}
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-4 gap-4 mb-4">
                   <div>
                     <div className="text-2xl font-bold text-[#FF6B35]">{profileData.totalReviews}</div>
                     <div className="text-sm text-gray-600">총 리뷰</div>
@@ -158,6 +183,10 @@ export default function KimSeoyeonProfilePage() {
                   <div>
                     <div className="text-2xl font-bold text-[#FF6B35]">{profileData.platforms}</div>
                     <div className="text-sm text-gray-600">플랫폼</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-[#FF6B35]">{profileData.studios}</div>
+                    <div className="text-sm text-gray-600">스튜디오</div>
                   </div>
                 </div>
 
@@ -180,21 +209,48 @@ export default function KimSeoyeonProfilePage() {
       {/* 플랫폼 필터 */}
       <section className="py-4">
         <div className="container mx-auto px-4 max-w-4xl">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {platforms.map(platform => (
-              <Button
-                key={platform}
-                variant={selectedPlatform === platform ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedPlatform(platform)}
-                className={selectedPlatform === platform ? "bg-[#FF6B35] hover:bg-[#E55A2B]" : ""}
-              >
-                {platform}
-                {platform !== "전체" && (
-                  <span className="ml-1">({platformStats[platform as keyof typeof platformStats]})</span>
-                )}
-              </Button>
-            ))}
+          <div className="space-y-3">
+            {/* 플랫폼 필터 */}
+            <div>
+              <p className="text-sm text-gray-600 mb-2">플랫폼별</p>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {platforms.map(platform => (
+                  <Button
+                    key={platform}
+                    variant={selectedPlatform === platform ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPlatform(platform)}
+                    className={selectedPlatform === platform ? "bg-[#FF6B35] hover:bg-[#E55A2B]" : ""}
+                  >
+                    {platform}
+                    {platform !== "전체" && (
+                      <span className="ml-1">({platformStats[platform as keyof typeof platformStats]})</span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            {/* 스튜디오 필터 */}
+            <div>
+              <p className="text-sm text-gray-600 mb-2">스튜디오별</p>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {studios.map(studio => (
+                  <Button
+                    key={studio}
+                    variant={selectedPlatform === studio ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPlatform(studio)}
+                    className={selectedPlatform === studio ? "bg-[#FF6B35] hover:bg-[#E55A2B]" : ""}
+                  >
+                    {studio}
+                    {studio !== "전체" && (
+                      <span className="ml-1">({studioStats[studio as keyof typeof studioStats]})</span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -229,7 +285,10 @@ export default function KimSeoyeonProfilePage() {
                   <span className="text-sm text-gray-500">{review.date}</span>
                 </div>
                 
-                <h3 className="font-medium mb-2">{review.business}</h3>
+                <h3 className="font-medium mb-2">
+                  <span className="text-[#FF6B35]">{review.business}</span>
+                  <span className="text-gray-400 text-sm ml-2">에서 받은 리뷰</span>
+                </h3>
                 <p className="text-gray-700 text-sm leading-relaxed mb-2">
                   {review.content}
                 </p>

@@ -17,24 +17,26 @@ export default function HomePage() {
       setShowDemo(true)
       let count = 0
       const interval = setInterval(() => {
-        if (count <= 156) {
+        if (count <= 69) {
           setReviewCount(count)
-          count += 3
+          count += 2
         } else {
           clearInterval(interval)
+          setReviewCount(69)
         }
-      }, 20)
+      }, 30)
     }, 500)
 
     // 평점 애니메이션
     const ratingTimer = setTimeout(() => {
       let rating = 0
       const interval = setInterval(() => {
-        if (rating <= 4.9) {
+        if (rating <= 4.8) {
           setAvgRating(rating)
           rating += 0.1
         } else {
           clearInterval(interval)
+          setAvgRating(4.8)
         }
       }, 40)
     }, 800)
@@ -48,22 +50,25 @@ export default function HomePage() {
   const demoReviews = [
     {
       platform: "네이버",
+      business: "비너스필라테스",
       rating: 5,
-      content: "디자인 작업 정말 만족스러웠습니다. 포트폴리오도 꼼꼼하게 보여주시고, 소통도 원활해서 믿고 맡길 수 있었어요.",
-      author: "김**",
+      content: "김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요.",
+      author: "정**",
       date: "2024.08.07"
     },
     {
       platform: "카카오",
+      business: "밸런스드필라테스",
       rating: 5,
-      content: "요가 수업 너무 좋았어요! 초보자도 쉽게 따라할 수 있게 설명해주셔서 감사했습니다.",
+      content: "서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요.",
       author: "이**",
       date: "2024.08.06"
     },
     {
-      platform: "크몽",
+      platform: "네이버",
+      business: "필라오라인",
       rating: 5,
-      content: "웹사이트 개발 의뢰했는데 기대 이상으로 잘 만들어주셨습니다. 반응형 디자인까지 완벽해요!",
+      content: "6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님!",
       author: "박**",
       date: "2024.08.05"
     }
@@ -158,7 +163,7 @@ export default function HomePage() {
                     </div>
                     <div className="mt-4 text-center">
                       <h3 className="font-bold text-lg md:text-xl">김서연</h3>
-                      <p className="text-sm text-gray-600">프리랜서 디자이너</p>
+                      <p className="text-sm text-gray-600">필라테스 강사</p>
                       <div className="flex items-center justify-center gap-1 mt-2">
                         <div className="flex text-yellow-500">
                           {[...Array(5)].map((_, i) => (
@@ -187,9 +192,9 @@ export default function HomePage() {
                       </div>
                       <div className="text-center">
                         <div className="text-2xl md:text-3xl font-bold text-[#FF6B35]">
-                          5
+                          3
                         </div>
-                        <div className="text-xs md:text-sm text-gray-600">플랫폼</div>
+                        <div className="text-xs md:text-sm text-gray-600">스튜디오</div>
                       </div>
                     </div>
 
@@ -206,14 +211,18 @@ export default function HomePage() {
                             }`}>
                               {review.platform}
                             </span>
-                            <div className="flex text-yellow-500">
+                            <span className="text-xs font-medium text-gray-600">{review.business}</span>
+                            <div className="flex text-yellow-500 ml-auto">
                               {[...Array(review.rating)].map((_, j) => (
                                 <StarFilledIcon key={j} className="w-3 h-3" />
                               ))}
                             </div>
-                            <span className="text-gray-500 ml-auto">{review.date}</span>
                           </div>
                           <p className="text-gray-700 line-clamp-2">{review.content}</p>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-xs text-gray-500">{review.author} 회원님</span>
+                            <span className="text-xs text-gray-500">{review.date}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
