@@ -50,25 +50,25 @@ export default function HomePage() {
   const demoReviews = [
     {
       platform: "네이버",
-      business: "플라워샵",
+      business: "비너스필라테스",
       rating: 5,
-      content: "항상 신선한 꽃으로 예쁘게 만들어주셔서 감사해요. 벌써 10번째 구매인데 한 번도 실망한 적이 없어요!",
+      content: "김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요.",
       author: "정**",
       date: "2024.08.07"
     },
     {
       platform: "카카오",
-      business: "카페이음",
+      business: "밸런스드필라테스",
       rating: 5,
-      content: "분위기도 좋고 커피도 맛있어요. 사장님이 친절하셔서 단골이 되었습니다.",
+      content: "서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요.",
       author: "이**",
       date: "2024.08.06"
     },
     {
-      platform: "인스타",
-      business: "@nail_artist",
+      platform: "네이버",
+      business: "필라오라인",
       rating: 5,
-      content: "네일 진짜 예쁘게 해주세요! 디자인 센스가 최고예요. 다음에도 또 방문할게요~",
+      content: "6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님!",
       author: "박**",
       date: "2024.08.05"
     }
@@ -160,11 +160,11 @@ export default function HomePage() {
                   {/* 프로필 정보 */}
                   <div className="flex-shrink-0">
                     <div className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-2xl md:text-3xl">
-                      김민수
+                      김서연
                     </div>
                     <div className="mt-4 text-center">
-                      <h3 className="font-bold text-lg md:text-xl">김민수</h3>
-                      <p className="text-sm text-gray-600">프리랜서 디자이너</p>
+                      <h3 className="font-bold text-lg md:text-xl">김서연</h3>
+                      <p className="text-sm text-gray-600">필라테스 강사</p>
                       <div className="flex items-center justify-center gap-1 mt-2">
                         <div className="flex text-yellow-500">
                           {[...Array(5)].map((_, i) => (
@@ -225,8 +225,8 @@ export default function HomePage() {
 
                     <div className="mt-4 p-3 bg-orange-50 rounded-lg">
                       <p className="text-xs md:text-sm text-orange-800">
-                        💡 <strong>"리뷰를 한 곳에 모아 보여주니 문의가 3배 늘었어요. 
-                        신규 고객들이 신뢰감을 느낀다고 하네요!"</strong> - 김민수님
+                        💡 <strong>"여러 스튜디오에서 받은 리뷰를 한 곳에 모아두니 
+                        독립 준비할 때 큰 자산이 됐어요!"</strong> - 김서연 강사님
                       </p>
                     </div>
                   </div>
@@ -351,12 +351,12 @@ export default function HomePage() {
                 </div>
                 <div>
                   <p className="font-bold text-sm">문의 3배 증가</p>
-                  <p className="text-xs text-gray-500">프리랜서 디자이너</p>
+                  <p className="text-xs text-gray-500">필라테스 강사</p>
                 </div>
               </div>
               <p className="text-sm text-gray-700 mb-3">
-                "리뷰 30개 → <strong>127개로 통합해서 보여주니</strong> 
-                문의가 3배나 늘었어요. 고객들이 '리뷰가 정말 많네요!' 
+                "3개 스튜디오 리뷰 <strong>89개를 통합해서 보여주니</strong> 
+                개인 레슨 문의가 3배나 늘었어요. '경력이 대단하시네요!' 
                 하면서 신뢰감을 표현합니다."
               </p>
               <div className="bg-orange-50 p-2 rounded text-xs">
