@@ -78,19 +78,19 @@ export default function HomePage() {
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* 네비게이션 */}
       <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-100">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex justify-between items-center">
             <Link href="/" className="flex items-center gap-1">
-              <span className="text-2xl font-bold">Re:cord</span>
+              <span className="text-xl md:text-2xl font-bold">Re:cord</span>
               <span className="text-[#FF6B35]">*</span>
             </Link>
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3">
               <Link href="/login">
-                <Button variant="ghost" size="sm">로그인</Button>
+                <Button variant="ghost" size="sm" className="text-xs md:text-sm px-3 md:px-4">로그인</Button>
               </Link>
               <Link href="/signup">
-                <Button size="sm" className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                  무료 시작하기
+                <Button size="sm" className="bg-[#FF6B35] hover:bg-[#E55A2B] text-xs md:text-sm px-3 md:px-4">
+                  무료 시작
                 </Button>
               </Link>
             </div>

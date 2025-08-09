@@ -1,409 +1,460 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useCallback } from "react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { 
-  ArrowLeftIcon, 
-  UploadIcon, 
-  CheckIcon, 
-  Cross2Icon,
-  ReloadIcon,
+  ArrowLeftIcon,
+  UploadIcon,
   ImageIcon,
-  FileTextIcon,
-  TrashIcon
+  CheckCircledIcon,
+  CrossCircledIcon,
+  ReloadIcon
 } from "@radix-ui/react-icons"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { useToast } from "@/components/ui/use-toast"
 
-interface UploadedFile {
+interface OCRResult {
   id: string
-  file: File
-  preview: string
+  fileName: string
   status: 'pending' | 'processing' | 'success' | 'error'
-  extractedData?: any
+  text?: string
+  parsed?: any
   error?: string
+  confidence?: number
 }
 
 export default function BulkUploadPage() {
-  const router = useRouter()
   const { data: session, status } = useSession()
-  const [files, setFiles] = useState<UploadedFile[]>([])
-  const [isDragging, setIsDragging] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const [files, setFiles] = useState<File[]>([])
+  const [ocrResults, setOcrResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const [processedCount, setProcessedCount] = useState(0)
+  const [currentProgress, setCurrentProgress] = useState(0)
+  const [selectedTab, setSelectedTab] = useState<'upload' | 'paste'>('upload')
 
-  if (status === "unauthenticated") {
-    router.push("/login")
-    return null
+  // 파일 선택 처리
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target?.files || [])
+    const imageFiles = selectedFiles.filter(file => 
+      file.type.startsWith('image/')
+    )
+    
+    if (imageFiles.length !== selectedFiles.length) {
+      toast({
+        title: "일부 파일이 제외되었습니다",
+        description: "이미지 파일만 업로드 가능합니다",
+        variant: "default"
+      })
+    }
+    
+    setFiles(imageFiles)
+    
+    // OCR 결과 초기화
+    const initialResults: OCRResult[] = imageFiles.map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      fileName: file.name,
+      status: 'pending'
+    }))
+    setOcrResults(initialResults)
   }
 
-  const handleDragEnter = (e: React.DragEvent) => {
+  // 드래그 앤 드롭 처리
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    const imageFiles = droppedFiles.filter(file => 
+      file.type.startsWith('image/')
+    )
+    
+    setFiles(imageFiles)
+    
+    const initialResults: OCRResult[] = imageFiles.map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      fileName: file.name,
+      status: 'pending'
+    }))
+    setOcrResults(initialResults)
+  }, [])
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    
-    const droppedFiles = Array.from(e.dataTransfer.files)
-    addFiles(droppedFiles)
+  // Google Vision API를 사용한 OCR
+  const performOCR = async (file: File, resultId: string) => {
+    try {
+      // 결과 상태 업데이트 - processing
+      setOcrResults(prev => prev.map(r => 
+        r.id === resultId ? { ...r, status: 'processing' } : r
+      ))
+
+      const formData = new FormData()
+      formData.append('image', file)
+      
+      const response = await fetch('/api/ocr', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        
+        setOcrResults(prev => prev.map(r => 
+          r.id === resultId ? { 
+            ...r, 
+            status: 'success',
+            text: data.text,
+            parsed: data.parsed,
+            confidence: data.confidence
+          } : r
+        ))
+        
+        // 파싱된 리뷰 저장
+        if (data.parsed && data.parsed.content) {
+          await saveReview(data.parsed)
+        }
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'OCR 처리 실패')
+      }
+      
+    } catch (error) {
+      console.error('OCR 에러:', error)
+      setOcrResults(prev => prev.map(r => 
+        r.id === resultId ? { 
+          ...r, 
+          status: 'error',
+          error: error instanceof Error ? error.message : '텍스트 인식 실패'
+        } : r
+      ))
+    }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = e.target.files ? Array.from(e.target.files) : []
-    addFiles(selectedFiles)
+  // 리뷰 저장
+  const saveReview = async (reviewData: any) => {
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: reviewData.platform || '기타',
+          business: reviewData.business || '',
+          rating: reviewData.rating || 5,
+          content: reviewData.content,
+          author: reviewData.author || '고객',
+          reviewDate: reviewData.reviewDate || new Date().toISOString()
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('리뷰 저장 실패')
+      }
+    } catch (error) {
+      console.error('리뷰 저장 에러:', error)
+    }
   }
 
-  const addFiles = (newFiles: File[]) => {
-    const imageFiles = newFiles.filter(file => file.type.startsWith('image/'))
-    
-    const uploadedFiles: UploadedFile[] = imageFiles.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      preview: URL.createObjectURL(file),
-      status: 'pending'
-    }))
-    
-    setFiles(prev => [...prev, ...uploadedFiles])
-  }
-
-  const removeFile = (id: string) => {
-    setFiles(prev => prev.filter(f => f.id !== id))
-  }
-
-  const processFiles = async () => {
+  // 일괄 OCR 처리
+  const processAllFiles = async () => {
     setIsProcessing(true)
-    setProcessedCount(0)
+    setCurrentProgress(0)
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      if (file.status !== 'pending') continue
+      const result = ocrResults[i]
       
-      // 상태 업데이트: processing
-      setFiles(prev => prev.map(f => 
-        f.id === file.id ? { ...f, status: 'processing' } : f
-      ))
+      await performOCR(file, result.id)
       
-      try {
-        // OCR API 호출
-        console.log(`Processing file: ${file.file.name}`)
-        const formData = new FormData()
-        formData.append('image', file.file)
-        
-        const ocrRes = await fetch('/api/ocr', {
-          method: 'POST',
-          body: formData
-        })
-        
-        if (!ocrRes.ok) {
-          const errorText = await ocrRes.text()
-          console.error('OCR API error:', errorText)
-          throw new Error('OCR 실패')
-        }
-        
-        const ocrData = await ocrRes.json()
-        console.log('OCR result:', ocrData)
-        
-        // 리뷰 저장
-        if (ocrData.text || ocrData.processedData) {
-          const reviewData = {
-            platform: ocrData.processedData?.platform || '기타',
-            business: ocrData.processedData?.businessName || '미분류',
-            author: ocrData.processedData?.authorName || '익명',
-            content: ocrData.processedData?.content || ocrData.text || '내용 없음',
-            rating: ocrData.processedData?.rating || 5,
-            reviewDate: ocrData.processedData?.reviewDate || new Date().toISOString().split('T')[0],
-            imageUrl: file.preview
-          }
-          
-          console.log('Saving review:', reviewData)
-          
-          const reviewRes = await fetch('/api/reviews', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reviewData)
-          })
-          
-          if (!reviewRes.ok) {
-            const errorText = await reviewRes.text()
-            console.error('Review save error:', errorText)
-            throw new Error('리뷰 저장 실패')
-          }
-          
-          console.log('Review saved successfully')
-        } else {
-          throw new Error('텍스트 추출 실패')
-        }
-        
-        // 상태 업데이트: success
-        setFiles(prev => prev.map(f => 
-          f.id === file.id 
-            ? { ...f, status: 'success', extractedData: ocrData.processedData } 
-            : f
-        ))
-        setProcessedCount(prev => prev + 1)
-        
-      } catch (error: any) {
-        // 상태 업데이트: error
-        console.error(`Error processing ${file.file.name}:`, error)
-        setFiles(prev => prev.map(f => 
-          f.id === file.id 
-            ? { ...f, status: 'error', error: error.message || '처리 실패' } 
-            : f
-        ))
-      }
-      
-      // 다음 파일 처리 전 잠시 대기 (서버 부하 방지)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // 전체 진행률 업데이트
+      const overallProgress = ((i + 1) / files.length) * 100
+      setCurrentProgress(overallProgress)
     }
     
     setIsProcessing(false)
-  }
-
-  const retryFile = async (id: string) => {
-    const file = files.find(f => f.id === id)
-    if (!file) return
     
-    setFiles(prev => prev.map(f => 
-      f.id === id ? { ...f, status: 'pending', error: undefined } : f
-    ))
+    const successCount = ocrResults.filter(r => r.status === 'success').length
+    
+    toast({
+      title: "OCR 처리 완료",
+      description: `${successCount}/${files.length}개 파일 처리 성공`,
+    })
   }
 
-  const successCount = files.filter(f => f.status === 'success').length
-  const errorCount = files.filter(f => f.status === 'error').length
-  const pendingCount = files.filter(f => f.status === 'pending').length
+  // 텍스트 직접 붙여넣기 처리
+  const handlePasteText = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text')
+    if (pastedText) {
+      // 간단한 파싱
+      const lines = pastedText.split('\n').filter(line => line.trim())
+      const reviewData = {
+        content: pastedText,
+        rating: 5,
+        platform: '직접입력',
+        author: '고객',
+        reviewDate: new Date().toISOString()
+      }
+      
+      // 평점 찾기
+      const ratingMatch = pastedText.match(/[★⭐]{1,5}/)
+      if (ratingMatch) {
+        reviewData.rating = ratingMatch[0].length
+      }
+      
+      // 플랫폼 찾기
+      const platformMatch = pastedText.match(/(네이버|카카오|구글|인스타)/)
+      if (platformMatch) {
+        reviewData.platform = platformMatch[1]
+      }
+      
+      await saveReview(reviewData)
+      
+      toast({
+        title: "리뷰 추가됨",
+        description: "텍스트가 성공적으로 저장되었습니다",
+      })
+      
+      // 텍스트 영역 초기화
+      if (e.currentTarget) {
+        e.currentTarget.value = ''
+      }
+    }
+  }
+
+  if (status === "loading") {
+    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>
+  }
+
+  if (!session) {
+    router.push("/login")
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/dashboard" 
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeftIcon className="w-5 h-5" />
-              <span>대시보드</span>
-            </Link>
-            <div className="h-6 w-px bg-gray-300" />
-            <h1 className="text-xl font-semibold">대량 리뷰 업로드</h1>
-          </div>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* 헤더 */}
+        <div className="mb-8">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="sm" className="mb-4">
+              <ArrowLeftIcon className="mr-2" />
+              대시보드로 돌아가기
+            </Button>
+          </Link>
           
-          {files.length > 0 && (
-            <div className="flex items-center gap-6 text-sm">
-              <span className="text-gray-500">
-                총 {files.length}개
-              </span>
-              {successCount > 0 && (
-                <span className="text-green-600">
-                  ✓ {successCount}개 완료
-                </span>
-              )}
-              {errorCount > 0 && (
-                <span className="text-red-600">
-                  ✗ {errorCount}개 실패
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto p-6">
-        {/* 드래그 앤 드롭 영역 */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 mb-6 transition-all ${
-            isDragging 
-              ? 'border-[#FF6B35] bg-orange-50' 
-              : 'border-gray-300 bg-white hover:border-gray-400'
-          }`}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <div className="text-center">
-            <UploadIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              리뷰 스크린샷을 드래그하여 업로드
-            </h3>
-            <p className="text-gray-500 mb-4">
-              또는 파일을 선택하세요 (최대 50개)
-            </p>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-              id="file-upload"
-            />
-            <label
-              htmlFor="file-upload"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-lg cursor-pointer hover:bg-[#E55A2B]"
-            >
-              <ImageIcon className="w-5 h-5" />
-              이미지 선택
-            </label>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900">대량 리뷰 업로드</h1>
+          <p className="text-gray-600 mt-2">
+            스크린샷에서 리뷰를 자동으로 추출합니다 (Google Vision AI)
+          </p>
         </div>
 
-        {/* 업로드된 파일 목록 */}
-        {files.length > 0 && (
+        {/* 탭 선택 */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            variant={selectedTab === 'upload' ? 'default' : 'outline'}
+            onClick={() => setSelectedTab('upload')}
+            className={selectedTab === 'upload' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
+          >
+            <ImageIcon className="mr-2" />
+            이미지 업로드
+          </Button>
+          <Button
+            variant={selectedTab === 'paste' ? 'default' : 'outline'}
+            onClick={() => setSelectedTab('paste')}
+            className={selectedTab === 'paste' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
+          >
+            텍스트 붙여넣기
+          </Button>
+        </div>
+
+        {selectedTab === 'upload' ? (
           <>
-            <div className="bg-white rounded-lg border border-gray-200 mb-6">
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">업로드된 파일</h3>
-                  <div className="flex gap-2">
-                    {pendingCount > 0 && !isProcessing && (
-                      <button
-                        onClick={processFiles}
-                        className="px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#E55A2B] text-sm"
+            {/* 업로드 영역 */}
+            <Card className="mb-6">
+              <CardContent className="p-8">
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-[#FF6B35] transition-colors cursor-pointer"
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <UploadIcon className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">
+                    리뷰 스크린샷을 드래그하거나 클릭하여 선택
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    PNG, JPG, JPEG 형식 지원 (최대 10MB)
+                  </p>
+                  <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    파일 선택
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </div>
+
+                {files.length > 0 && (
+                  <div className="mt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="text-sm font-medium">
+                        {files.length}개 파일 선택됨
+                      </p>
+                      <Button
+                        onClick={processAllFiles}
+                        disabled={isProcessing}
+                        className="bg-[#FF6B35] hover:bg-[#E55A2B]"
                       >
-                        전체 처리 시작 ({pendingCount}개)
-                      </button>
-                    )}
+                        {isProcessing ? (
+                          <>
+                            <ReloadIcon className="mr-2 animate-spin" />
+                            처리 중...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircledIcon className="mr-2" />
+                            OCR 시작
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
                     {isProcessing && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm">
-                        <ReloadIcon className="w-4 h-4 animate-spin" />
-                        처리 중... ({processedCount}/{files.length})
-                      </div>
+                      <Progress value={currentProgress} className="mb-4" />
                     )}
-                    <button
-                      onClick={() => setFiles([])}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
-                    >
-                      전체 삭제
-                    </button>
+
+                    {/* OCR 결과 목록 */}
+                    <div className="space-y-2">
+                      {ocrResults.map(result => (
+                        <div
+                          key={result.id}
+                          className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                        >
+                          <div className="flex items-center gap-3">
+                            {result.status === 'pending' && (
+                              <div className="w-5 h-5 rounded-full bg-gray-200" />
+                            )}
+                            {result.status === 'processing' && (
+                              <ReloadIcon className="w-5 h-5 text-orange-500 animate-spin" />
+                            )}
+                            {result.status === 'success' && (
+                              <CheckCircledIcon className="w-5 h-5 text-green-500" />
+                            )}
+                            {result.status === 'error' && (
+                              <CrossCircledIcon className="w-5 h-5 text-red-500" />
+                            )}
+                            
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{result.fileName}</p>
+                              {result.parsed && (
+                                <p className="text-xs text-gray-500">
+                                  {result.parsed.platform && `${result.parsed.platform} • `}
+                                  {result.parsed.rating && `${result.parsed.rating}점 • `}
+                                  {result.parsed.author}
+                                </p>
+                              )}
+                              {result.error && (
+                                <p className="text-xs text-red-500">{result.error}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {result.text && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                // 수정 기능 추가 예정
+                                console.log('Edit:', result.text)
+                              }}
+                            >
+                              수정
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 안내 사항 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>✨ 고정밀 OCR 시스템</CardTitle>
+                <CardDescription>
+                  Google Vision AI로 정확한 텍스트 추출
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">🎯</span>
+                  <div>
+                    <p className="font-medium">95%+ 정확도</p>
+                    <p className="text-sm text-gray-500">
+                      한글 리뷰 인식에 최적화
+                    </p>
                   </div>
                 </div>
-              </div>
-              
-              <div className="divide-y divide-gray-200">
-                {files.map(file => (
-                  <div key={file.id} className="p-4 flex items-center gap-4">
-                    {/* 썸네일 */}
-                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                      <img 
-                        src={file.preview} 
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    
-                    {/* 파일 정보 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <FileTextIcon className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-medium truncate">
-                          {file.file.name}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {(file.file.size / 1024).toFixed(1)} KB
-                      </div>
-                      
-                      {/* 추출된 데이터 미리보기 */}
-                      {file.extractedData && (
-                        <div className="mt-2 text-xs text-gray-600">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded">
-                            {file.extractedData.platform}
-                          </span>
-                          <span className="ml-2">{file.extractedData.businessName}</span>
-                          <span className="ml-2">{'⭐'.repeat(file.extractedData.rating)}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* 상태 */}
-                    <div className="flex items-center gap-2">
-                      {file.status === 'pending' && (
-                        <span className="text-gray-400 text-sm">대기 중</span>
-                      )}
-                      {file.status === 'processing' && (
-                        <div className="flex items-center gap-2 text-blue-600">
-                          <ReloadIcon className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">처리 중</span>
-                        </div>
-                      )}
-                      {file.status === 'success' && (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <CheckIcon className="w-5 h-5" />
-                          <span className="text-sm">완료</span>
-                        </div>
-                      )}
-                      {file.status === 'error' && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-red-600 text-sm">{file.error}</span>
-                          <button
-                            onClick={() => retryFile(file.id)}
-                            className="text-blue-600 hover:text-blue-700 text-sm"
-                          >
-                            재시도
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* 삭제 버튼 */}
-                      <button
-                        onClick={() => removeFile(file.id)}
-                        className="p-1 text-gray-400 hover:text-red-600"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">🤖</span>
+                  <div>
+                    <p className="font-medium">자동 정보 추출</p>
+                    <p className="text-sm text-gray-500">
+                      플랫폼, 평점, 작성자, 날짜 자동 파싱
+                    </p>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 완료 액션 */}
-            {successCount > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-                <CheckIcon className="w-12 h-12 text-green-600 mx-auto mb-3" />
-                <h3 className="text-lg font-medium mb-2">
-                  {successCount}개의 리뷰가 성공적으로 업로드되었습니다!
-                </h3>
-                <Link
-                  href="/dashboard/reviews"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  리뷰 관리 페이지로 이동
-                </Link>
-              </div>
-            )}
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">🆓</span>
+                  <div>
+                    <p className="font-medium">월 1,000건 무료</p>
+                    <p className="text-sm text-gray-500">
+                      Google Cloud 무료 티어 활용
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </>
-        )}
+        ) : (
+          /* 텍스트 붙여넣기 탭 */
+          <Card>
+            <CardHeader>
+              <CardTitle>텍스트 직접 입력</CardTitle>
+              <CardDescription>
+                리뷰 텍스트를 복사해서 붙여넣으세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                className="w-full h-64 p-4 border rounded-lg resize-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
+                placeholder="리뷰 텍스트를 여기에 붙여넣으세요...
 
-        {/* 사용법 안내 */}
-        {files.length === 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-medium mb-3">💡 대량 업로드 사용법</h3>
-            <ol className="space-y-2 text-sm text-gray-700">
-              <li>1. 리뷰 스크린샷을 최대 50개까지 한번에 선택</li>
-              <li>2. 드래그 앤 드롭 또는 파일 선택으로 업로드</li>
-              <li>3. AI가 자동으로 텍스트 추출 및 정보 분석</li>
-              <li>4. 플랫폼, 업체명, 평점 등 자동 분류</li>
-              <li>5. 한번에 모든 리뷰 저장 완료!</li>
-            </ol>
-            <div className="mt-4 p-3 bg-white rounded-lg">
-              <p className="text-xs text-gray-600">
-                <strong>지원 플랫폼:</strong> 네이버, 카카오맵, 구글, 배민, 당근마켓, 인스타그램, 크몽
-              </p>
-            </div>
-          </div>
+예시:
+⭐⭐⭐⭐⭐
+김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고...
+- 정** 님, 2024.08.07"
+                onPaste={handlePasteText}
+              />
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  💡 <strong>팁:</strong> 플랫폼, 평점, 작성자, 날짜 정보가 포함되면 자동으로 인식됩니다
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

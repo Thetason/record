@@ -53,12 +53,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <span className="text-3xl font-bold">Re:cord</span>
-            <span className="text-[#FF6B35] text-3xl">*</span>
+        <div className="text-center mb-6 md:mb-8">
+          <Link href="/" className="inline-flex items-center gap-1 md:gap-2">
+            <span className="text-2xl md:text-3xl font-bold">Re:cord</span>
+            <span className="text-[#FF6B35] text-2xl md:text-3xl">*</span>
           </Link>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 mt-2 text-sm md:text-base">
             리뷰 포트폴리오에 로그인하세요
           </p>
         </div>

@@ -16,6 +16,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import MobileNav from "@/components/ui/mobile-nav"
 
 interface Review {
   id: string
@@ -46,6 +47,7 @@ export default function DashboardPage() {
     thisMonth: 0
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -112,8 +114,8 @@ export default function DashboardPage() {
   }
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-64 md:bg-white md:border-r md:border-gray-200 md:block">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-gray-200">
@@ -154,8 +156,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
+        <div className="flex items-center justify-between p-4">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-xl font-bold">Re:cord</span>
+            <span className="text-[#FF6B35]">*</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">
+              {session?.user?.name || "사용자"}
+            </span>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <ExitIcon className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div className="pl-64">
+      <div className="md:pl-64 pt-16 md:pt-0 pb-20 md:pb-0">
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">
@@ -200,7 +220,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <Card className="mb-8">
+          <Card className="mb-8 overflow-hidden">
             <CardHeader>
               <CardTitle>빠른 작업</CardTitle>
               <CardDescription>
@@ -208,39 +228,39 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <Link href="/dashboard/bulk-upload">
-                  <Button className="w-full h-auto p-6 flex flex-col items-center gap-3 bg-[#FF6B35] hover:bg-[#E55A2B]">
-                    <UploadIcon className="w-6 h-6" />
+                  <Button className="w-full h-auto p-4 md:p-6 flex flex-col items-center gap-2 md:gap-3 bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    <UploadIcon className="w-5 h-5 md:w-6 md:h-6" />
                     <div className="text-center">
-                      <div className="font-medium">대량 업로드</div>
-                      <div className="text-xs opacity-90">여러 리뷰 한번에</div>
+                      <div className="text-sm md:text-base font-medium">대량 업로드</div>
+                      <div className="text-xs opacity-90 hidden md:block">여러 리뷰 한번에</div>
                     </div>
                   </Button>
                 </Link>
                 <Link href="/dashboard/add-review">
-                  <Button variant="outline" className="w-full h-auto p-6 flex flex-col items-center gap-3 hover:bg-gray-50">
-                    <PlusIcon className="w-6 h-6" />
+                  <Button variant="outline" className="w-full h-auto p-4 md:p-6 flex flex-col items-center gap-2 md:gap-3 hover:bg-gray-50">
+                    <PlusIcon className="w-5 h-5 md:w-6 md:h-6" />
                     <div className="text-center">
-                      <div className="font-medium">리뷰 추가</div>
-                      <div className="text-xs text-gray-500">개별 리뷰 등록</div>
+                      <div className="text-sm md:text-base font-medium">리뷰 추가</div>
+                      <div className="text-xs text-gray-500 hidden md:block">개별 리뷰 등록</div>
                     </div>
                   </Button>
                 </Link>
                 <Link href="/dashboard/profile">
-                  <Button variant="outline" className="w-full h-auto p-6 flex flex-col items-center gap-3 hover:bg-gray-50">
-                    <PersonIcon className="w-6 h-6" />
+                  <Button variant="outline" className="w-full h-auto p-4 md:p-6 flex flex-col items-center gap-2 md:gap-3 hover:bg-gray-50">
+                    <PersonIcon className="w-5 h-5 md:w-6 md:h-6" />
                     <div className="text-center">
-                      <div className="font-medium">프로필 보기</div>
-                      <div className="text-xs text-gray-500">공개 프로필 확인</div>
+                      <div className="text-sm md:text-base font-medium">프로필 보기</div>
+                      <div className="text-xs text-gray-500 hidden md:block">공개 프로필 확인</div>
                     </div>
                   </Button>
                 </Link>
-                <Button variant="outline" className="w-full h-auto p-6 flex flex-col items-center gap-3 hover:bg-gray-50">
-                  <BarChartIcon className="w-6 h-6" />
+                <Button variant="outline" className="w-full h-auto p-4 md:p-6 flex flex-col items-center gap-2 md:gap-3 hover:bg-gray-50">
+                  <BarChartIcon className="w-5 h-5 md:w-6 md:h-6" />
                   <div className="text-center">
-                    <div className="font-medium">분석 보기</div>
-                    <div className="text-xs text-gray-500">상세 통계 확인</div>
+                    <div className="text-sm md:text-base font-medium">분석 보기</div>
+                    <div className="text-xs text-gray-500 hidden md:block">상세 통계 확인</div>
                   </div>
                 </Button>
               </div>
@@ -306,6 +326,9 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileNav />
     </div>
   )
 }
