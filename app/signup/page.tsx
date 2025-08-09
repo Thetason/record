@@ -202,13 +202,13 @@ export default function SignupPage() {
                 <input
                   type="checkbox"
                   name="truthfulReviews"
-                  className="mt-1"
+                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
                   checked={formData.truthfulReviews}
                   onChange={handleChange}
                   required
                 />
-                <div className="space-y-1 leading-none">
-                  <label className="text-sm font-medium text-gray-900">
+                <div className="space-y-1 leading-none flex-1">
+                  <label className="text-sm font-medium text-gray-900 cursor-pointer" onClick={() => setFormData(prev => ({...prev, truthfulReviews: !prev.truthfulReviews}))}>
                     진실된 리뷰 업로드 서약
                   </label>
                   <p className="text-xs text-gray-600 mt-1">
@@ -223,13 +223,13 @@ export default function SignupPage() {
                 <input
                   type="checkbox"
                   name="consentResponsibility"
-                  className="mt-1"
+                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
                   checked={formData.consentResponsibility}
                   onChange={handleChange}
                   required
                 />
-                <div className="space-y-1 leading-none">
-                  <label className="text-sm font-medium text-gray-900">
+                <div className="space-y-1 leading-none flex-1">
+                  <label className="text-sm font-medium text-gray-900 cursor-pointer" onClick={() => setFormData(prev => ({...prev, consentResponsibility: !prev.consentResponsibility}))}>
                     허위 리뷰 및 무단 도용에 대한 법적 책임 인정
                   </label>
                   <p className="text-xs text-gray-600 mt-1">
@@ -245,13 +245,13 @@ export default function SignupPage() {
                 <input
                   type="checkbox"
                   name="privacyPolicy"
-                  className="mt-1"
+                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
                   checked={formData.privacyPolicy}
                   onChange={handleChange}
                   required
                 />
-                <div className="space-y-1 leading-none">
-                  <label className="text-sm font-medium">
+                <div className="space-y-1 leading-none flex-1">
+                  <label className="text-sm font-medium cursor-pointer" onClick={() => setFormData(prev => ({...prev, privacyPolicy: !prev.privacyPolicy}))}>
                     개인정보 수집·이용 동의
                   </label>
                   <p className="text-xs text-gray-600 mt-1">
@@ -266,13 +266,13 @@ export default function SignupPage() {
                 <input
                   type="checkbox"
                   name="terms"
-                  className="mt-1"
+                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
                   checked={formData.terms}
                   onChange={handleChange}
                   required
                 />
-                <div className="space-y-1 leading-none">
-                  <label className="text-sm font-medium">
+                <div className="space-y-1 leading-none flex-1">
+                  <label className="text-sm font-medium cursor-pointer" onClick={() => setFormData(prev => ({...prev, terms: !prev.terms}))}>
                     <Link href="/terms" className="text-[#FF6B35] hover:underline">
                       이용약관
                     </Link>
