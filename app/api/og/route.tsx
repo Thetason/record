@@ -3,13 +3,14 @@ import { NextRequest } from 'next/server'
 
 export const runtime = 'edge'
 
-const fontBold = fetch(
-  new URL('../../../public/fonts/Pretendard-Bold.woff', import.meta.url)
-).then((res) => res.arrayBuffer())
+// 폰트 로딩 임시 비활성화
+// const fontBold = fetch(
+//   new URL('../../../public/fonts/Pretendard-Bold.woff', import.meta.url)
+// ).then((res) => res.arrayBuffer())
 
-const fontRegular = fetch(
-  new URL('../../../public/fonts/Pretendard-Regular.woff', import.meta.url)
-).then((res) => res.arrayBuffer())
+// const fontRegular = fetch(
+//   new URL('../../../public/fonts/Pretendard-Regular.woff', import.meta.url)
+// ).then((res) => res.arrayBuffer())
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,8 +23,8 @@ export async function GET(req: NextRequest) {
     )
     const profile = await profileRes.json()
 
-    const fontBoldData = await fontBold
-    const fontRegularData = await fontRegular
+    // const fontBoldData = await fontBold
+    // const fontRegularData = await fontRegular
 
     return new ImageResponse(
       (
@@ -198,20 +199,20 @@ export async function GET(req: NextRequest) {
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: 'Pretendard',
-            data: fontBoldData,
-            style: 'normal',
-            weight: 700,
-          },
-          {
-            name: 'Pretendard',
-            data: fontRegularData,
-            style: 'normal',
-            weight: 400,
-          },
-        ],
+        // fonts: [
+        //   {
+        //     name: 'Pretendard',
+        //     data: fontBoldData,
+        //     style: 'normal',
+        //     weight: 700,
+        //   },
+        //   {
+        //     name: 'Pretendard',
+        //     data: fontRegularData,
+        //     style: 'normal',
+        //     weight: 400,
+        //   },
+        // ],
       }
     )
   } catch (error) {

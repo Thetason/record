@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { 
-  ShareIcon, 
+  Share1Icon, 
   CheckIcon, 
   StarFilledIcon,
   CalendarIcon,
@@ -12,7 +12,7 @@ import {
   QuoteIcon,
   VercelLogoIcon,
   InstagramLogoIcon,
-  LinkNoneIcon
+  Link2Icon
 } from "@radix-ui/react-icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -126,7 +126,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 </>
               ) : (
                 <>
-                  <ShareIcon className="mr-2" />
+                  <Share1Icon className="mr-2" />
                   공유하기
                 </>
               )}
@@ -217,7 +217,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                       rel="noopener noreferrer"
                       className="bg-white/20 backdrop-blur-md p-2 rounded-lg hover:bg-white/30 transition-colors"
                     >
-                      <LinkNoneIcon className="w-5 h-5 text-white" />
+                      <Link2Icon className="w-5 h-5 text-white" />
                     </a>
                   )}
                 </div>
