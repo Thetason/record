@@ -39,6 +39,8 @@ export default function SignupPage() {
 
     setIsLoading(true)
     try {
+      console.log("Signup attempt with:", { email: formData.email, username: formData.username })
+      
       // 회원가입 API 호출
       const res = await fetch("/api/auth/signup", {
         method: "POST",
@@ -52,25 +54,33 @@ export default function SignupPage() {
       })
 
       const data = await res.json()
+      console.log("Signup response:", data)
 
       if (!res.ok) {
         throw new Error(data.error || "회원가입 실패")
       }
 
       // 회원가입 성공 후 자동 로그인
+      console.log("Attempting auto-login...")
       const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         redirect: false
       })
 
+      console.log("Login result:", result)
+
       if (result?.error) {
-        throw new Error("로그인 실패")
+        console.error("Login error:", result.error)
+        // 로그인 실패해도 회원가입은 성공했으므로 로그인 페이지로 이동
+        router.push("/login?registered=true")
+        return
       }
 
       router.push("/dashboard")
     } catch (error: any) {
-      setError(error.message)
+      console.error("Signup error:", error)
+      setError(error.message || "회원가입 중 오류가 발생했습니다")
     } finally {
       setIsLoading(false)
     }
