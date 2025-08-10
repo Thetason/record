@@ -107,31 +107,25 @@ export default function HomePage() {
               <span>매달 평균 12개의 리뷰가 사라지고 있습니다</span>
             </div>
             
-            <h1 className="text-3xl md:text-6xl font-bold mb-4 md:mb-6 leading-tight">
-              고객들의 진짜 '찐' 후기가<br />
-              <span className="text-[#FF6B35]">여러 플랫폼에 흩어져 제대로 빛을 못 보고 있나요?</span>
+            <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4 leading-tight">
+              브랜드를 새로 열거나 지점을 옮기는<br />
+              <span className="text-[#FF6B35]">미용사, 강사, 네일샵 사장님!</span>
             </h1>
             
-            <p className="text-base md:text-xl text-gray-700 mb-4 max-w-3xl mx-auto px-4 leading-relaxed">
-              <strong className="text-gray-900">브랜드를 새로 열거나 지점을 옮기는<br />
-              미용사, 강사, 네일샵 사장님, 자영업자 여러분!</strong>
+            <p className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 md:mb-6 max-w-4xl mx-auto px-4 leading-tight">
+              고객들의 진짜 '찐' 후기가<br />
+              여러 플랫폼에 흩어져 제대로 빛을 못 보고 있나요?
             </p>
             
-            <p className="text-base md:text-lg text-gray-600 mb-6 md:mb-8 max-w-3xl mx-auto px-4">
+            <p className="text-base md:text-lg text-gray-600 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
               이제 흩어진 리뷰를 한 곳에 모아<br />
-              프로필 조회 후 문의율을 <span className="text-[#FF6B35] font-bold text-lg md:text-xl">최대 67%까지</span> 확실히 끌어올리세요!
+              프로필 조회 후 문의율을 <span className="text-[#FF6B35] font-bold">최대 67%까지</span> 확실히 끌어올리세요!
             </p>
-            
-            <div className="bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] text-white rounded-xl px-6 py-4 mb-6 max-w-2xl mx-auto shadow-lg">
-              <p className="text-base md:text-lg text-center font-medium">
-                ⭐ 당신의 모든 소중한 리뷰가<br />
-                <span className="text-xl md:text-2xl font-bold">당신의 실력을 명확하게 증명합니다</span>
-              </p>
-            </div>
             
             <div className="text-center mb-6">
               <p className="text-sm md:text-base text-gray-600">
-                네이버, 카카오, 인스타 등 모든 리뷰를 <strong>한 번에 통합</strong>하는 강력한 서비스
+                네이버, 카카오, 인스타 등 모든 리뷰를 한 번에 통합<br />
+                <span className="text-xs md:text-sm text-gray-500">당신의 모든 소중한 리뷰가 당신의 실력을 명확하게 증명합니다</span>
               </p>
             </div>
 
