@@ -13,11 +13,22 @@ export default function HomePage() {
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
 
   const targetAudiences = [
-    "미용사, 강사, 네일샵 사장님, 자영업자",
-    "필라테스 강사, 요가 선생님, 트레이너",
-    "헤어디자이너, 네일아티스트, 메이크업 아티스트", 
-    "카페 사장님, 레스토랑 셰프, 바리스타",
-    "플로리스트, 인테리어 디자이너, 사진작가"
+    "미용사",
+    "강사", 
+    "네일샵 사장님",
+    "자영업자",
+    "필라테스 강사",
+    "요가 선생님",
+    "트레이너",
+    "헤어디자이너",
+    "네일아티스트",
+    "메이크업 아티스트",
+    "카페 사장님",
+    "레스토랑 셰프",
+    "바리스타",
+    "플로리스트",
+    "인테리어 디자이너",
+    "사진작가"
   ]
 
   useEffect(() => {
@@ -53,7 +64,7 @@ export default function HomePage() {
     // 타겟 오디언스 순환 애니메이션
     const targetTimer = setInterval(() => {
       setCurrentTargetIndex((prev) => (prev + 1) % targetAudiences.length)
-    }, 3000) // 3초마다 변경
+    }, 700) // 0.7초마다 변경
 
     return () => {
       clearTimeout(timer)
@@ -126,7 +137,7 @@ export default function HomePage() {
               브랜드를 새로 열거나 지점을 옮기는<br />
               <span className="text-[#FF6B35] inline-block min-h-[1.2em]">
                 <span 
-                  className="inline-block transition-all duration-700 ease-in-out animate-pulse"
+                  className="inline-block transition-all duration-300 ease-in-out"
                   key={currentTargetIndex}
                 >
                   {targetAudiences[currentTargetIndex]}여러분!
