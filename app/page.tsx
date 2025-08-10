@@ -135,14 +135,26 @@ export default function HomePage() {
             
             <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4 leading-tight">
               브랜드를 새로 열거나 지점을 옮기는<br />
-              <span className="text-[#FF6B35] inline-block min-h-[1.2em]">
-                <span 
-                  className="inline-block transition-all duration-300 ease-in-out"
-                  key={currentTargetIndex}
-                >
-                  {targetAudiences[currentTargetIndex]}여러분!
-                </span>
-              </span>
+              <div className="inline-flex items-center justify-center mt-2">
+                <div className="relative bg-white rounded-full px-6 py-3 shadow-lg border-2 border-gray-100 hover:border-[#FF6B35] transition-colors duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-[#FF6B35] rounded-full animate-pulse"></div>
+                    <span 
+                      className="text-[#FF6B35] font-semibold text-lg md:text-xl transition-all duration-300 ease-in-out min-w-[160px] text-center"
+                      key={currentTargetIndex}
+                    >
+                      {targetAudiences[currentTargetIndex]}
+                    </span>
+                    <div className="w-2 h-2 bg-[#FF6B35] rounded-full animate-pulse"></div>
+                  </div>
+                  {/* 검색 아이콘 효과 */}
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-gray-400 rounded-full relative">
+                      <div className="absolute -bottom-1 -right-1 w-2 h-0.5 bg-gray-400 rotate-45 origin-bottom-left"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </h1>
             
             <p className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 md:mb-6 max-w-4xl mx-auto px-4 leading-tight">
