@@ -22,6 +22,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
+  const [allChecked, setAllChecked] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,6 +93,36 @@ export default function SignupPage() {
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value
+    }))
+    
+    // Check if all checkboxes are checked
+    if (type === "checkbox") {
+      const newFormData = { ...formData, [name]: checked }
+      const allConsentsChecked = 
+        newFormData.terms && 
+        newFormData.truthfulReviews && 
+        newFormData.consentResponsibility && 
+        newFormData.privacyPolicy
+      setAllChecked(allConsentsChecked)
+    }
+  }
+
+  const toggleAllCheckboxes = () => {
+    const newValue = !allChecked
+    setFormData(prev => ({
+      ...prev,
+      terms: newValue,
+      truthfulReviews: newValue,
+      consentResponsibility: newValue,
+      privacyPolicy: newValue
+    }))
+    setAllChecked(newValue)
+  }
+
+  const toggleExpanded = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
     }))
   }
 
@@ -203,107 +235,194 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* 법적 동의사항 섹션 */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">필수 동의사항</h3>
+            {/* 친근한 동의사항 섹션 */}
+            <div className="space-y-4">
+              {/* 헤더와 전체 동의 */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800">리코드 커뮤니티 가입하기</h3>
+                  <p className="text-xs text-gray-500 mt-1">신뢰할 수 있는 리뷰 문화를 함께 만들어요</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAllCheckboxes}
+                  className={`px-3 py-1.5 text-xs rounded-full transition-all ${
+                    allChecked 
+                      ? 'bg-[#FF6B35] text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {allChecked ? '✓ 모두 동의함' : '전체 동의'}
+                </button>
+              </div>
               
-              {/* 진실된 리뷰 서약 */}
-              <div className="flex items-start space-x-3 rounded-md border p-4 bg-yellow-50 border-yellow-200">
-                <input
-                  type="checkbox"
-                  name="truthfulReviews"
-                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
-                  checked={formData.truthfulReviews}
-                  onChange={handleChange}
-                  required
-                />
-                <div className="space-y-1 leading-none flex-1">
-                  <label className="text-sm font-medium text-gray-900 cursor-pointer" onClick={() => setFormData(prev => ({...prev, truthfulReviews: !prev.truthfulReviews}))}>
-                    진실된 리뷰 업로드 서약
-                  </label>
-                  <p className="text-xs text-gray-600 mt-1">
-                    본인은 리코드 플랫폼에 업로드하는 모든 리뷰가 본인이 직접 경험한 사실에 기반한 진실된 내용임을 서약합니다.
-                    허위, 과장, 왜곡된 리뷰를 업로드하지 않으며, 금전적 대가를 받고 작성된 리뷰는 업로드하지 않겠습니다.
-                  </p>
+              {/* 진실된 리뷰 서약 - 커뮤니티 약속 */}
+              <div className="rounded-lg border border-gray-200 hover:border-[#FF6B35] transition-colors p-4 bg-white">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    name="truthfulReviews"
+                    className="w-4 h-4 mt-0.5 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
+                    checked={formData.truthfulReviews}
+                    onChange={handleChange}
+                    required
+                  />
+                  <div className="flex-1">
+                    <label className="flex items-center justify-between cursor-pointer" onClick={() => setFormData(prev => ({...prev, truthfulReviews: !prev.truthfulReviews}))}>
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">🤝 진실한 리뷰로 함께해요</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          내가 직접 경험한 진짜 리뷰만 공유할게요
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleExpanded('truthful')
+                        }}
+                        className="text-xs text-gray-500 hover:text-[#FF6B35] ml-2"
+                      >
+                        {expandedSections.truthful ? '접기' : '자세히'}
+                      </button>
+                    </label>
+                    {expandedSections.truthful && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                          리코드에서는 실제 경험을 바탕으로 한 진실된 리뷰만 업로드합니다. 
+                          허위, 과장, 왜곡된 내용이나 금전적 대가를 받은 리뷰는 업로드하지 않겠습니다.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* 법적 책임 인정 */}
-              <div className="flex items-start space-x-3 rounded-md border p-4 bg-red-50 border-red-200">
-                <input
-                  type="checkbox"
-                  name="consentResponsibility"
-                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
-                  checked={formData.consentResponsibility}
-                  onChange={handleChange}
-                  required
-                />
-                <div className="space-y-1 leading-none flex-1">
-                  <label className="text-sm font-medium text-gray-900 cursor-pointer" onClick={() => setFormData(prev => ({...prev, consentResponsibility: !prev.consentResponsibility}))}>
-                    허위 리뷰 및 무단 도용에 대한 법적 책임 인정
-                  </label>
-                  <p className="text-xs text-gray-600 mt-1">
-                    허위 리뷰 업로드 시 형법 제307조(명예훼손), 정보통신망법 제70조에 따른 법적 처벌을 받을 수 있으며,
-                    타인의 리뷰를 무단으로 도용할 경우 저작권법 제136조에 따른 처벌 및 민사상 손해배상 책임이 있음을 인정합니다.
-                    리뷰로 인한 모든 법적 분쟁 시 리코드는 면책되며, 본인이 모든 책임을 부담합니다.
-                  </p>
+              {/* 책임감 있는 이용 */}
+              <div className="rounded-lg border border-gray-200 hover:border-[#FF6B35] transition-colors p-4 bg-white">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    name="consentResponsibility"
+                    className="w-4 h-4 mt-0.5 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
+                    checked={formData.consentResponsibility}
+                    onChange={handleChange}
+                    required
+                  />
+                  <div className="flex-1">
+                    <label className="flex items-center justify-between cursor-pointer" onClick={() => setFormData(prev => ({...prev, consentResponsibility: !prev.consentResponsibility}))}>
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">⚖️ 책임감 있게 이용할게요</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          내 리뷰에 대한 책임은 제가 질게요
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleExpanded('responsibility')
+                        }}
+                        className="text-xs text-gray-500 hover:text-[#FF6B35] ml-2"
+                      >
+                        {expandedSections.responsibility ? '접기' : '자세히'}
+                      </button>
+                    </label>
+                    {expandedSections.responsibility && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                          허위 리뷰나 타인의 리뷰 무단 도용은 법적 처벌 대상입니다. 
+                          리뷰 관련 분쟁 발생 시 리코드는 중개 플랫폼으로서 면책되며, 
+                          모든 책임은 작성자가 부담합니다. (형법 제307조, 정보통신망법 제70조, 저작권법 제136조)
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* 개인정보 처리방침 */}
-              <div className="flex items-start space-x-3 rounded-md border p-4">
-                <input
-                  type="checkbox"
-                  name="privacyPolicy"
-                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
-                  checked={formData.privacyPolicy}
-                  onChange={handleChange}
-                  required
-                />
-                <div className="space-y-1 leading-none flex-1">
-                  <label className="text-sm font-medium cursor-pointer" onClick={() => setFormData(prev => ({...prev, privacyPolicy: !prev.privacyPolicy}))}>
-                    개인정보 수집·이용 동의
-                  </label>
-                  <p className="text-xs text-gray-600 mt-1">
-                    회원가입 및 서비스 제공을 위한 개인정보(이메일, 이름, 비밀번호) 수집·이용에 동의합니다.
-                    개인정보는 회원탈퇴 시까지 보관되며, 관련 법령에 따라 안전하게 관리됩니다.
-                  </p>
+              {/* 개인정보 처리 */}
+              <div className="rounded-lg border border-gray-200 hover:border-[#FF6B35] transition-colors p-4 bg-white">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    name="privacyPolicy"
+                    className="w-4 h-4 mt-0.5 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
+                    checked={formData.privacyPolicy}
+                    onChange={handleChange}
+                    required
+                  />
+                  <div className="flex-1">
+                    <label className="flex items-center justify-between cursor-pointer" onClick={() => setFormData(prev => ({...prev, privacyPolicy: !prev.privacyPolicy}))}>
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">🔒 개인정보를 안전하게 보호해요</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          최소한의 정보만 수집하고 안전하게 관리합니다
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleExpanded('privacy')
+                        }}
+                        className="text-xs text-gray-500 hover:text-[#FF6B35] ml-2"
+                      >
+                        {expandedSections.privacy ? '접기' : '자세히'}
+                      </button>
+                    </label>
+                    {expandedSections.privacy && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                          서비스 제공을 위한 최소한의 정보(이메일, 이름, 비밀번호)만 수집합니다. 
+                          수집된 정보는 회원탈퇴 시까지 안전하게 보관되며, 관련 법령에 따라 철저히 관리됩니다.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* 이용약관 */}
-              <div className="flex items-start space-x-3 rounded-md border p-4">
-                <input
-                  type="checkbox"
-                  name="terms"
-                  className="w-4 h-4 mt-1 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
-                  checked={formData.terms}
-                  onChange={handleChange}
-                  required
-                />
-                <div className="space-y-1 leading-none flex-1">
-                  <label className="text-sm font-medium cursor-pointer" onClick={() => setFormData(prev => ({...prev, terms: !prev.terms}))}>
-                    <Link href="/terms" className="text-[#FF6B35] hover:underline">
-                      이용약관
-                    </Link>
-                    {" 동의"}
-                  </label>
-                  <p className="text-xs text-gray-600 mt-1">
-                    리코드는 리뷰 공유를 위한 중개 플랫폼이며, 업로드된 리뷰 내용에 대한 책임은 작성자에게 있습니다.
-                  </p>
+              <div className="rounded-lg border border-gray-200 hover:border-[#FF6B35] transition-colors p-4 bg-white">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    name="terms"
+                    className="w-4 h-4 mt-0.5 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
+                    checked={formData.terms}
+                    onChange={handleChange}
+                    required
+                  />
+                  <div className="flex-1">
+                    <label className="flex items-center justify-between cursor-pointer" onClick={() => setFormData(prev => ({...prev, terms: !prev.terms}))}>
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">📋 리코드 이용약관에 동의해요</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          서비스 이용에 필요한 기본 약관입니다
+                        </p>
+                      </div>
+                      <Link 
+                        href="/terms" 
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-[#FF6B35] hover:underline ml-2"
+                      >
+                        약관 보기
+                      </Link>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 중요 안내사항 */}
-            <div className="bg-gray-100 rounded-lg p-4 text-xs text-gray-700">
-              <p className="font-semibold mb-2">⚠️ 중요 안내사항</p>
-              <ul className="space-y-1 list-disc list-inside">
-                <li>허위 리뷰 작성 시 최대 5년 이하 징역 또는 5천만원 이하 벌금</li>
-                <li>타인의 리뷰 무단 도용 시 저작권법 위반으로 형사처벌 가능</li>
-                <li>리뷰로 인한 명예훼손 시 민·형사상 책임 부담</li>
-                <li>모든 법적 책임은 리뷰 업로드자에게 있으며, 리코드는 면책됩니다</li>
-              </ul>
+            {/* 부드러운 안내 메시지 */}
+            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-4">
+              <p className="text-xs text-gray-700 text-center">
+                💡 <strong>리코드는 신뢰를 기반으로 합니다</strong><br/>
+                <span className="text-gray-600">
+                  진실한 리뷰로 서로의 성장을 돕는 건강한 커뮤니티를 만들어가요
+                </span>
+              </p>
             </div>
 
             <button
