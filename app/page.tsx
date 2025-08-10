@@ -10,6 +10,15 @@ export default function HomePage() {
   const [reviewCount, setReviewCount] = useState(0)
   const [avgRating, setAvgRating] = useState(0)
   const [showDemo, setShowDemo] = useState(false)
+  const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
+
+  const targetAudiences = [
+    "미용사, 강사, 네일샵 사장님, 자영업자",
+    "필라테스 강사, 요가 선생님, 트레이너",
+    "헤어디자이너, 네일아티스트, 메이크업 아티스트", 
+    "카페 사장님, 레스토랑 셰프, 바리스타",
+    "플로리스트, 인테리어 디자이너, 사진작가"
+  ]
 
   useEffect(() => {
     // 리뷰 카운트 애니메이션
@@ -41,9 +50,15 @@ export default function HomePage() {
       }, 40)
     }, 800)
 
+    // 타겟 오디언스 순환 애니메이션
+    const targetTimer = setInterval(() => {
+      setCurrentTargetIndex((prev) => (prev + 1) % targetAudiences.length)
+    }, 3000) // 3초마다 변경
+
     return () => {
       clearTimeout(timer)
       clearTimeout(ratingTimer)
+      clearInterval(targetTimer)
     }
   }, [])
 
@@ -109,7 +124,14 @@ export default function HomePage() {
             
             <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4 leading-tight">
               브랜드를 새로 열거나 지점을 옮기는<br />
-              <span className="text-[#FF6B35]">미용사, 강사, 네일샵 사장님!</span>
+              <span className="text-[#FF6B35] inline-block min-h-[1.2em]">
+                <span 
+                  className="inline-block transition-all duration-700 ease-in-out animate-pulse"
+                  key={currentTargetIndex}
+                >
+                  {targetAudiences[currentTargetIndex]}여러분!
+                </span>
+              </span>
             </h1>
             
             <p className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 md:mb-6 max-w-4xl mx-auto px-4 leading-tight">
