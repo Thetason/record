@@ -13,22 +13,22 @@ export default function HomePage() {
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
 
   const targetAudiences = [
-    "미용사",
-    "강사", 
-    "네일샵 사장님",
-    "자영업자",
-    "필라테스 강사",
-    "요가 선생님",
-    "트레이너",
-    "헤어디자이너",
-    "네일아티스트",
-    "메이크업 아티스트",
-    "카페 사장님",
-    "레스토랑 셰프",
-    "바리스타",
-    "플로리스트",
-    "인테리어 디자이너",
-    "사진작가"
+    { text: "미용사", emoji: "💈" },
+    { text: "강사", emoji: "👨‍🏫" },
+    { text: "네일샵 사장님", emoji: "💅" },
+    { text: "자영업자", emoji: "🏪" },
+    { text: "필라테스 강사", emoji: "🧘‍♀️" },
+    { text: "요가 선생님", emoji: "🕉️" },
+    { text: "트레이너", emoji: "💪" },
+    { text: "헤어디자이너", emoji: "✂️" },
+    { text: "네일아티스트", emoji: "💎" },
+    { text: "메이크업 아티스트", emoji: "💄" },
+    { text: "카페 사장님", emoji: "☕" },
+    { text: "레스토랑 셰프", emoji: "👨‍🍳" },
+    { text: "바리스타", emoji: "🫗" },
+    { text: "플로리스트", emoji: "🌸" },
+    { text: "인테리어 디자이너", emoji: "🏠" },
+    { text: "사진작가", emoji: "📸" }
   ]
 
   useEffect(() => {
@@ -136,22 +136,20 @@ export default function HomePage() {
             <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4 leading-tight">
               브랜드를 새로 열거나 지점을 옮기는<br />
               <div className="inline-flex items-center justify-center mt-2">
-                <div className="relative bg-white rounded-full px-6 py-3 shadow-lg border-2 border-gray-100 hover:border-[#FF6B35] transition-colors duration-300">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-[#FF6B35] rounded-full animate-pulse"></div>
+                <div className="bg-white rounded-lg px-6 py-4 border-4 border-black w-80 md:w-96">
+                  <div className="flex items-center justify-center gap-3">
                     <span 
-                      className="text-[#FF6B35] font-semibold text-lg md:text-xl transition-all duration-300 ease-in-out min-w-[160px] text-center"
-                      key={currentTargetIndex}
+                      className="text-2xl transition-all duration-300 ease-in-out"
+                      key={`emoji-${currentTargetIndex}`}
                     >
-                      {targetAudiences[currentTargetIndex]}
+                      {targetAudiences[currentTargetIndex].emoji}
                     </span>
-                    <div className="w-2 h-2 bg-[#FF6B35] rounded-full animate-pulse"></div>
-                  </div>
-                  {/* 검색 아이콘 효과 */}
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="w-4 h-4 border-2 border-gray-400 rounded-full relative">
-                      <div className="absolute -bottom-1 -right-1 w-2 h-0.5 bg-gray-400 rotate-45 origin-bottom-left"></div>
-                    </div>
+                    <span 
+                      className="text-[#FF6B35] font-bold text-lg md:text-xl transition-all duration-300 ease-in-out text-center"
+                      key={`text-${currentTargetIndex}`}
+                    >
+                      {targetAudiences[currentTargetIndex].text}
+                    </span>
                   </div>
                 </div>
               </div>
