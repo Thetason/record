@@ -13,22 +13,22 @@ export default function HomePage() {
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
 
   const targetAudiences = [
-    { text: "미용사", emoji: "💈" },
-    { text: "강사", emoji: "👨‍🏫" },
-    { text: "네일샵 사장님", emoji: "💅" },
-    { text: "자영업자", emoji: "🏪" },
-    { text: "필라테스 강사", emoji: "🧘‍♀️" },
-    { text: "요가 선생님", emoji: "🕉️" },
-    { text: "트레이너", emoji: "💪" },
-    { text: "헤어디자이너", emoji: "✂️" },
-    { text: "네일아티스트", emoji: "💎" },
-    { text: "메이크업 아티스트", emoji: "💄" },
-    { text: "카페 사장님", emoji: "☕" },
-    { text: "레스토랑 셰프", emoji: "👨‍🍳" },
-    { text: "바리스타", emoji: "🫗" },
-    { text: "플로리스트", emoji: "🌸" },
-    { text: "인테리어 디자이너", emoji: "🏠" },
-    { text: "사진작가", emoji: "📸" }
+    { text: "미용사", emoji: "💇‍♀️" },
+    { text: "강사", emoji: "📚" },
+    { text: "네일샵 사장님", emoji: "💋" },
+    { text: "자영업자", emoji: "🚀" },
+    { text: "필라테스 강사", emoji: "🤸‍♀️" },
+    { text: "요가 선생님", emoji: "🧘‍♂️" },
+    { text: "트레이너", emoji: "🏋️‍♂️" },
+    { text: "헤어디자이너", emoji: "💇‍♂️" },
+    { text: "네일아티스트", emoji: "✨" },
+    { text: "메이크업 아티스트", emoji: "🎨" },
+    { text: "카페 사장님", emoji: "🧋" },
+    { text: "레스토랑 셰프", emoji: "🍳" },
+    { text: "바리스타", emoji: "🎯" },
+    { text: "플로리스트", emoji: "🌺" },
+    { text: "인테리어 디자이너", emoji: "🖼️" },
+    { text: "사진작가", emoji: "📷" }
   ]
 
   useEffect(() => {
@@ -145,7 +145,7 @@ export default function HomePage() {
                       {targetAudiences[currentTargetIndex].emoji}
                     </span>
                     <span 
-                      className="text-[#FF6B35] font-bold text-lg md:text-xl transition-all duration-300 ease-in-out text-center flex-1"
+                      className="text-[#FF6B35] font-bold text-xl md:text-2xl transition-all duration-300 ease-in-out text-center flex-1"
                       key={`text-${currentTargetIndex}`}
                     >
                       {targetAudiences[currentTargetIndex].text}
