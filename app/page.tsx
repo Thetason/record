@@ -137,15 +137,9 @@ export default function HomePage() {
               브랜드를 새로 열거나 지점을 옮기는<br />
               <div className="inline-flex items-center justify-center mt-2">
                 <div className="bg-white rounded-lg px-6 py-4 border-4 border-black" style={{width: '320px', minWidth: '320px', maxWidth: '320px'}}>
-                  <div className="flex items-center justify-center gap-3">
+                  <div className="flex items-center justify-center">
                     <span 
-                      className="text-2xl transition-all duration-300 ease-in-out flex-shrink-0"
-                      key={`emoji-${currentTargetIndex}`}
-                    >
-                      {targetAudiences[currentTargetIndex].emoji}
-                    </span>
-                    <span 
-                      className="text-[#FF6B35] font-bold text-xl md:text-2xl transition-all duration-300 ease-in-out text-center flex-1"
+                      className="text-[#FF6B35] font-bold text-3xl md:text-4xl transition-all duration-300 ease-in-out text-center"
                       key={`text-${currentTargetIndex}`}
                     >
                       {targetAudiences[currentTargetIndex].text}
