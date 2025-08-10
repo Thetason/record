@@ -90,7 +90,7 @@ export default function HomePage() {
               </Link>
               <Link href="/signup">
                 <Button size="sm" className="bg-[#FF6B35] hover:bg-[#E55A2B] text-xs md:text-sm px-3 md:px-4">
-                  무료 시작
+                  무료 시작 (87명 남음)
                 </Button>
               </Link>
             </div>
@@ -103,25 +103,25 @@ export default function HomePage() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-8 md:mb-16">
             <div className="inline-flex items-center gap-2 bg-orange-50 text-[#FF6B35] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium mb-4 md:mb-6">
-              <span className="animate-pulse">💎</span>
-              <span>리뷰 하나하나가 당신의 보물입니다</span>
+              <span className="animate-pulse">🔥</span>
+              <span>매달 평균 12개의 리뷰가 사라지고 있습니다</span>
             </div>
             
             <h1 className="text-3xl md:text-6xl font-bold mb-4 md:mb-6 leading-tight">
-              흩어진 리뷰를 모아<br />
-              <span className="text-[#FF6B35]">당신의 실력을 더 쉽게 전달해보세요</span>
+              고객이 인정한 당신의 실력<br />
+              <span className="text-[#FF6B35]">이제 어디서든 증명하세요</span>
             </h1>
             
             <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
               네이버, 카카오, 인스타... 여기저기 흩어진 소중한 리뷰들<br />
-              <strong>한 곳에 모아두면 강력한 신뢰의 증거가 됩니다</strong><br />
-              고객이 남긴 진심, Re:cord가 소중히 간직합니다
+              <strong>평균 127개를 3분만에 통합</strong> · 프로필 조회 후 문의율 <strong>67% 상승</strong><br />
+              <span className="text-sm text-gray-500">이미 3,847명의 프로가 리코드로 증명합니다</span>
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-6 md:mb-8 px-4">
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-4 px-4">
               <Link href="/signup">
                 <Button size="lg" className="w-full sm:w-auto bg-[#FF6B35] hover:bg-[#E55A2B] text-base md:text-lg px-6 md:px-8 py-5 md:py-6">
-                  지금 리뷰 모으기 시작
+                  30초만에 리뷰 통합하기
                   <ArrowRightIcon className="ml-2 w-4 md:w-5 h-4 md:h-5" />
                 </Button>
               </Link>
@@ -130,6 +130,15 @@ export default function HomePage() {
                   통합 효과 보기
                 </Button>
               </Link>
+            </div>
+            
+            <div className="text-center mb-6 md:mb-8">
+              <p className="text-xs md:text-sm text-gray-500">
+                ✓ 카드 등록 없음 ✓ 14일 무료 체험 ✓ 1분 안에 시작
+              </p>
+              <p className="text-xs text-orange-600 font-medium mt-1">
+                ⏰ 베타 기간 특별 혜택 12월 31일까지
+              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-8 text-xs md:text-sm text-gray-600">
@@ -225,8 +234,8 @@ export default function HomePage() {
 
                     <div className="mt-4 p-3 bg-orange-50 rounded-lg">
                       <p className="text-xs md:text-sm text-orange-800">
-                        💡 <strong>"여러 스튜디오에서 받은 리뷰를 한 곳에 모아두니 
-                        독립 준비할 때 큰 자산이 됐어요!"</strong> - 김서연 강사님
+                        💡 <strong>"프로필 링크 하나로 월 문의가 3배 늘었어요. 
+                        실력을 증명하기가 이렇게 쉬울 줄 몰랐네요!"</strong> - 김서연 강사님
                       </p>
                     </div>
                   </div>
