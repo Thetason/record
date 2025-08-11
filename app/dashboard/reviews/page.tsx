@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Fragment } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -38,7 +38,11 @@ export default function ReviewsPage() {
   const [filteredReviews, setFilteredReviews] = useState<Review[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterPlatform, setFilterPlatform] = useState("all")
+  const [sortBy, setSortBy] = useState<"date" | "rating" | "business">("date")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+  const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
+  const itemsPerPage = 10
   const [stats, setStats] = useState({
     total: 0,
     avgRating: 0,
@@ -57,8 +61,8 @@ export default function ReviewsPage() {
   }, [session])
 
   useEffect(() => {
-    // 필터링 적용
-    const filtered = reviews.filter(review => {
+    // 필터링 및 정렬 적용
+    let filtered = reviews.filter(review => {
       const matchesSearch = 
         review.business.toLowerCase().includes(searchTerm.toLowerCase()) || 
         review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,8 +71,29 @@ export default function ReviewsPage() {
       
       return matchesSearch && matchesPlatform
     })
+
+    // 정렬 적용
+    filtered.sort((a, b) => {
+      let comparison = 0
+      
+      switch (sortBy) {
+        case "date":
+          comparison = new Date(a.reviewDate).getTime() - new Date(b.reviewDate).getTime()
+          break
+        case "rating":
+          comparison = a.rating - b.rating
+          break
+        case "business":
+          comparison = a.business.localeCompare(b.business)
+          break
+      }
+      
+      return sortOrder === "asc" ? comparison : -comparison
+    })
+    
     setFilteredReviews(filtered)
-  }, [reviews, searchTerm, filterPlatform])
+    setCurrentPage(1) // 필터 변경 시 첫 페이지로 이동
+  }, [reviews, searchTerm, filterPlatform, sortBy, sortOrder])
 
   const fetchReviews = async () => {
     if (!session) return
@@ -142,6 +167,48 @@ export default function ReviewsPage() {
   }
 
   const platforms = ["all", ...Array.from(new Set(reviews.map(r => r.platform)))]
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(filteredReviews.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedReviews = filteredReviews.slice(startIndex, endIndex)
+
+  // 페이지 버튼 배열 생성
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push("...")
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i)
+        }
+      } else {
+        pages.push(1)
+        pages.push("...")
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      }
+    }
+    
+    return pages
+  }
 
   if (status === "loading" || isLoading) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>
@@ -246,35 +313,63 @@ export default function ReviewsPage() {
               <CardTitle>필터 & 검색</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="업체명, 리뷰 내용, 작성자로 검색..."
-                      className="pl-10"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+              <div className="space-y-4">
+                {/* 검색 및 필터 */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="업체명, 리뷰 내용, 작성자로 검색..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
                   </div>
+                  <select
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
+                    value={filterPlatform}
+                    onChange={(e) => setFilterPlatform(e.target.value)}
+                  >
+                    {platforms.map(platform => (
+                      <option key={platform} value={platform}>
+                        {platform === "all" ? "모든 플랫폼" : platform}
+                      </option>
+                    ))}
+                  </select>
+                  <Button asChild className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    <Link href="/dashboard/add-review">
+                      <PlusIcon className="w-4 h-4 mr-2" />
+                      리뷰 추가
+                    </Link>
+                  </Button>
                 </div>
-                <select
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
-                  value={filterPlatform}
-                  onChange={(e) => setFilterPlatform(e.target.value)}
-                >
-                  {platforms.map(platform => (
-                    <option key={platform} value={platform}>
-                      {platform === "all" ? "모든 플랫폼" : platform}
-                    </option>
-                  ))}
-                </select>
-                <Button asChild className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                  <Link href="/dashboard/add-review">
-                    <PlusIcon className="w-4 h-4 mr-2" />
-                    리뷰 추가
-                  </Link>
-                </Button>
+                
+                {/* 정렬 옵션 */}
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-gray-700">정렬:</span>
+                  <select
+                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as "date" | "rating" | "business")}
+                  >
+                    <option value="date">날짜</option>
+                    <option value="rating">평점</option>
+                    <option value="business">업체명</option>
+                  </select>
+                  <select
+                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                  >
+                    <option value="desc">내림차순</option>
+                    <option value="asc">오름차순</option>
+                  </select>
+                  <span className="text-sm text-gray-500 ml-auto">
+                    총 {filteredReviews.length}개 중 {startIndex + 1}-{Math.min(endIndex, filteredReviews.length)}개 표시
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -300,7 +395,7 @@ export default function ReviewsPage() {
                     </Button>
                   </div>
                 ) : (
-                  filteredReviews.map((review) => (
+                  paginatedReviews.map((review) => (
                     <div key={review.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-3">
@@ -351,6 +446,46 @@ export default function ReviewsPage() {
                   ))
                 )}
               </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    이전
+                  </Button>
+                  
+                  {getPageNumbers().map((page, index) => (
+                    <Fragment key={index}>
+                      {page === "..." ? (
+                        <span className="px-2 text-gray-400">...</span>
+                      ) : (
+                        <Button
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page as number)}
+                          className={currentPage === page ? "bg-[#FF6B35] hover:bg-[#E55A2B]" : ""}
+                        >
+                          {page}
+                        </Button>
+                      )}
+                    </Fragment>
+                  ))}
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    다음
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
