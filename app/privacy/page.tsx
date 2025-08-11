@@ -26,17 +26,25 @@ export default function PrivacyPage() {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
           <h1 className="text-3xl font-bold mb-2">개인정보처리방침</h1>
-          <p className="text-gray-600 mb-8">최종 수정일: 2025년 8월 11일</p>
+          <div className="mb-8">
+            <p className="text-gray-600 mb-2">최종 수정일: 2025년 8월 11일 | 시행일: 2025년 8월 11일</p>
+            <p className="text-sm text-blue-600">버전: v2.0 (2023년 개정법 및 OCR 기능 반영)</p>
+          </div>
 
           {/* 개요 */}
           <section className="mb-8">
             <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">
+              <p className="text-gray-700 leading-relaxed mb-4">
+                <strong>Re:cord</strong>(이하 "회사" 또는 "리코드")는 이용자의 개인정보를 중요시하며, 
+                「개인정보 보호법」, 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」, 
+                「전자상거래 등에서의 소비자보호에 관한 법률」 등 개인정보 보호 관련 법령을 
+                준수하고 있습니다.
+              </p>
               <p className="text-gray-700 leading-relaxed">
-                <strong>Re:cord</strong>(이하 "회사")는 이용자의 개인정보를 중요시하며, 
-                「개인정보 보호법」, 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 등 
-                관련 법령을 준수하고 있습니다. 본 개인정보처리방침을 통해 이용자의 개인정보가 
-                어떤 목적과 방식으로 수집·이용되고 있으며, 개인정보 보호를 위해 어떤 조치를 
-                취하고 있는지 알려드립니다.
+                본 개인정보처리방침은 회사가 제공하는 리뷰 포트폴리오 플랫폼 서비스(이하 "서비스")에서 
+                개인정보가 어떻게 수집·이용·처리되고 있는지, 특히 OCR(광학 문자 인식) 기술을 
+                통한 이미지 처리 과정에서의 개인정보 처리 방식과 보호 조치에 대해 
+                상세히 알려드립니다.
               </p>
             </div>
           </section>
@@ -55,16 +63,27 @@ export default function PrivacyPage() {
                     <li>회원가입 시: 이메일, 비밀번호, 이름, 사용자명(닉네임)</li>
                     <li>서비스 이용 시: 리뷰 내용, 평점, 업체명, 리뷰 작성일</li>
                     <li>자동 수집: 접속 IP, 접속 기기 정보, 서비스 이용 기록, 쿠키</li>
+                    <li>OCR 처리 과정에서 수집되는 정보: 업로드된 이미지에서 추출된 텍스트 정보, 이미지 메타데이터</li>
                   </ul>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
                   <h4 className="font-semibold mb-2">선택 수집 항목</h4>
                   <ul className="list-disc pl-5 space-y-1 text-gray-700">
                     <li>프로필 정보: 프로필 사진, 자기소개, 경력 사항</li>
                     <li>SNS 연동 정보: 인스타그램, 웹사이트 URL</li>
-                    <li>리뷰 관련: 리뷰 스크린샷, 원본 링크</li>
+                    <li>리뷰 관련: 리뷰 스크린샷 이미지 파일, 원본 링크</li>
+                    <li>제3자 플랫폼 연동: 네이버, 구글, 카카오맵 등 플랫폼에서 공개된 리뷰 정보</li>
                   </ul>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 text-red-800">민감정보 처리 관련 고지</h4>
+                  <p className="text-sm text-red-700">
+                    회사는 원칙적으로 사상·신념, 정치적 견해, 건강, 성생활 등에 관한 민감정보를 
+                    수집하지 않습니다. 다만, 이용자가 리뷰 내용에 자발적으로 포함시킨 경우 
+                    별도의 동의를 받아 처리할 수 있습니다.
+                  </p>
                 </div>
               </div>
 
@@ -72,8 +91,11 @@ export default function PrivacyPage() {
                 <h3 className="text-lg font-semibold mb-3">나. 개인정보 수집 방법</h3>
                 <ul className="list-disc pl-5 space-y-1 text-gray-700">
                   <li>회원가입 및 서비스 이용 과정에서 이용자가 직접 입력</li>
-                  <li>서비스 이용 과정에서 자동으로 수집</li>
+                  <li>서비스 이용 과정에서 자동으로 수집(접속 로그, 이용 기록 등)</li>
+                  <li>OCR 기술을 통한 이미지 내 텍스트 자동 추출</li>
+                  <li>제3자 플랫폼 API를 통한 공개 리뷰 정보 수집</li>
                   <li>고객센터를 통한 상담 과정에서 수집</li>
+                  <li>쿠키, 웹 비콘 등 자동 수집 장치를 통한 수집</li>
                 </ul>
               </div>
             </div>
@@ -97,7 +119,8 @@ export default function PrivacyPage() {
                 <h3 className="font-semibold mb-2">서비스 제공</h3>
                 <p className="text-gray-700">
                   리뷰 포트폴리오 생성 및 관리, 공개 프로필 페이지 제공, 리뷰 통계 및 분석 제공, 
-                  맞춤형 서비스 제공, 콘텐츠 제공
+                  OCR 기술을 활용한 리뷰 스크린샷 자동 인식 및 텍스트 추출, 
+                  제3자 플랫폼 리뷰 데이터 연동, 맞춤형 서비스 제공, 콘텐츠 제공
                 </p>
               </div>
 
@@ -107,6 +130,14 @@ export default function PrivacyPage() {
                   신규 서비스 개발 및 맞춤 서비스 제공, 이벤트 및 광고성 정보 제공 및 참여 기회 제공, 
                   인구통계학적 특성에 따른 서비스 제공 및 광고 게재, 서비스의 유효성 확인, 
                   접속 빈도 파악 또는 회원의 서비스 이용에 대한 통계
+                </p>
+              </div>
+
+              <div className="border-l-4 border-[#FF6B35] pl-4">
+                <h3 className="font-semibold mb-2">가명정보 처리</h3>
+                <p className="text-gray-700">
+                  통계 작성, 과학적 연구, 공익적 기록보존 등을 위한 가명정보 처리. 
+                  이 경우 개인을 알아볼 수 없도록 가명처리하여 통계적 목적으로만 이용합니다.
                 </p>
               </div>
             </div>
@@ -234,6 +265,7 @@ export default function PrivacyPage() {
                 <p className="text-gray-700">
                   이용자가 회원가입 등을 위해 입력한 정보는 목적이 달성된 후 별도의 DB로 옮겨져 
                   내부 방침 및 기타 관련 법령에 의한 정보보호 사유에 따라 일정 기간 저장된 후 파기됩니다.
+                  단, 다른 법령에 특별한 규정이 있는 경우에는 해당 규정에 따라 보존합니다.
                 </p>
               </div>
 
@@ -348,9 +380,69 @@ export default function PrivacyPage() {
             </div>
           </section>
 
-          {/* 11. 개정 이력 */}
+          {/* 11. 손해배상 */}
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">11. 개인정보처리방침의 변경</h2>
+            <h2 className="text-2xl font-semibold mb-4">11. 손해배상 및 분쟁조정</h2>
+            
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 className="font-semibold mb-3 text-blue-800">손해배상 책임 (개인정보보호법 제39조)</h3>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold mb-2">가. 배상책임의 범위</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                      <li>개인정보의 수집·유출·오남·위조 등으로 인한 정신적 피해</li>
+                      <li>개인정보 오남으로 인한 재산상 피해</li>
+                      <li>OCR 처리 과정에서의 오류나 개인정보 오남</li>
+                      <li>제3자 서비스 연동 과정에서의 데이터 오남</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">나. 배상 범위</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                      <li>정신적 피해: 1인당 일일 10만원 이하 배상 (최대 300만원)</li>
+                      <li>재산상 피해: 실제 손해 범위 내에서 배상</li>
+                      <li>법정손해배상: 개인정보보호법 제39조의 2 규정에 따른 배상</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">다. 면책사유</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                      <li>이용자의 고의 또는 중대한 과실로 인한 피해</li>
+                      <li>제3자의 불법행위로 인한 피해</li>
+                      <li>천재지변이나 전쟁 등 불가항력으로 인한 피해</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="font-semibold mb-3">분쟁조정 절차</h3>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold mb-2">1. 내부 처리 절차</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                      <li>고지 접수 후 7일 이내 사실확인 및 답변</li>
+                      <li>15일 이내 해결방안 제시 및 협의</li>
+                      <li>30일 이내 최종 처리결과 통보</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">2. 외부 분쟁조정</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                      <li>개인정보보호위원회 개인정보 분쟁조정위원회</li>
+                      <li>대한변호사협회 개인정보 분쟁조정센터</li>
+                      <li>소비자분쟁조정위원회</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 12. 개정 이력 */}
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">12. 개인정보처리방침의 변경</h2>
             
             <p className="text-gray-700 mb-4">
               이 개인정보처리방침은 2025년 8월 11일부터 적용되며, 법령 및 방침에 따른 
@@ -358,11 +450,22 @@ export default function PrivacyPage() {
               공지사항을 통하여 고지할 것입니다.
             </p>
 
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <h3 className="font-semibold mb-2">개정 이력</h3>
               <ul className="space-y-1 text-gray-700">
                 <li>• 2025년 8월 11일: 개인정보처리방침 제정</li>
+                <li>• 2025년 8월 11일: OCR 처리 및 2023년 개정법 반영 전면 개정</li>
               </ul>
+            </div>
+            
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-2 text-orange-800">법률 준수 현황</h3>
+              <div className="text-sm text-orange-700 space-y-2">
+                <p><strong>• 개인정보보호법:</strong> 2020.8.5. 개정, 2023.9.15. 최신개정 사항 반영</p>
+                <p><strong>• 정보통신망법:</strong> 2020.12.10. 개정 사항 반영</p>
+                <p><strong>• 전자상거래법:</strong> 2021.7.14. 개정 사항 반영</p>
+                <p><strong>• 위치정보보호법:</strong> 2020.6.9. 시행 사항 반영</p>
+              </div>
             </div>
           </section>
 
@@ -372,11 +475,30 @@ export default function PrivacyPage() {
             <p className="text-gray-700">
               개인정보 처리에 관한 문의사항이 있으신 경우 아래로 연락주시기 바랍니다.
             </p>
-            <ul className="mt-3 space-y-1 text-gray-700">
-              <li>• 이메일: privacy@record.kr</li>
-              <li>• 고객센터: support@record.kr</li>
-              <li>• 운영시간: 평일 09:00 - 18:00</li>
-            </ul>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold mb-2">연락처</h4>
+                <ul className="space-y-1 text-gray-700">
+                  <li>• 이메일: privacy@record.kr</li>
+                  <li>• 고객센터: support@record.kr</li>
+                  <li>• 운영시간: 평일 09:00 - 18:00</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">관련 기관</h4>
+                <ul className="text-sm space-y-1 text-gray-700">
+                  <li>• 개인정보보호위원회: privacy.go.kr (1833-6972)</li>
+                  <li>• 개인정보보호 종합지원 포탈: privacy.go.kr</li>
+                  <li>• 개인정보 침해신고센터: privacy.or.kr (1833-6972)</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-gray-100 border-l-4 border-gray-400 text-sm text-gray-600">
+              <p><strong>전자공시:</strong> 본 개인정보처리방침은 record.kr 웹사이트에 공시하여 언제든지 확인하실 수 있습니다.</p>
+              <p className="mt-2"><strong>면책조항:</strong> 본 개인정보처리방침은 정보 제공의 목적으로 작성된 것으로, 개별 상황에 따른 법률 자문은 전문가에게 받으시기 바랍니다.</p>
+            </div>
           </section>
         </div>
       </main>
