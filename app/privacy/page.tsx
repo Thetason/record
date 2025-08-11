@@ -398,11 +398,11 @@ export default function PrivacyPage() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-2">나. 배상 범위</h4>
+                    <h4 className="font-semibold mb-2">나. 배상 기준</h4>
                     <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                      <li>정신적 피해: 1인당 일일 10만원 이하 배상 (최대 300만원)</li>
-                      <li>재산상 피해: 실제 손해 범위 내에서 배상</li>
-                      <li>법정손해배상: 개인정보보호법 제39조의 2 규정에 따른 배상</li>
+                      <li>개인정보보호법이 정하는 범위 내에서 정신적 피해에 대해 배상합니다</li>
+                      <li>재산상 피해가 발생한 경우 관련 법령에 따라 합리적 배상을 제공합니다</li>
+                      <li>배상 절차 및 기준은 개인정보보호위원회 고시를 따릅니다</li>
                     </ul>
                   </div>
                   <div>
