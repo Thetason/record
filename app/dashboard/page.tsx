@@ -12,14 +12,12 @@ import {
   GearIcon,
   ExitIcon,
   UploadIcon,
-  TrendingUpIcon,
+  ArrowUpIcon,
   StarIcon,
   CalendarIcon,
   EyeOpenIcon
 } from "@radix-ui/react-icons"
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -29,7 +27,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Area,
   AreaChart
@@ -271,7 +268,7 @@ export default function DashboardPage() {
               color="green"
             />
             <StatCard
-              icon={<TrendingUpIcon className="w-5 h-5" />}
+              icon={<ArrowUpIcon className="w-5 h-5" />}
               title="플랫폼"
               value={stats?.overview.platforms || 0}
               suffix="개"
