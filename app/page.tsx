@@ -184,11 +184,11 @@ export default function HomePage() {
               <button 
                 className="text-gray-600 hover:text-[#FF6B35] transition-colors"
                 onClick={() => {
-                  const section = document.getElementById('app-preview')
+                  const section = document.getElementById('live-demo')
                   section?.scrollIntoView({ behavior: 'smooth' })
                 }}
               >
-                기능소개
+                라이브데모
               </button>
               <button 
                 className="text-gray-600 hover:text-[#FF6B35] transition-colors"
@@ -323,6 +323,136 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* 2. 라이브 데모 - 티로 스타일 */}
+      <section id="live-demo" className="py-20 px-4 bg-gray-50">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <span className="text-sm font-medium text-[#FF6B35] mb-2 block">LIVE DEMO</span>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              실제 <span className="text-[#FF6B35]">Re:cord</span> 사용 화면
+            </h2>
+            <p className="text-gray-600 text-lg">69개 리뷰를 가진 김서연 필라테스 강사님의 프로필</p>
+          </div>
+          
+          {/* 실제 데모 화면 */}
+          <div className="max-w-4xl mx-auto">
+            <Card className="p-8 border-2 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-[#FF6B35] text-white px-3 py-1 rounded-bl-lg text-sm font-bold">
+                LIVE DEMO
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* 왼쪽: 프로필 */}
+                <div>
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-2xl">
+                      김
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl">김서연</h3>
+                      <p className="text-gray-600">필라테스 강사</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <div className="flex text-yellow-500">
+                          {[...Array(5)].map((_, i) => (
+                            <StarFilledIcon key={i} className="w-4 h-4" />
+                          ))}
+                        </div>
+                        <span className="text-sm font-bold">{avgRating.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-[#FF6B35]">{reviewCount}</div>
+                      <div className="text-xs text-gray-600">총 리뷰</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-[#FF6B35]">{avgRating.toFixed(1)}</div>
+                      <div className="text-xs text-gray-600">평균 평점</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-[#FF6B35]">98%</div>
+                      <div className="text-xs text-gray-600">추천율</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 33개</span>
+                    <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 21개</span>
+                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 15개</span>
+                  </div>
+                </div>
+                
+                {/* 오른쪽: 최근 리뷰 */}
+                <div>
+                  <h4 className="font-bold mb-3">최근 리뷰</h4>
+                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    <div className="space-y-3 pr-2">
+                      {demoReviews.slice(0, visibleReviews).map((review, i) => (
+                        <div key={i} className="p-3 bg-gray-50 rounded-lg animate-slideIn" 
+                             style={{ animationDelay: `${1000 + i * 200}ms` }}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              review.platform === "네이버" ? "bg-green-100 text-green-700" :
+                              review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
+                              review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
+                              "bg-blue-100 text-blue-700"
+                            }`}>
+                              {review.platform}
+                            </span>
+                            <div className="flex text-yellow-500 ml-auto">
+                              {[...Array(review.rating)].map((_, j) => (
+                                <StarFilledIcon key={j} className="w-3 h-3" />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
+                          <p className="text-xs text-gray-500 mt-1">{review.author} · {review.date}</p>
+                        </div>
+                      ))}
+                      
+                      {visibleReviews < demoReviews.length && (
+                        <button
+                          onClick={() => setVisibleReviews(prev => Math.min(prev + 3, demoReviews.length))}
+                          className="w-full p-3 text-center text-[#FF6B35] hover:bg-orange-50 rounded-lg transition-colors border-2 border-dashed border-gray-200 hover:border-[#FF6B35]"
+                        >
+                          더 많은 리뷰 보기 ({demoReviews.length - visibleReviews}개 남음)
+                        </button>
+                      )}
+                      
+                      {visibleReviews >= demoReviews.length && (
+                        <div className="text-center p-3 text-gray-500 text-sm">
+                          총 {demoReviews.length}개 리뷰를 모두 확인했습니다! ✨
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-6 border-t flex gap-3">
+                <Link href="/signup" className="flex-1">
+                  <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    나도 만들기
+                  </Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    const section = document.getElementById('how-it-works')
+                    section?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                >
+                  더 알아보기
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* 3. 해시태그 플로우 - 다양한 사용 사례 */}
       <section className="py-16 overflow-hidden bg-white">
         <div className="container mx-auto px-4 max-w-6xl mb-8">
@@ -439,123 +569,18 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 실제 데모 화면 */}
-          <div className="max-w-4xl mx-auto">
-            {showDemo && (
-              <Card className="p-8 border-2 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-[#FF6B35] text-white px-3 py-1 rounded-bl-lg text-sm font-bold">
-                  LIVE DEMO
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* 왼쪽: 프로필 */}
-                  <div>
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                        김
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xl">김서연</h3>
-                        <p className="text-gray-600">필라테스 강사</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <div className="flex text-yellow-500">
-                            {[...Array(5)].map((_, i) => (
-                              <StarFilledIcon key={i} className="w-4 h-4" />
-                            ))}
-                          </div>
-                          <span className="text-sm font-bold">{avgRating.toFixed(1)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-[#FF6B35]">{reviewCount}</div>
-                        <div className="text-xs text-gray-600">총 리뷰</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-[#FF6B35]">{avgRating.toFixed(1)}</div>
-                        <div className="text-xs text-gray-600">평균 평점</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-[#FF6B35]">98%</div>
-                        <div className="text-xs text-gray-600">추천율</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 33개</span>
-                      <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 21개</span>
-                      <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 15개</span>
-                    </div>
-                  </div>
-                  
-                  {/* 오른쪽: 최근 리뷰 */}
-                  <div>
-                    <h4 className="font-bold mb-3">최근 리뷰</h4>
-                    <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                      <div className="space-y-3 pr-2">
-                        {demoReviews.slice(0, visibleReviews).map((review, i) => (
-                          <div key={i} className="p-3 bg-gray-50 rounded-lg animate-slideIn" 
-                               style={{ animationDelay: `${1000 + i * 200}ms` }}>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                review.platform === "네이버" ? "bg-green-100 text-green-700" :
-                                review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
-                                review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
-                                "bg-blue-100 text-blue-700"
-                              }`}>
-                                {review.platform}
-                              </span>
-                              <div className="flex text-yellow-500 ml-auto">
-                                {[...Array(review.rating)].map((_, j) => (
-                                  <StarFilledIcon key={j} className="w-3 h-3" />
-                                ))}
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
-                            <p className="text-xs text-gray-500 mt-1">{review.author} · {review.date}</p>
-                          </div>
-                        ))}
-                        
-                        {visibleReviews < demoReviews.length && (
-                          <button
-                            onClick={() => setVisibleReviews(prev => Math.min(prev + 3, demoReviews.length))}
-                            className="w-full p-3 text-center text-[#FF6B35] hover:bg-orange-50 rounded-lg transition-colors border-2 border-dashed border-gray-200 hover:border-[#FF6B35]"
-                          >
-                            더 많은 리뷰 보기 ({demoReviews.length - visibleReviews}개 남음)
-                          </button>
-                        )}
-                        
-                        {visibleReviews >= demoReviews.length && (
-                          <div className="text-center p-3 text-gray-500 text-sm">
-                            총 {demoReviews.length}개 리뷰를 모두 확인했습니다! ✨
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-6 pt-6 border-t flex gap-3">
-                  <Link href="/signup" className="flex-1">
-                    <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
-                      나도 만들기
-                    </Button>
-                  </Link>
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => {
-                      const section = document.getElementById('how-it-works')
-                      section?.scrollIntoView({ behavior: 'smooth' })
-                    }}
-                  >
-                    더 알아보기
-                  </Button>
-                </div>
-              </Card>
-            )}
+          {/* CTA 버튼 */}
+          <div className="text-center">
+            <Button 
+              size="lg" 
+              className="bg-[#FF6B35] hover:bg-[#E55A2B] px-8 py-4 text-lg"
+              onClick={() => {
+                const section = document.getElementById('live-demo')
+                section?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              라이브 데모 체험하기 →
+            </Button>
           </div>
         </div>
       </section>
