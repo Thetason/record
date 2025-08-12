@@ -9,20 +9,20 @@ export function HeroSection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center w-full">
         {/* Hero Content */}
         <div className="space-y-8">
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-            리뷰는 누군가의 기억입니다.
+          <h1 className="text-4xl md:text-5xl font-light leading-tight">
+            리뷰는 누군가의 <span className="font-medium">기억</span>입니다.
           </h1>
-          <p className="text-2xl md:text-3xl font-semibold text-text-primary mb-6">
+          <p className="text-xl md:text-2xl text-text-primary mb-6 font-light">
             여러분의 서비스로 기뻐한 순간,<br/>
-            <span className="text-[#FF6B35]">그 감정이 남긴 소중한 기록.</span>
+            <span className="text-[#FF6B35] font-normal">그 감정이 남긴 소중한 기록.</span>
           </p>
-          <p className="text-xl text-text-secondary mb-4">
-            <strong>Re:cord</strong>는 그 기억이 잊히지 않도록,<br/>
+          <p className="text-lg text-text-secondary mb-4 leading-relaxed">
+            <span className="font-medium">Re:cord</span>는 그 기억이 잊히지 않도록,<br/>
             흩어진 리뷰를 한 곳에 모아드립니다.
           </p>
-          <p className="text-lg text-text-secondary mb-10">
+          <p className="text-base text-text-secondary mb-10 opacity-80">
             여러 플랫폼에 흩어진 리뷰를 한 곳에,<br/>
-            <strong>Re:cord</strong>로 당신의 이야기를 완성하세요.
+            <span className="font-medium">Re:cord</span>로 당신의 이야기를 완성하세요.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
