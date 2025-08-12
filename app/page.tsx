@@ -75,7 +75,7 @@ export default function HomePage() {
     // 타겟 오디언스 순환 애니메이션
     const targetTimer = setInterval(() => {
       setCurrentTargetIndex((prev) => (prev + 1) % targetAudiences.length)
-    }, 2000) // 2초마다 변경
+    }, 800) // 0.8초마다 변경
 
     return () => {
       clearTimeout(timer)
@@ -139,29 +139,30 @@ export default function HomePage() {
       <section className="pt-24 md:pt-32 pb-16 px-4">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center">
-            {/* 작은 배지 */}
-            <div className="inline-flex items-center gap-2 bg-orange-50 text-[#FF6B35] px-4 py-2 rounded-full text-sm font-medium mb-8">
-              <span className="text-lg">🔥</span>
-              <span>매달 평균 12개의 리뷰가 사라지고 있습니다</span>
+            {/* 상단 알림 */}
+            <div className="text-center mb-12">
+              <p className="text-[#FF6B35] font-semibold text-lg">
+                🔥 매일 평균 12개의 리뷰가 사라지고 있습니다
+              </p>
             </div>
 
             {/* 메인 타이틀 */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight">
+            <h1 className="text-5xl md:text-6xl font-bold text-center leading-tight mb-8 text-gray-900">
               브랜드를 새로 열거나 지점을 옮기는
             </h1>
             
             {/* 타겟 오디언스 박스 - 자동 변경 */}
-            <div className="inline-block bg-white border-2 border-gray-200 rounded-full px-8 py-3 mb-8 min-w-[300px]">
-              <span className="text-2xl md:text-3xl font-bold text-[#FF6B35] transition-all duration-500">
-                {targetAudiences[currentTargetIndex]}
-              </span>
+            <div className="flex justify-center mb-8">
+              <div className="inline-block bg-white border-2 border-gray-200 rounded-full px-8 py-3">
+                <span className="text-2xl md:text-3xl font-bold text-[#FF6B35] transition-all duration-300">
+                  {targetAudiences[currentTargetIndex]}
+                </span>
+              </div>
             </div>
 
             {/* 서브 타이틀 */}
-            <h2 className="text-2xl md:text-3xl mb-4">
-              고객들의 진짜 '찐' 후기가
-            </h2>
-            <h2 className="text-2xl md:text-3xl font-bold mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold leading-tight mb-8 text-gray-900 text-center">
+              고객들의 진짜 '찐' 후기가<br/>
               여러 플랫폼에 흩어져 제대로 빛을 못 보고 있나요?
             </h2>
 
