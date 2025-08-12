@@ -92,3 +92,34 @@
   animation: slideIn 0.6s ease-out forwards;
   opacity: 0;
 }
+
+/* Hashtag scroll animations */
+@keyframes scrollLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scrollRight {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-left {
+  animation: scrollLeft 30s linear infinite;
+}
+
+.animate-scroll-right {
+  animation: scrollRight 30s linear infinite;
+}
+
+.animate-scroll-left-slow {
+  animation: scrollLeft 40s linear infinite;
+}
