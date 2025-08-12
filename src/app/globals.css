@@ -94,32 +94,15 @@
 }
 
 /* Hashtag scroll animations */
-@keyframes scrollLeft {
+@keyframes scrollRightToLeft {
   from {
-    transform: translateX(0);
+    transform: translateX(100%);
   }
   to {
-    transform: translateX(-50%);
+    transform: translateX(-100%);
   }
 }
 
-@keyframes scrollRight {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-.animate-scroll-left {
-  animation: scrollLeft 30s linear infinite;
-}
-
-.animate-scroll-right {
-  animation: scrollRight 30s linear infinite;
-}
-
-.animate-scroll-left-slow {
-  animation: scrollLeft 40s linear infinite;
+.animate-scroll-right-to-left {
+  animation: scrollRightToLeft 60s linear infinite;
 }

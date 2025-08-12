@@ -238,41 +238,13 @@ export default function HomePage() {
           </div>
         </div>
         
-        {/* 해시태그 무한 스크롤 - 첫 번째 줄 */}
-        <div className="relative mb-4">
-          <div className="flex gap-3 animate-scroll-left">
-            {[...hashtags, ...hashtags].map((tag, i) => (
+        {/* 해시태그 무한 스크롤 - 한 줄 (오른쪽에서 왼쪽으로) */}
+        <div className="relative overflow-hidden">
+          <div className="flex gap-4 animate-scroll-right-to-left">
+            {[...hashtags, ...hashtags, ...hashtags].map((tag, i) => (
               <div
                 key={i}
-                className="flex-shrink-0 px-5 py-3 bg-gray-50 rounded-full text-gray-700 hover:bg-[#FF6B35] hover:text-white transition-colors cursor-pointer"
-              >
-                {tag}
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* 해시태그 무한 스크롤 - 두 번째 줄 (반대 방향) */}
-        <div className="relative mb-4">
-          <div className="flex gap-3 animate-scroll-right">
-            {[...hashtags.slice(9), ...hashtags.slice(0, 9), ...hashtags.slice(9), ...hashtags.slice(0, 9)].map((tag, i) => (
-              <div
-                key={i}
-                className="flex-shrink-0 px-5 py-3 bg-gray-50 rounded-full text-gray-700 hover:bg-[#FF6B35] hover:text-white transition-colors cursor-pointer"
-              >
-                {tag}
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* 해시태그 무한 스크롤 - 세 번째 줄 */}
-        <div className="relative">
-          <div className="flex gap-3 animate-scroll-left-slow">
-            {[...hashtags.slice(6), ...hashtags.slice(0, 6), ...hashtags.slice(6), ...hashtags.slice(0, 6)].map((tag, i) => (
-              <div
-                key={i}
-                className="flex-shrink-0 px-5 py-3 bg-gray-50 rounded-full text-gray-700 hover:bg-[#FF6B35] hover:text-white transition-colors cursor-pointer"
+                className="flex-shrink-0 px-6 py-3 bg-gray-100 rounded-full text-gray-700 font-medium whitespace-nowrap"
               >
                 {tag}
               </div>
@@ -614,35 +586,42 @@ export default function HomePage() {
                 <span className="text-xs md:text-sm font-bold text-gray-400">BEFORE</span>
               </div>
               <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-gray-700">
-                ❌ 지금 당신의 고객 관리는...
+                ❌ 지금 당신의 리뷰는 위험합니다
               </h3>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">😰</span>
+                  <span className="text-xl md:text-2xl">😱</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">단골인지 신규인지 모름</p>
-                    <p className="text-xs md:text-sm text-gray-500">고객 히스토리 파악 불가</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">📝</span>
-                  <div>
-                    <p className="text-sm md:text-base font-medium">수기로 관리하는 고객 정보</p>
-                    <p className="text-xs md:text-sm text-gray-500">독립할 때 데이터 소실 위험</p>
+                    <p className="text-sm md:text-base font-medium">네이버 45개, 인스타 82개...</p>
+                    <p className="text-xs md:text-sm text-gray-500">플랫폼마다 따로 보여줘야 하는 번거로움</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="text-xl md:text-2xl">💔</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">리뷰 요청이 어색함</p>
-                    <p className="text-xs md:text-sm text-gray-500">체계적인 리뷰 수집 시스템 부재</p>
+                    <p className="text-sm md:text-base font-medium">신규 고객에게 신뢰 전달이 어려움</p>
+                    <p className="text-xs md:text-sm text-gray-500">흩어진 리뷰로는 임팩트가 약함</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl md:text-2xl">🧮</span>
+                  <div>
+                    <p className="text-sm md:text-base font-medium">계정 정지/해킹으로 접근 불가</p>
+                    <p className="text-xs md:text-sm text-gray-500">소중한 리뷰가 한순간에 사라질 위험</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl md:text-2xl">🔍</span>
+                  <div>
+                    <p className="text-sm md:text-base font-medium">활동하던 곳이 닫라지면 사라지는 리뷰</p>
+                    <p className="text-xs md:text-sm text-gray-500">이직/독립 시 과거 실적 증명 복잡</p>
                   </div>
                 </div>
               </div>
               <div className="mt-4 md:mt-6 p-3 md:p-4 bg-gray-50 rounded-lg">
                 <p className="text-center text-sm md:text-base text-gray-600">
-                  "이 고객님이 몇 번 오셨더라...?"<br />
-                  <span className="text-xs md:text-sm">😰 전문성 의심받음</span>
+                  "리뷰가 어디저디 흩어져 있어서<br />
+                  <span className="text-xs md:text-sm">전체 실력을 보여주기 어려웠어요"</span>
                 </p>
               </div>
             </Card>
@@ -653,35 +632,42 @@ export default function HomePage() {
                 <span className="text-xs md:text-sm font-bold text-[#FF6B35]">AFTER</span>
               </div>
               <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-[#FF6B35]">
-                ✅ Re:cord로 독립 준비!
+                ✅ Re:cord로 영구 보관
               </h3>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">👥</span>
+                  <span className="text-xl md:text-2xl">✅</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">단골 고객 자동 분류</p>
-                    <p className="text-xs md:text-sm text-gray-500">2회 이상 방문 시 VIP 표시</p>
+                    <p className="text-sm md:text-base font-medium">총 127개 리뷰 한눈에</p>
+                    <p className="text-xs md:text-sm text-gray-500">안도적인 숫자가 주는 강력한 임팩트</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl md:text-2xl">🔒</span>
+                  <div>
+                    <p className="text-sm md:text-base font-medium">신뢰의 아카이브</p>
+                    <p className="text-xs md:text-sm text-gray-500">신규 고객 확보가 훨씬 용이</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="text-xl md:text-2xl">📊</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">고객별 히스토리 관리</p>
-                    <p className="text-xs md:text-sm text-gray-500">언제, 어떤 서비스 받았는지 한눈에</p>
+                    <p className="text-sm md:text-base font-medium">통합 관리</p>
+                    <p className="text-xs md:text-sm text-gray-500">모든 플랫폼 리뷰 한눈에</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl md:text-2xl">💌</span>
+                  <span className="text-xl md:text-2xl">🌟</span>
                   <div>
-                    <p className="text-sm md:text-base font-medium">리뷰 요청 자동화</p>
-                    <p className="text-xs md:text-sm text-gray-500">서비스 후 자동 문자 발송</p>
+                    <p className="text-sm md:text-base font-medium">언제든 활용</p>
+                    <p className="text-xs md:text-sm text-gray-500">이직/독립 시 완벽한 증명 자료</p>
                   </div>
                 </div>
               </div>
               <div className="mt-4 md:mt-6 p-3 md:p-4 bg-orange-50 rounded-lg">
                 <p className="text-center text-sm md:text-base text-[#FF6B35] font-medium">
-                  "김00님, 벌써 10번째 방문이시네요!"<br />
-                  <span className="text-xs md:text-sm">💪 프로페셔널한 고객 관리</span>
+                  "모든 리뷰가 한 곳에!<br />
+                  <span className="text-xs md:text-sm">💪 10개보다 100개가 주는 신뢰의 힘!"</span>
                 </p>
               </div>
             </Card>
