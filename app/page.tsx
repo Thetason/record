@@ -22,6 +22,7 @@ export default function HomePage() {
   const [avgRating, setAvgRating] = useState(0)
   const [showDemo, setShowDemo] = useState(false)
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
+  const [visibleReviews, setVisibleReviews] = useState(3)
   
   const targetAudiences = [
     "미용사",
@@ -108,6 +109,62 @@ export default function HomePage() {
       content: "6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님!",
       author: "박**",
       date: "2024.08.05"
+    },
+    {
+      platform: "인스타",
+      business: "휘트니스스튜디오",
+      rating: 5,
+      content: "운동을 싫어했던 제가 이제는 운동이 즐거워졌어요! 서연쌤의 마법 같은 수업 덕분입니다.",
+      author: "김**",
+      date: "2024.08.04"
+    },
+    {
+      platform: "네이버",
+      business: "퍼섹드필라테스",
+      rating: 5,
+      content: "서연선생님 수업은 정말 다르네요. 전에 다른 곳에서 받던 수업과 비교해도 훨씬 전문적이고 케어가 좋아요.",
+      author: "류**",
+      date: "2024.08.03"
+    },
+    {
+      platform: "카카오",
+      business: "우리동네필라테스",
+      rating: 4,
+      content: "바른 자세를 알려주실만 아니라 일상생활에서도 실천할 수 있는 팁도 알려주셔서 너무 좋았어요!",
+      author: "조**",
+      date: "2024.08.02"
+    },
+    {
+      platform: "네이버",
+      business: "에스필라테스",
+      rating: 5,
+      content: "서연강사님께 3개월째 수업 받고 있는데 이제 내 몸이 달라진 게 느껴져요. 가족들도 변화를 알아채네요!",
+      author: "최**",
+      date: "2024.08.01"
+    },
+    {
+      platform: "인스타",
+      business: "전지현필라테스",
+      rating: 5,
+      content: "있는 그대로의 모습에서 더 나은 모습으로! 서연선생님과 함께 운동하면서 자신감도 얻었어요.",
+      author: "서**",
+      date: "2024.07.31"
+    },
+    {
+      platform: "네이버",
+      business: "핀트필라테스",
+      rating: 5,
+      content: "서연선생님 수업은 정말 다르다. 상담부터 시작해서 수업까지 모든 과정이 완벽했어요.",
+      author: "이**",
+      date: "2024.07.30"
+    },
+    {
+      platform: "카카오",
+      business: "체어필라테스",
+      rating: 5,
+      content: "무리하지 않는 선에서 운동 강도를 높여주셨어요. 뒤병안아 시작했는데 이제는 뒤통증이 사라졌어요!",
+      author: "손**",
+      date: "2024.07.29"
     }
   ]
 
@@ -436,28 +493,46 @@ export default function HomePage() {
                   {/* 오른쪽: 최근 리뷰 */}
                   <div>
                     <h4 className="font-bold mb-3">최근 리뷰</h4>
-                    <div className="space-y-3">
-                      {demoReviews.slice(0, 2).map((review, i) => (
-                        <div key={i} className="p-3 bg-gray-50 rounded-lg animate-slideIn" 
-                             style={{ animationDelay: `${1000 + i * 200}ms` }}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              review.platform === "네이버" ? "bg-green-100 text-green-700" :
-                              review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
-                              "bg-purple-100 text-purple-700"
-                            }`}>
-                              {review.platform}
-                            </span>
-                            <div className="flex text-yellow-500 ml-auto">
-                              {[...Array(5)].map((_, j) => (
-                                <StarFilledIcon key={j} className="w-3 h-3" />
-                              ))}
+                    <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                      <div className="space-y-3 pr-2">
+                        {demoReviews.slice(0, visibleReviews).map((review, i) => (
+                          <div key={i} className="p-3 bg-gray-50 rounded-lg animate-slideIn" 
+                               style={{ animationDelay: `${1000 + i * 200}ms` }}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                review.platform === "네이버" ? "bg-green-100 text-green-700" :
+                                review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
+                                review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
+                                "bg-blue-100 text-blue-700"
+                              }`}>
+                                {review.platform}
+                              </span>
+                              <div className="flex text-yellow-500 ml-auto">
+                                {[...Array(review.rating)].map((_, j) => (
+                                  <StarFilledIcon key={j} className="w-3 h-3" />
+                                ))}
+                              </div>
                             </div>
+                            <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
+                            <p className="text-xs text-gray-500 mt-1">{review.author} · {review.date}</p>
                           </div>
-                          <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
-                          <p className="text-xs text-gray-500 mt-1">{review.author} · {review.date}</p>
-                        </div>
-                      ))}
+                        ))}
+                        
+                        {visibleReviews < demoReviews.length && (
+                          <button
+                            onClick={() => setVisibleReviews(prev => Math.min(prev + 3, demoReviews.length))}
+                            className="w-full p-3 text-center text-[#FF6B35] hover:bg-orange-50 rounded-lg transition-colors border-2 border-dashed border-gray-200 hover:border-[#FF6B35]"
+                          >
+                            더 많은 리뷰 보기 ({demoReviews.length - visibleReviews}개 남음)
+                          </button>
+                        )}
+                        
+                        {visibleReviews >= demoReviews.length && (
+                          <div className="text-center p-3 text-gray-500 text-sm">
+                            총 {demoReviews.length}개 리뷰를 모두 확인했습니다! ✨
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
