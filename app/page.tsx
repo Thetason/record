@@ -121,6 +121,38 @@ export default function HomePage() {
               <span className="text-2xl font-bold">Re:cord</span>
               <span className="text-[#FF6B35]">*</span>
             </Link>
+            
+            {/* 네비게이션 메뉴 */}
+            <div className="hidden md:flex items-center gap-6">
+              <button 
+                className="text-gray-600 hover:text-[#FF6B35] transition-colors"
+                onClick={() => {
+                  const section = document.getElementById('app-preview')
+                  section?.scrollIntoView({ behavior: 'smooth' })
+                }}
+              >
+                기능소개
+              </button>
+              <button 
+                className="text-gray-600 hover:text-[#FF6B35] transition-colors"
+                onClick={() => {
+                  const section = document.getElementById('how-it-works')
+                  section?.scrollIntoView({ behavior: 'smooth' })
+                }}
+              >
+                사용방법
+              </button>
+              <button 
+                className="text-gray-600 hover:text-[#FF6B35] transition-colors"
+                onClick={() => {
+                  const section = document.getElementById('before-after')
+                  section?.scrollIntoView({ behavior: 'smooth' })
+                }}
+              >
+                효과비교
+              </button>
+            </div>
+            
             <div className="flex gap-3">
               <Link href="/login">
                 <Button variant="ghost" size="sm">로그인</Button>
@@ -188,7 +220,15 @@ export default function HomePage() {
                   <ArrowRightIcon className="ml-2" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="px-8 py-6 text-lg"
+                onClick={() => {
+                  const section = document.getElementById('app-preview')
+                  section?.scrollIntoView({ behavior: 'smooth' })
+                }}
+              >
                 통합 효과 보기
               </Button>
             </div>
@@ -428,7 +468,14 @@ export default function HomePage() {
                       나도 만들기
                     </Button>
                   </Link>
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      const section = document.getElementById('how-it-works')
+                      section?.scrollIntoView({ behavior: 'smooth' })
+                    }}
+                  >
                     더 알아보기
                   </Button>
                 </div>
@@ -439,7 +486,7 @@ export default function HomePage() {
       </section>
 
       {/* 4. HOW IT WORKS - 상세 기능 가이드 */}
-      <section className="py-20 bg-white">
+      <section id="how-it-works" className="py-20 bg-white">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-12">
             <span className="text-sm font-medium text-[#FF6B35] mb-2 block">HOW IT WORKS</span>
@@ -485,9 +532,11 @@ export default function HomePage() {
                   복잡한 절차 없이 이메일만으로 바로 시작하세요. 
                   네이버나 카카오 계정이 있다면 더욱 간편하게 가입할 수 있어요.
                 </p>
-                <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                  지금 시작하기 →
-                </Button>
+                <Link href="/signup">
+                  <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    지금 시작하기 →
+                  </Button>
+                </Link>
               </div>
             </div>
 
@@ -543,7 +592,21 @@ export default function HomePage() {
                         <div className="text-xs text-gray-500">추천율</div>
                       </div>
                     </div>
-                    <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    <Button 
+                      className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]"
+                      onClick={() => {
+                        if (navigator.share) {
+                          navigator.share({
+                            title: 'Re:cord - 리뷰 통합 관리',
+                            text: '모든 플랫폼의 리뷰를 한 곳에서 관리하세요!',
+                            url: window.location.href
+                          })
+                        } else {
+                          navigator.clipboard.writeText(window.location.href)
+                          alert('링크가 복사되었습니다!')
+                        }
+                      }}
+                    >
                       공유하기
                     </Button>
                   </div>
@@ -577,7 +640,7 @@ export default function HomePage() {
       </section>
 
       {/* 비포/애프터 비교 - 모바일 최적화 */}
-      <section className="py-12 md:py-20 bg-white">
+      <section id="before-after" className="py-12 md:py-20 bg-white">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
             {/* Before */}
