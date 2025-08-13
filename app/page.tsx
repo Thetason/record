@@ -92,9 +92,11 @@ export default function HomePage() {
       business: "비너스필라테스",
       rating: 5,
       content: "김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요.",
-      author: "정**",
+      author: "헤이지오니",
       date: "2024.08.07",
-      imageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop",
+      reviewCount: "리뷰 497",
+      visitCount: "사진 22",
+      isNaverReview: true,
       verified: true
     },
     {
@@ -104,7 +106,7 @@ export default function HomePage() {
       content: "서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요.",
       author: "이**",
       date: "2024.08.06",
-      imageUrl: "https://images.unsplash.com/photo-1540206063137-4a88ca974d1a?w=400&h=300&fit=crop",
+      isKakaoReview: true,
       verified: true
     },
     {
@@ -413,53 +415,169 @@ export default function HomePage() {
                       {demoReviews.slice(0, visibleReviews).map((review, i) => (
                         <div key={i} className="bg-white border rounded-lg overflow-hidden animate-slideIn hover:shadow-md transition-shadow" 
                              style={{ animationDelay: `${1000 + i * 200}ms` }}>
-                          {/* 리뷰 이미지 */}
-                          {review.imageUrl && (
-                            <div className="relative h-32 bg-gray-100">
-                              <Image 
-                                src={review.imageUrl} 
-                                alt={`${review.platform} 리뷰 이미지`}
-                                fill
-                                className="object-cover"
-                              />
-                              {review.verified && (
-                                <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
-                                  <Shield className="w-3 h-3" />
-                                  검증됨
+                          
+                          {/* 네이버 리뷰 스타일 */}
+                          {review.isNaverReview ? (
+                            <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">N</span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-900">네이버 리뷰</span>
+                              </div>
+                              {/* 네이버 리뷰 헤더 */}
+                              <div className="flex items-start gap-3 mb-3">
+                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-medium text-gray-600">
+                                    {review.author.charAt(0)}
+                                  </span>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-gray-900">{review.author}</h4>
+                                    <div className="bg-blue-500 text-white px-2 py-0.5 rounded text-xs font-medium">
+                                      팔로우
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                                    <span>{review.reviewCount}</span>
+                                    <span>·</span>
+                                    <span>{review.visitCount}</span>
+                                    <span>·</span>
+                                    <span>영수증</span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* 리뷰 내용 */}
+                              <div className="mb-3">
+                                <p className="text-sm text-gray-800 leading-relaxed">
+                                  {review.content}
+                                </p>
+                                <button className="text-sm text-gray-500 mt-1">더보기</button>
+                              </div>
+                              
+                              {/* 좋아요 및 댓글 */}
+                              <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-xs">💗</span>
+                                  </div>
+                                  <span className="text-sm text-gray-600">친절해요</span>
+                                  <span className="text-sm font-medium">+4</span>
+                                </div>
+                              </div>
+                              
+                              {/* 네이버 스타일 하단 */}
+                              <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+                                    <span className="text-sm">😊</span>
+                                  </div>
+                                  <span className="text-sm text-gray-600">반응 남기기</span>
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  5.22목 · 3번째 방문 · 영수증
+                                </div>
+                              </div>
+                            </div>
+                          ) : review.isKakaoReview ? (
+                            /* 카카오맵 리뷰 스타일 */
+                            <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-5 h-5 bg-yellow-400 rounded flex items-center justify-center">
+                                  <span className="text-black text-xs font-bold">K</span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-900">카카오맵 리뷰</span>
+                              </div>
+                              
+                              <div className="flex items-start gap-3 mb-3">
+                                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-medium text-yellow-700">
+                                    {review.author.charAt(0)}
+                                  </span>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-gray-900">{review.author}</span>
+                                    <div className="flex text-yellow-400">
+                                      {[...Array(review.rating)].map((_, j) => (
+                                        <StarFilledIcon key={j} className="w-3 h-3" />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-500">{review.date}</p>
+                                </div>
+                              </div>
+                              
+                              <p className="text-sm text-gray-800 leading-relaxed mb-3">
+                                {review.content}
+                              </p>
+                              
+                              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                <div className="flex items-center gap-3">
+                                  <button className="flex items-center gap-1 text-xs text-gray-500">
+                                    👍 도움됨 2
+                                  </button>
+                                  <button className="text-xs text-gray-500">
+                                    댓글
+                                  </button>
+                                </div>
+                                <span className="text-xs text-gray-400">{review.business}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            /* 기존 리뷰 스타일 */
+                            <>
+                              {/* 리뷰 이미지 */}
+                              {review.imageUrl && (
+                                <div className="relative h-32 bg-gray-100">
+                                  <Image 
+                                    src={review.imageUrl} 
+                                    alt={`${review.platform} 리뷰 이미지`}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                  {review.verified && (
+                                    <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
+                                      <Shield className="w-3 h-3" />
+                                      검증됨
+                                    </div>
+                                  )}
+                                  <div className="absolute top-2 left-2 bg-white/90 px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
+                                    <Camera className="w-3 h-3" />
+                                    스크린샷
+                                  </div>
                                 </div>
                               )}
-                              <div className="absolute top-2 left-2 bg-white/90 px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
-                                <Camera className="w-3 h-3" />
-                                스크린샷
+                              
+                              <div className="p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    review.platform === "네이버" ? "bg-green-100 text-green-700" :
+                                    review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
+                                    review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
+                                    "bg-blue-100 text-blue-700"
+                                  }`}>
+                                    {review.platform}
+                                  </span>
+                                  {review.verified && !review.imageUrl && (
+                                    <Shield className="w-3 h-3 text-green-600" />
+                                  )}
+                                  <div className="flex text-yellow-500 ml-auto">
+                                    {[...Array(review.rating)].map((_, j) => (
+                                      <StarFilledIcon key={j} className="w-3 h-3" />
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
+                                <div className="flex items-center justify-between mt-2">
+                                  <p className="text-xs text-gray-500">{review.author} · {review.date}</p>
+                                  <p className="text-xs text-gray-400">{review.business}</p>
+                                </div>
                               </div>
-                            </div>
+                            </>
                           )}
-                          
-                          <div className="p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                review.platform === "네이버" ? "bg-green-100 text-green-700" :
-                                review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
-                                review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
-                                "bg-blue-100 text-blue-700"
-                              }`}>
-                                {review.platform}
-                              </span>
-                              {review.verified && !review.imageUrl && (
-                                <Shield className="w-3 h-3 text-green-600" />
-                              )}
-                              <div className="flex text-yellow-500 ml-auto">
-                                {[...Array(review.rating)].map((_, j) => (
-                                  <StarFilledIcon key={j} className="w-3 h-3" />
-                                ))}
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
-                            <div className="flex items-center justify-between mt-2">
-                              <p className="text-xs text-gray-500">{review.author} · {review.date}</p>
-                              <p className="text-xs text-gray-400">{review.business}</p>
-                            </div>
-                          </div>
                         </div>
                       ))}
                       
