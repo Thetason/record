@@ -91,9 +91,9 @@ export default function HomePage() {
       platform: "네이버",
       business: "비너스필라테스",
       rating: 5,
-      content: "김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요.",
+      content: "수업 때마다 컨디션에 맞게 진행해주시기 때문에 무리하지 않는 선에서 운동할 수 있어서 좋아요. 동작할 때 꼼꼼히 봐주시고, 제가 불편하거나 자극이 없어서 아쉬운 부분이 있다고 말씀드리면 바로 수정도 해주셔서 좋아요. 최고입니다!",
       author: "헤이지오니",
-      date: "2024.08.07",
+      date: "5.22.목",
       reviewCount: "리뷰 497",
       visitCount: "사진 22",
       isNaverReview: true,
@@ -416,68 +416,71 @@ export default function HomePage() {
                         <div key={i} className="bg-white border rounded-lg overflow-hidden animate-slideIn hover:shadow-md transition-shadow" 
                              style={{ animationDelay: `${1000 + i * 200}ms` }}>
                           
-                          {/* 네이버 리뷰 스타일 */}
+                          {/* 네이버 리뷰 스타일 - 정확한 UI 재현 */}
                           {review.isNaverReview ? (
-                            <div className="p-4 bg-white border border-gray-200 rounded-lg">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center">
-                                  <span className="text-white text-xs font-bold">N</span>
-                                </div>
-                                <span className="text-sm font-medium text-gray-900">네이버 리뷰</span>
-                              </div>
+                            <div className="bg-white rounded-lg border border-gray-100">
                               {/* 네이버 리뷰 헤더 */}
-                              <div className="flex items-start gap-3 mb-3">
-                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <span className="text-sm font-medium text-gray-600">
-                                    {review.author.charAt(0)}
-                                  </span>
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-medium text-gray-900">{review.author}</h4>
-                                    <div className="bg-blue-500 text-white px-2 py-0.5 rounded text-xs font-medium">
-                                      팔로우
+                              <div className="p-4">
+                                <div className="flex items-start gap-3">
+                                  {/* 프로필 이미지 */}
+                                  <div className="flex-shrink-0">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-200 to-blue-200 flex items-center justify-center">
+                                      <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                      </svg>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                                    <span>{review.reviewCount}</span>
+                                  
+                                  {/* 유저 정보 */}
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-medium text-[15px] text-gray-900">{review.author}</span>
+                                      <button className="px-3 py-1 bg-[#03c75a] text-white text-xs rounded-sm font-medium hover:bg-[#02b351]">
+                                        팔로우
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[13px] text-gray-500">
+                                      <span className="text-gray-600">{review.reviewCount}</span>
+                                      <span className="text-gray-400">·</span>
+                                      <span className="text-gray-600">{review.visitCount}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* 리뷰 내용 */}
+                                <div className="mt-4">
+                                  <p className="text-[15px] text-gray-800 leading-[1.6] whitespace-pre-wrap">
+                                    {review.content}
+                                  </p>
+                                  <button className="text-[13px] text-gray-500 mt-2 hover:underline">더보기</button>
+                                </div>
+                                
+                                {/* 반응 버튼 */}
+                                <div className="mt-4 flex items-center gap-3">
+                                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 rounded-full hover:bg-pink-100 transition-colors">
+                                    <span className="text-[15px]">💗</span>
+                                    <span className="text-[13px] text-gray-700">친절해요</span>
+                                    <span className="text-[13px] font-medium text-gray-900">+4</span>
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              {/* 하단 정보 */}
+                              <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                                <div className="flex items-center justify-between">
+                                  <button className="flex items-center gap-2 text-[13px] text-gray-600 hover:text-gray-900">
+                                    <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center">
+                                      <span className="text-[11px]">😊</span>
+                                    </div>
+                                    <span>반응 남기기</span>
+                                  </button>
+                                  <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
+                                    <span>{review.date}</span>
                                     <span>·</span>
-                                    <span>{review.visitCount}</span>
+                                    <span>3번째 방문</span>
                                     <span>·</span>
-                                    <span>영수증</span>
+                                    <span className="text-[#03c75a]">영수증</span>
                                   </div>
-                                </div>
-                              </div>
-                              
-                              {/* 리뷰 내용 */}
-                              <div className="mb-3">
-                                <p className="text-sm text-gray-800 leading-relaxed">
-                                  {review.content}
-                                </p>
-                                <button className="text-sm text-gray-500 mt-1">더보기</button>
-                              </div>
-                              
-                              {/* 좋아요 및 댓글 */}
-                              <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
-                                    <span className="text-white text-xs">💗</span>
-                                  </div>
-                                  <span className="text-sm text-gray-600">친절해요</span>
-                                  <span className="text-sm font-medium">+4</span>
-                                </div>
-                              </div>
-                              
-                              {/* 네이버 스타일 하단 */}
-                              <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                                    <span className="text-sm">😊</span>
-                                  </div>
-                                  <span className="text-sm text-gray-600">반응 남기기</span>
-                                </div>
-                                <div className="text-xs text-gray-400">
-                                  5.22목 · 3번째 방문 · 영수증
                                 </div>
                               </div>
                             </div>
