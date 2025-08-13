@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import rapidPayment, { SUBSCRIPTION_PLANS, generateOrderId } from '@/lib/rapid-payment';
 
 export async function POST(req: NextRequest) {
