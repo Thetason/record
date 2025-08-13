@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowRightIcon, CheckIcon, StarFilledIcon } from "@radix-ui/react-icons"
+import { Shield, Camera } from "lucide-react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
 
@@ -92,7 +93,9 @@ export default function HomePage() {
       rating: 5,
       content: "김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요.",
       author: "정**",
-      date: "2024.08.07"
+      date: "2024.08.07",
+      imageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop",
+      verified: true
     },
     {
       platform: "카카오",
@@ -100,7 +103,9 @@ export default function HomePage() {
       rating: 5,
       content: "서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요.",
       author: "이**",
-      date: "2024.08.06"
+      date: "2024.08.06",
+      imageUrl: "https://images.unsplash.com/photo-1540206063137-4a88ca974d1a?w=400&h=300&fit=crop",
+      verified: true
     },
     {
       platform: "네이버",
@@ -108,7 +113,9 @@ export default function HomePage() {
       rating: 5,
       content: "6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님!",
       author: "박**",
-      date: "2024.08.05"
+      date: "2024.08.05",
+      imageUrl: null,
+      verified: true
     },
     {
       platform: "인스타",
@@ -116,7 +123,9 @@ export default function HomePage() {
       rating: 5,
       content: "운동을 싫어했던 제가 이제는 운동이 즐거워졌어요! 서연쌤의 마법 같은 수업 덕분입니다.",
       author: "김**",
-      date: "2024.08.04"
+      date: "2024.08.04",
+      imageUrl: "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?w=400&h=300&fit=crop",
+      verified: false
     },
     {
       platform: "네이버",
@@ -124,7 +133,9 @@ export default function HomePage() {
       rating: 5,
       content: "서연선생님 수업은 정말 다르네요. 전에 다른 곳에서 받던 수업과 비교해도 훨씬 전문적이고 케어가 좋아요.",
       author: "류**",
-      date: "2024.08.03"
+      date: "2024.08.03",
+      imageUrl: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400&h=300&fit=crop",
+      verified: true
     },
     {
       platform: "카카오",
@@ -132,7 +143,9 @@ export default function HomePage() {
       rating: 4,
       content: "바른 자세를 알려주실만 아니라 일상생활에서도 실천할 수 있는 팁도 알려주셔서 너무 좋았어요!",
       author: "조**",
-      date: "2024.08.02"
+      date: "2024.08.02",
+      imageUrl: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&h=300&fit=crop",
+      verified: true
     },
     {
       platform: "네이버",
@@ -140,7 +153,9 @@ export default function HomePage() {
       rating: 5,
       content: "서연강사님께 3개월째 수업 받고 있는데 이제 내 몸이 달라진 게 느껴져요. 가족들도 변화를 알아채네요!",
       author: "최**",
-      date: "2024.08.01"
+      date: "2024.08.01",
+      imageUrl: null,
+      verified: true
     },
     {
       platform: "인스타",
@@ -148,7 +163,9 @@ export default function HomePage() {
       rating: 5,
       content: "있는 그대로의 모습에서 더 나은 모습으로! 서연선생님과 함께 운동하면서 자신감도 얻었어요.",
       author: "서**",
-      date: "2024.07.31"
+      date: "2024.07.31",
+      imageUrl: "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=400&h=300&fit=crop",
+      verified: false
     },
     {
       platform: "네이버",
@@ -156,7 +173,9 @@ export default function HomePage() {
       rating: 5,
       content: "서연선생님 수업은 정말 다르다. 상담부터 시작해서 수업까지 모든 과정이 완벽했어요.",
       author: "이**",
-      date: "2024.07.30"
+      date: "2024.07.30",
+      imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
+      verified: true
     },
     {
       platform: "카카오",
@@ -164,7 +183,9 @@ export default function HomePage() {
       rating: 5,
       content: "무리하지 않는 선에서 운동 강도를 높여주셨어요. 뒤병안아 시작했는데 이제는 뒤통증이 사라졌어요!",
       author: "손**",
-      date: "2024.07.29"
+      date: "2024.07.29",
+      imageUrl: null,
+      verified: true
     }
   ]
 
@@ -390,25 +411,55 @@ export default function HomePage() {
                   <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     <div className="space-y-3 pr-2">
                       {demoReviews.slice(0, visibleReviews).map((review, i) => (
-                        <div key={i} className="p-3 bg-gray-50 rounded-lg animate-slideIn" 
+                        <div key={i} className="bg-white border rounded-lg overflow-hidden animate-slideIn hover:shadow-md transition-shadow" 
                              style={{ animationDelay: `${1000 + i * 200}ms` }}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              review.platform === "네이버" ? "bg-green-100 text-green-700" :
-                              review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
-                              review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
-                              "bg-blue-100 text-blue-700"
-                            }`}>
-                              {review.platform}
-                            </span>
-                            <div className="flex text-yellow-500 ml-auto">
-                              {[...Array(review.rating)].map((_, j) => (
-                                <StarFilledIcon key={j} className="w-3 h-3" />
-                              ))}
+                          {/* 리뷰 이미지 */}
+                          {review.imageUrl && (
+                            <div className="relative h-32 bg-gray-100">
+                              <Image 
+                                src={review.imageUrl} 
+                                alt={`${review.platform} 리뷰 이미지`}
+                                fill
+                                className="object-cover"
+                              />
+                              {review.verified && (
+                                <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
+                                  <Shield className="w-3 h-3" />
+                                  검증됨
+                                </div>
+                              )}
+                              <div className="absolute top-2 left-2 bg-white/90 px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
+                                <Camera className="w-3 h-3" />
+                                스크린샷
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                review.platform === "네이버" ? "bg-green-100 text-green-700" :
+                                review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
+                                review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
+                                "bg-blue-100 text-blue-700"
+                              }`}>
+                                {review.platform}
+                              </span>
+                              {review.verified && !review.imageUrl && (
+                                <Shield className="w-3 h-3 text-green-600" />
+                              )}
+                              <div className="flex text-yellow-500 ml-auto">
+                                {[...Array(review.rating)].map((_, j) => (
+                                  <StarFilledIcon key={j} className="w-3 h-3" />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-xs text-gray-500">{review.author} · {review.date}</p>
+                              <p className="text-xs text-gray-400">{review.business}</p>
                             </div>
                           </div>
-                          <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
-                          <p className="text-xs text-gray-500 mt-1">{review.author} · {review.date}</p>
                         </div>
                       ))}
                       
