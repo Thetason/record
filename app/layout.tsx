@@ -17,6 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <script
+          src="https://developers.kakao.com/sdk/js/kakao.min.js"
+          async
+        />
+      </head>
       <body className={inter.className}>
         <AuthProvider>{children}</AuthProvider>
       </body>

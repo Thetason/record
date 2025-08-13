@@ -7,7 +7,8 @@ import {
   PersonIcon, 
   PlusIcon, 
   BarChartIcon,
-  GearIcon
+  GearIcon,
+  Share2Icon
 } from "@radix-ui/react-icons"
 
 interface NavItem {
@@ -20,8 +21,8 @@ const navItems: NavItem[] = [
   { href: "/dashboard", label: "홈", icon: <HomeIcon className="w-5 h-5" /> },
   { href: "/dashboard/reviews", label: "리뷰", icon: <BarChartIcon className="w-5 h-5" /> },
   { href: "/dashboard/add-review", label: "추가", icon: <PlusIcon className="w-5 h-5" /> },
+  { href: "/dashboard/share", label: "공유", icon: <Share2Icon className="w-5 h-5" /> },
   { href: "/dashboard/profile", label: "프로필", icon: <PersonIcon className="w-5 h-5" /> },
-  { href: "/dashboard/settings", label: "설정", icon: <GearIcon className="w-5 h-5" /> },
 ]
 
 export default function MobileNav() {

@@ -15,7 +15,8 @@ import {
   ArrowUpIcon,
   StarIcon,
   CalendarIcon,
-  EyeOpenIcon
+  EyeOpenIcon,
+  Share2Icon
 } from "@radix-ui/react-icons"
 import {
   BarChart,
@@ -189,6 +190,7 @@ export default function DashboardPage() {
             <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" />
             <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" />
             <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/add-review" />
+            <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
             <NavItem icon={<GearIcon />} label="설정" href="/dashboard/settings" />
           </nav>
 
