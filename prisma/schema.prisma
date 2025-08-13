@@ -26,6 +26,15 @@ model User {
   // 프로필 설정
   isPublic  Boolean  @default(true)
   
+  // 프로필 커스터마이징
+  theme     String   @default("default") // default, dark, blue, purple, green
+  layout    String   @default("grid") // grid, list, card, magazine
+  bgImage   String?  // 배경 이미지 URL
+  bgColor   String   @default("#ffffff") // 배경 색상
+  accentColor String @default("#FF6B35") // 강조 색상
+  introVideo String? // 유튜브/비메오 URL
+  customCss String?  // 커스텀 CSS (프로 플랜)
+  
   // 구독 플랜
   plan      String   @default("free") // free, premium, pro
   planExpiry DateTime? // 프리미엄 플랜 만료일
@@ -90,6 +99,11 @@ model Review {
   isVerified  Boolean  @default(false) // 검증 여부
   isPublic    Boolean  @default(true)  // 공개 여부
   
+  // 검증 관련
+  originalUrl String?  // 원본 리뷰 링크
+  verifiedAt  DateTime? // 검증 완료 시간
+  verifiedBy  String?  // 검증 방법 (manual, screenshot, api)
+  
   // 이미지 (OCR용)
   imageUrl    String?
   
@@ -97,11 +111,30 @@ model Review {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
+  // 신고
+  reports     Report[]
+  
   // 타임스탬프
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@map("reviews")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reviewId    String
+  review      Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  
+  reason      String   // 신고 사유
+  description String?  // 상세 설명
+  reporterIp  String   // 신고자 IP
+  status      String   @default("pending") // pending, resolved, rejected
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("reports")
 }
 
 model VerificationToken {

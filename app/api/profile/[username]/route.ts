@@ -64,6 +64,14 @@ export async function GET(
         instagram: "https://instagram.com/pilates_kim",
         website: "https://pilates-kim.com"
       },
+      // 커스터마이징 설정 추가
+      theme: user.theme || 'default',
+      layout: user.layout || 'grid',
+      bgImage: user.bgImage || null,
+      bgColor: user.bgColor || '#ffffff',
+      accentColor: user.accentColor || '#FF6B35',
+      introVideo: user.introVideo || null,
+      customCss: user.customCss || null,
       reviews: user.reviews.map(review => ({
         id: review.id,
         platform: review.platform,
@@ -72,7 +80,10 @@ export async function GET(
         content: review.content,
         author: review.author,
         reviewDate: review.reviewDate.toISOString(),
-        verified: true
+        verified: review.verifiedAt ? true : false,
+        verifiedAt: review.verifiedAt,
+        verifiedBy: review.verifiedBy,
+        originalUrl: review.originalUrl
       }))
     }
 

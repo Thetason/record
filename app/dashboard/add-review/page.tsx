@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
-import { ArrowLeftIcon, UploadIcon, CameraIcon } from "@radix-ui/react-icons"
+import { ArrowLeftIcon, UploadIcon, CameraIcon, Shield, Droplets } from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FormItem, FormLabel, FormMessage } from "@/components/ui/form-simple"
+import { Badge } from "@/components/ui/badge"
+import { addWatermark, addSimpleWatermark } from "@/lib/watermark"
 
 interface ReviewForm {
   platform: string
@@ -19,6 +21,7 @@ interface ReviewForm {
   content: string
   rating: number
   reviewDate: string
+  originalUrl?: string
 }
 
 const platforms = [
@@ -37,6 +40,8 @@ export default function AddReviewPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isExtracting, setIsExtracting] = useState(false)
   const [error, setError] = useState("")
+  const [watermarkEnabled, setWatermarkEnabled] = useState(true)
+  const [watermarkedImage, setWatermarkedImage] = useState<string | null>(null)
 
   const {
     register,
@@ -68,7 +73,9 @@ export default function AddReviewPage() {
           content: data.content,
           rating: parseInt(data.rating.toString()),
           reviewDate: data.reviewDate,
-          imageUrl: uploadedImage
+          imageUrl: watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage,
+          originalUrl: data.originalUrl,
+          verifiedBy: uploadedImage ? 'screenshot' : data.originalUrl ? 'manual' : null
         })
       })
 
@@ -86,13 +93,27 @@ export default function AddReviewPage() {
     }
   }
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
       setUploadedFile(file)
       const reader = new FileReader()
-      reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string)
+      reader.onload = async (e) => {
+        const originalImage = e.target?.result as string
+        setUploadedImage(originalImage)
+        
+        // 워터마크 추가
+        if (watermarkEnabled && session?.user?.username) {
+          try {
+            const watermarked = await addWatermark(originalImage, `Re:cord @${session.user.username}`)
+            setWatermarkedImage(watermarked)
+          } catch (error) {
+            console.error('Failed to add watermark:', error)
+            setWatermarkedImage(originalImage)
+          }
+        } else {
+          setWatermarkedImage(originalImage)
+        }
       }
       reader.readAsDataURL(file)
     }
@@ -224,11 +245,43 @@ export default function AddReviewPage() {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   {uploadedImage ? (
                     <div className="space-y-4">
-                      <img 
-                        src={uploadedImage} 
-                        alt="Uploaded review" 
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
+                      <div className="relative">
+                        <img 
+                          src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} 
+                          alt="Uploaded review" 
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        {watermarkEnabled && (
+                          <Badge className="absolute top-2 right-2 bg-green-600">
+                            <Shield className="w-3 h-3 mr-1" />
+                            워터마크 적용됨
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-center gap-2 text-sm">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={watermarkEnabled}
+                            onChange={async (e) => {
+                              setWatermarkEnabled(e.target.checked)
+                              if (e.target.checked && uploadedImage && session?.user?.username) {
+                                try {
+                                  const watermarked = await addWatermark(uploadedImage, `Re:cord @${session.user.username}`)
+                                  setWatermarkedImage(watermarked)
+                                } catch (error) {
+                                  console.error('Failed to add watermark:', error)
+                                }
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <Droplets className="w-4 h-4" />
+                          워터마크 추가
+                        </label>
+                      </div>
+                      
                       <div className="flex gap-2">
                         <Button
                           onClick={handleOCRExtract}
@@ -242,6 +295,7 @@ export default function AddReviewPage() {
                           onClick={() => {
                             setUploadedImage(null)
                             setUploadedFile(null)
+                            setWatermarkedImage(null)
                           }}
                           variant="outline"
                           size="sm"
@@ -395,6 +449,23 @@ export default function AddReviewPage() {
                     })}
                   />
                   {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
+                </FormItem>
+
+                {/* Original URL */}
+                <FormItem>
+                  <FormLabel htmlFor="originalUrl">
+                    원본 리뷰 링크 
+                    <span className="text-xs text-gray-500 ml-2">(선택사항)</span>
+                  </FormLabel>
+                  <Input
+                    id="originalUrl"
+                    type="url"
+                    placeholder="https://..."
+                    {...register("originalUrl")}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    원본 리뷰 페이지 URL을 입력하면 검증 배지가 표시됩니다
+                  </p>
                 </FormItem>
 
                 {error && (

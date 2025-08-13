@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -73,10 +73,11 @@ const plans = [
 
 export default function PricingPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [loading, setLoading] = useState(false);
 
-  const handleSelectPlan = (planName: string) => {
+  const handleSelectPlan = async (planName: string) => {
     if (!session) {
       router.push('/login');
       return;
@@ -84,9 +85,46 @@ export default function PricingPage() {
 
     if (planName === '무료') {
       router.push('/dashboard');
-    } else {
-      // TODO: 결제 페이지로 이동
-      router.push(`/payment?plan=${planName.toLowerCase()}&period=${billingPeriod}`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const period = billingPeriod;
+      const planMap: { [key: string]: string } = {
+        '프리미엄': period === 'yearly' ? 'premium_yearly' : 'premium_monthly',
+        '프로': period === 'yearly' ? 'pro_yearly' : 'pro_monthly'
+      };
+      
+      const planId = planMap[planName];
+      if (!planId) {
+        throw new Error('Invalid plan');
+      }
+
+      const res = await fetch('/api/payments/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId, period })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // 결제 페이지로 리다이렉트
+        if (data.paymentUrl) {
+          window.location.href = data.paymentUrl;
+        } else {
+          // 데모 모드
+          router.push(`/payment/process?id=${data.subscriptionId}&status=demo`);
+        }
+      } else {
+        alert(data.error || '결제 요청 실패');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('결제 처리 중 오류가 발생했습니다');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,8 +229,16 @@ export default function PricingPage() {
                   variant={plan.buttonVariant}
                   size="lg"
                   onClick={() => handleSelectPlan(plan.name)}
+                  disabled={loading}
                 >
-                  {plan.buttonText}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      처리중...
+                    </>
+                  ) : (
+                    plan.buttonText
+                  )}
                 </Button>
               </CardFooter>
             </Card>

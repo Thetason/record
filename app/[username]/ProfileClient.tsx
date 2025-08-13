@@ -17,6 +17,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { motion } from "framer-motion"
+import { VerificationBadge } from "@/components/ui/verification-badge"
+import { ReportDialog } from "@/components/report-dialog"
 
 interface Review {
   id: string
@@ -27,6 +29,9 @@ interface Review {
   author: string
   reviewDate: string
   verified: boolean
+  verifiedAt?: string | null
+  verifiedBy?: string | null
+  originalUrl?: string | null
 }
 
 interface ProfileData {
@@ -49,6 +54,14 @@ interface ProfileData {
     instagram?: string
     website?: string
   }
+  // 커스터마이징 설정
+  theme?: string
+  layout?: string
+  bgImage?: string
+  bgColor?: string
+  accentColor?: string
+  introVideo?: string
+  customCss?: string
 }
 
 export default function ProfileClient({ profile }: { profile: ProfileData }) {
