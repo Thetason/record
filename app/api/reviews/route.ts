@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { canAddReview, getUserReviewCount } from '@/lib/subscription'
 
 // GET /api/reviews - 사용자의 리뷰 목록 조회
 export async function GET(request: NextRequest) {
@@ -70,6 +71,18 @@ export async function POST(request: NextRequest) {
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 플랜 리뷰 제한 확인
+    const canAdd = await canAddReview(session.user.id)
+    if (!canAdd) {
+      const reviewCount = await getUserReviewCount(session.user.id)
+      return NextResponse.json({ 
+        error: 'Review limit reached', 
+        message: `무료 플랜은 최대 50개의 리뷰만 등록할 수 있습니다. 현재 ${reviewCount}개를 사용 중입니다.`,
+        reviewCount,
+        limit: 50
+      }, { status: 403 })
     }
 
     const body = await request.json()

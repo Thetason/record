@@ -22,8 +22,8 @@ export function Navigation() {
           <Link href="#" className="text-text-primary hover:text-primary transition-colors">
             Learn
           </Link>
-          <Link href="#" className="text-text-primary hover:text-primary transition-colors">
-            Pricing
+          <Link href="/pricing" className="text-text-primary hover:text-primary transition-colors">
+            가격
           </Link>
         </div>
         

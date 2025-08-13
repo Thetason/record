@@ -25,6 +25,11 @@ model User {
   // 프로필 설정
   isPublic  Boolean  @default(true)
   
+  // 구독 플랜
+  plan      String   @default("free") // free, premium, pro
+  planExpiry DateTime? // 프리미엄 플랜 만료일
+  reviewLimit Int    @default(50) // 무료: 50개, 프리미엄: 무제한(-1)
+  
   // 통계
   profileViews Int     @default(0)
   
@@ -36,6 +41,7 @@ model User {
   reviews   Review[]
   sessions  Session[]
   accounts  Account[]
+  payments  Payment[]
   
   @@map("users")
 }
@@ -104,4 +110,28 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 결제 정보
+  paymentId     String   @unique // 토스페이먼츠 결제 ID
+  orderId       String   @unique // 주문 ID
+  amount        Int      // 결제 금액
+  method        String   // 결제 수단 (카드, 계좌이체 등)
+  status        String   // 결제 상태 (DONE, CANCELED, PARTIAL_CANCELED 등)
+  
+  // 구독 정보
+  plan          String   // premium, pro
+  period        String   // monthly, yearly
+  billingCycle  DateTime // 다음 결제일
+  
+  // 타임스탬프
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("payments")
 }

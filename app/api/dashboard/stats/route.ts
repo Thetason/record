@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
+import { checkUserPlan, PLAN_LIMITS } from '@/lib/subscription'
 
 // GET /api/dashboard/stats - 대시보드 통계 조회
 export async function GET() {
@@ -72,14 +73,20 @@ export async function GET() {
       return acc
     }, {} as Record<string, { count: number; totalRating: number; averageRating: number }>)
 
-    // 사용자 정보
+    // 사용자 정보 및 플랜 정보
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         profileViews: true,
-        createdAt: true
+        createdAt: true,
+        plan: true,
+        planExpiry: true,
+        reviewLimit: true
       }
     })
+    
+    // 플랜 확인 (만료 체크 포함)
+    const currentPlan = await checkUserPlan(userId)
 
     // 월별 리뷰 트렌드 (최근 6개월)
     const monthlyTrend = []
@@ -104,6 +111,15 @@ export async function GET() {
         platforms,
         thisMonth: thisMonthReviews,
         profileViews: user?.profileViews || 0
+      },
+      subscription: {
+        plan: currentPlan,
+        planExpiry: user?.planExpiry,
+        reviewLimit: user?.reviewLimit || PLAN_LIMITS.free.reviews,
+        reviewsUsed: totalReviews,
+        reviewsRemaining: user?.reviewLimit === -1 
+          ? 'unlimited' 
+          : Math.max(0, (user?.reviewLimit || PLAN_LIMITS.free.reviews) - totalReviews)
       },
       trends: {
         thisWeekReviews,

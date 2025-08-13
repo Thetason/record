@@ -55,6 +55,13 @@ interface DashboardStats {
     thisMonth: number
     profileViews: number
   }
+  subscription: {
+    plan: string
+    planExpiry: string | null
+    reviewLimit: number
+    reviewsUsed: number
+    reviewsRemaining: number | string
+  }
   trends: {
     thisWeekReviews: number
     thisMonthReviews: number
@@ -237,6 +244,58 @@ export default function DashboardPage() {
               오늘의 리뷰 현황을 한눈에 확인하세요
             </p>
           </div>
+
+          {/* Subscription Status Card */}
+          {stats?.subscription && (
+            <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      현재 플랜: {
+                        stats.subscription.plan === 'free' ? '무료' :
+                        stats.subscription.plan === 'premium' ? '프리미엄' : '프로'
+                      }
+                    </h3>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-gray-600">
+                        리뷰 사용: {stats.subscription.reviewsUsed} / {
+                          stats.subscription.reviewLimit === -1 ? '무제한' : stats.subscription.reviewLimit
+                        }
+                      </span>
+                      {stats.subscription.plan === 'free' && (
+                        <span className="text-orange-600 font-medium">
+                          {stats.subscription.reviewsRemaining === 'unlimited' 
+                            ? '무제한' 
+                            : `${stats.subscription.reviewsRemaining}개 남음`}
+                        </span>
+                      )}
+                    </div>
+                    {stats.subscription.planExpiry && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        만료일: {new Date(stats.subscription.planExpiry).toLocaleDateString('ko-KR')}
+                      </p>
+                    )}
+                  </div>
+                  {stats.subscription.plan === 'free' && (
+                    <Button 
+                      onClick={() => router.push('/pricing')}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      업그레이드
+                    </Button>
+                  )}
+                </div>
+                {stats.subscription.plan === 'free' && stats.subscription.reviewsUsed >= 40 && (
+                  <div className="mt-4 p-3 bg-orange-100 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      무료 플랜 리뷰 한도에 거의 도달했습니다. 프리미엄으로 업그레이드하여 무제한 리뷰를 등록하세요!
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
