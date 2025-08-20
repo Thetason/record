@@ -10,12 +10,17 @@ import Image from "next/image"
 
 // 해시태그 데이터
 const hashtags = [
-  "#보컬레슨_수강생관리", "#음악학원_독립준비", "#보컬트레이닝_리뷰",
-  "#노래교실_회원관리", "#뮤지컬_입시지도", "#음치교정_전문",
-  "#발성교정_전문가", "#녹음실습_지도", "#버스킹_코칭",
-  "#보컬코치_프리랜서", "#가요_레슨", "#성악_레슨",
-  "#화상레슨_전문", "#보컬건강_관리", "#무대경험_지도",
-  "#음역대확장_전문", "#감정표현_코칭", "#오디션_준비"
+  "#노래교실_회원관리", "#필라테스_전문강사", "#보컬코치_프리랜서",
+  "#뷰티컬_입시지도", "#음치교정_전문", "#발성교정_전문가", 
+  "#녹음실습_지도", "#버스킹_코칭", "#가요_레슨",
+  "#보컬코치_프리랜서", "#네일샵_단골관리", "#미용실_독립준비",
+  "#PT트레이너_창업", "#요가강사_프리랜서", "#속눈썹_고객관리",
+  "#왁싱샵_리뷰관리", "#마사지샵_단골", "#메이크업_포트폴리오",
+  "#헤어디자이너_독립", "#피부관리_고객", "#네일아트_리뷰",
+  "#반영구_시술리뷰", "#타투이스트_포트폴리오", "#퍼스널컬러_진단",
+  "#스포츠마사지_회원", "#필라테스_독립", "#크로스핏_회원관리",
+  "#카페사장_단골관리", "#베이커리_리뷰", "#플로리스트_포트폴리오",
+  "#웨딩플래너_고객", "#포토그래퍼_리뷰", "#비즈니스_코칭"
 ]
 
 export default function HomePage() {
@@ -51,12 +56,12 @@ export default function HomePage() {
       setShowDemo(true)
       let count = 0
       const interval = setInterval(() => {
-        if (count <= 342) {
+        if (count <= 69) {
           setReviewCount(count)
-          count += 10
+          count += 2
         } else {
           clearInterval(interval)
-          setReviewCount(342)
+          setReviewCount(69)
         }
       }, 30)
     }, 500)
@@ -90,13 +95,13 @@ export default function HomePage() {
   const demoReviews = [
     {
       platform: "네이버",
-      business: "서영빈 선생님",
+      business: "비너스필라테스",
       rating: 5,
-      content: "일단 시설이 너무너무 좋고 깔끔해서 깜짝 놀랐어요..! 선생님도 제 스타일에 맞춰서 어떤 부분을 어떻게 바꾸면 좋을지, 어떤식으로 하면 더 잘 바꿀 수 있을지 다 자세하게 봐주셨고요. 첫 수업 많이 긴장했었는데 선생님이 막 칭찬도 해주시고 엄청 친절히 가르쳐주셔서 떨 딸 수 있었습니다!",
-      author: "김맹면",
-      date: "22.6.3",
-      reviewCount: "리뷰 17",
-      visitCount: "사진 23",
+      content: "수업 때마다 컨디션에 맞게 진행해주시기 때문에 무리하지 않는 선에서 운동할 수 있어서 좋아요. 동작할 때 꼼꼼히 봐주시고, 제가 불편하거나 자극이 없어서 아쉬운 부분이 있다고 말씀드리면 바로 수정도 해주셔서 좋아요. 최고입니다!",
+      author: "헤이지오니",
+      date: "5.22.목",
+      reviewCount: "리뷰 497",
+      visitCount: "사진 22",
       isNaverReview: true,
       verified: true
     },
@@ -363,7 +368,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               실제 <span className="text-[#FF6B35]">Re:cord</span> 사용 화면
             </h2>
-            <p className="text-gray-600 text-lg">342개 리뷰를 가진 서영빈 보컬트레이너의 프로필</p>
+            <p className="text-gray-600 text-lg">69개 리뷰를 가진 김서연 필라테스 강사님의 프로필</p>
           </div>
           
           {/* 실제 데모 화면 */}
@@ -378,11 +383,11 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                      서
+                      김
                     </div>
                     <div>
-                      <h3 className="font-bold text-xl">서영빈</h3>
-                      <p className="text-gray-600">보컬트레이너</p>
+                      <h3 className="font-bold text-xl">김서연</h3>
+                      <p className="text-gray-600">필라테스 강사</p>
                       <div className="flex items-center gap-1 mt-1">
                         <div className="flex text-yellow-500">
                           {[...Array(5)].map((_, i) => (
@@ -410,9 +415,9 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 187개</span>
-                    <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 98개</span>
-                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 57개</span>
+                    <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 33개</span>
+                    <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 21개</span>
+                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 15개</span>
                   </div>
                 </div>
                 
@@ -727,15 +732,15 @@ export default function HomePage() {
                 <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-4 rounded-lg">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-sm font-bold">
-                      서
+                      김
                     </div>
                     <div>
-                      <p className="font-medium text-sm">서영빈 트레이너님</p>
+                      <p className="font-medium text-sm">김서연 강사님</p>
                       <p className="text-xs text-gray-600">리뷰 {reviewCount}개 · ⭐ {avgRating.toFixed(1)}</p>
                     </div>
                   </div>
                   <p className="text-xs text-gray-700 italic">
-                    "발성부터 호흡까지 체계적으로..."
+                    "최고의 강사님! 항상 친절하고..."
                   </p>
                 </div>
               </Card>
