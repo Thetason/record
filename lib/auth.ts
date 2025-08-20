@@ -19,34 +19,39 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
-          throw new Error("아이디와 비밀번호를 입력해주세요")
+          return null
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            username: credentials.username
+        try {
+          const user = await prisma.user.findUnique({
+            where: {
+              username: credentials.username
+            }
+          })
+
+          if (!user || !user.password) {
+            return null
           }
-        })
 
-        if (!user || !user.password) {
-          throw new Error("아이디 또는 비밀번호가 일치하지 않습니다")
-        }
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          )
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
+          if (!isPasswordValid) {
+            return null
+          }
 
-        if (!isPasswordValid) {
-          throw new Error("아이디 또는 비밀번호가 일치하지 않습니다")
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          username: user.username,
-          role: user.role
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            username: user.username,
+            role: user.role
+          }
+        } catch (error) {
+          console.error("Auth error:", error)
+          return null
         }
       }
     })
@@ -55,17 +60,19 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        token.email = user.email
         token.username = (user as any).username
         token.role = (user as any).role
       }
       // DB에서 최신 role 정보 가져오기
-      if (token.email) {
+      if (token.username) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-          select: { role: true }
+          where: { username: token.username as string },
+          select: { role: true, email: true }
         })
         if (dbUser) {
           token.role = dbUser.role
+          token.email = dbUser.email
         }
       }
       return token
