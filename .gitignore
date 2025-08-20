@@ -44,3 +44,8 @@ prisma/*.db-journal
 
 # OS files
 Thumbs.db
+
+# Google Cloud credentials
+credentials/
+*.json
+google-vision-key.json

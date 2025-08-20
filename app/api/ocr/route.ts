@@ -4,9 +4,26 @@ import { authOptions } from '@/lib/auth'
 import vision from '@google-cloud/vision'
 
 // Google Vision 클라이언트 초기화
-const client = new vision.ImageAnnotatorClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-})
+// 프로덕션: Base64 인코딩된 키, 로컬: JSON 파일
+const getVisionClient = () => {
+  if (process.env.NODE_ENV === 'production' && process.env.GOOGLE_VISION_API_KEY) {
+    return new vision.ImageAnnotatorClient({
+      credentials: JSON.parse(
+        Buffer.from(process.env.GOOGLE_VISION_API_KEY, 'base64').toString()
+      ),
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID
+    })
+  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    return new vision.ImageAnnotatorClient({
+      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+    })
+  } else {
+    // API 키가 없을 때 더미 응답 반환
+    return null
+  }
+}
+
+const client = getVisionClient()
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,6 +53,26 @@ export async function POST(req: NextRequest) {
         { error: '파일 크기는 10MB 이하여야 합니다' },
         { status: 400 }
       )
+    }
+
+    // API 클라이언트 체크
+    if (!client) {
+      // Google Vision API가 설정되지 않은 경우 더미 데이터 반환
+      console.warn('Google Vision API not configured, returning mock data')
+      return NextResponse.json({
+        success: true,
+        text: '네이버 리뷰\n★★★★★\n정말 친절하고 꼼꼼하게 가르쳐주세요!\n김**\n2024.01.20',
+        parsed: {
+          platform: '네이버',
+          business: '',
+          rating: 5,
+          content: '정말 친절하고 꼼꼼하게 가르쳐주세요!',
+          author: '김**',
+          reviewDate: '2024-01-20'
+        },
+        confidence: 0.95,
+        isMockData: true
+      })
     }
 
     // 이미지를 Buffer로 변환

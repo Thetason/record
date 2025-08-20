@@ -148,45 +148,46 @@ export default function AddReviewPage() {
       // 추출된 데이터를 폼에 자동 입력
       console.log('OCR 결과:', data)
       
-      if (data.processedData) {
-        const { businessName, authorName, rating, reviewDate, platform, content } = data.processedData
+      if (data.parsed) {
+        const { platform, business, rating, content, author, reviewDate } = data.parsed
+        
+        // 플랫폼 설정
+        if (platform) {
+          const matchedPlatform = platforms.find(p => 
+            platform.includes(p.value) || p.value.includes(platform)
+          )
+          if (matchedPlatform) {
+            setValue("platform", matchedPlatform.value)
+          }
+        }
         
         // 비즈니스명 설정
-        if (businessName) setValue("businessName", businessName)
-        
-        // 작성자명 설정
-        if (authorName) setValue("customerName", authorName)
+        if (business) setValue("businessName", business)
         
         // 평점 설정
         if (rating) setValue("rating", rating.toString())
         
+        // 작성자명 설정
+        if (author) setValue("customerName", author)
+        
         // 날짜 설정
         if (reviewDate) setValue("reviewDate", reviewDate)
-        
-        // 플랫폼 설정
-        if (platform && platform !== "기타") {
-          setValue("platform", platform)
-        }
         
         // 리뷰 내용 설정
         if (content) {
           setValue("content", content)
-        } else if (data.text) {
-          setValue("content", data.text)
         }
       } else if (data.text) {
-        // processedData가 없어도 텍스트만 있으면 내용에 입력
-        setValue("content", data.text)
-      }
-      
-      // 전체 텍스트를 리뷰 내용에 입력
-      if (data.text) {
+        // parsed 데이터가 없으면 전체 텍스트를 내용에 입력
         setValue("content", data.text)
       }
 
-      alert(data.isDemo 
-        ? "데모 텍스트가 입력되었습니다. Google Vision API 키를 설정하면 실제 OCR이 가능합니다." 
-        : "텍스트가 성공적으로 추출되었습니다!")
+      // 성공 메시지
+      if (data.isMockData) {
+        alert("테스트 모드: 샘플 데이터가 입력되었습니다.\nGoogle Vision API를 설정하면 실제 OCR이 가능합니다.")
+      } else {
+        alert(`텍스트가 성공적으로 추출되었습니다! (신뢰도: ${Math.round((data.confidence || 0.95) * 100)}%)`
+      }
     } catch (error: any) {
       console.error("OCR error:", error)
       setError(error.message || "텍스트 추출 중 오류가 발생했습니다")

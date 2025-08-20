@@ -10,11 +10,15 @@ import {
   ImageIcon,
   CheckCircledIcon,
   CrossCircledIcon,
-  ReloadIcon
+  ReloadIcon,
+  DownloadIcon,
+  FileTextIcon
 } from "@radix-ui/react-icons"
+import { FileSpreadsheet, FileText, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 
 interface OCRResult {
@@ -27,6 +31,15 @@ interface OCRResult {
   confidence?: number
 }
 
+interface BulkUploadResult {
+  success: boolean
+  message?: string
+  total?: number
+  created?: number
+  skipped?: number
+  errors?: string[]
+}
+
 export default function BulkUploadPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -37,10 +50,12 @@ export default function BulkUploadPage() {
   const [ocrResults, setOcrResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [currentProgress, setCurrentProgress] = useState(0)
-  const [selectedTab, setSelectedTab] = useState<'upload' | 'paste'>('upload')
+  const [selectedTab, setSelectedTab] = useState<'image' | 'csv' | 'paste'>('csv')
+  const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [bulkUploadResult, setBulkUploadResult] = useState<BulkUploadResult | null>(null)
 
-  // 파일 선택 처리
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 이미지 파일 선택 처리
+  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target?.files || [])
     const imageFiles = selectedFiles.filter(file => 
       file.type.startsWith('image/')
@@ -63,6 +78,24 @@ export default function BulkUploadPage() {
       status: 'pending'
     }))
     setOcrResults(initialResults)
+  }
+
+  // CSV/Excel 파일 선택 처리
+  const handleCsvFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target?.files?.[0]
+    if (file) {
+      const fileName = file.name.toLowerCase()
+      if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+        toast({
+          title: "잘못된 파일 형식",
+          description: "CSV 또는 Excel 파일만 지원됩니다",
+          variant: "destructive"
+        })
+        return
+      }
+      setCsvFile(file)
+      setBulkUploadResult(null)
+    }
   }
 
   // 드래그 앤 드롭 처리
@@ -161,6 +194,81 @@ export default function BulkUploadPage() {
     }
   }
 
+  // CSV/Excel 파일 업로드 처리
+  const processCsvFile = async () => {
+    if (!csvFile) {
+      toast({
+        title: "파일을 선택해주세요",
+        description: "CSV 또는 Excel 파일을 선택해야 합니다",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsProcessing(true)
+    setCurrentProgress(0)
+    setBulkUploadResult(null)
+
+    try {
+      const progressInterval = setInterval(() => {
+        setCurrentProgress(prev => Math.min(prev + 10, 90))
+      }, 200)
+
+      const formData = new FormData()
+      formData.append("file", csvFile)
+
+      const res = await fetch("/api/reviews/bulk", {
+        method: "POST",
+        body: formData
+      })
+
+      clearInterval(progressInterval)
+      setCurrentProgress(100)
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "업로드 실패")
+      }
+
+      setBulkUploadResult(data)
+      
+      if (data.success && data.created > 0) {
+        setTimeout(() => {
+          setCsvFile(null)
+          setCurrentProgress(0)
+        }, 2000)
+      }
+    } catch (error: any) {
+      console.error("Upload error:", error)
+      setBulkUploadResult({
+        success: false,
+        message: error.message || "업로드 중 오류가 발생했습니다"
+      })
+    } finally {
+      setIsProcessing(false)
+      setTimeout(() => setCurrentProgress(0), 1000)
+    }
+  }
+
+  // 템플릿 다운로드
+  const downloadTemplate = () => {
+    const csvContent = `플랫폼,업체명,작성자,평점,내용,날짜
+네이버,김서연 필라테스,김**,5,정말 친절하고 꼼꼼하게 가르쳐주세요! 몸의 변화가 확실히 느껴집니다.,2024-01-20
+카카오맵,서울 미용실,이**,4,컷트 실력이 좋아요. 다만 주차가 조금 불편합니다.,2024-01-18
+구글,정아 네일샵,박**,5,디자인 정말 예쁘게 잘해주시고 오래 유지됩니다!,2024-01-15`
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", "리뷰_업로드_템플릿.csv")
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // 일괄 OCR 처리
   const processAllFiles = async () => {
     setIsProcessing(true)
@@ -241,28 +349,48 @@ export default function BulkUploadPage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 헤더 */}
         <div className="mb-8">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="mb-4">
-              <ArrowLeftIcon className="mr-2" />
-              대시보드로 돌아가기
-            </Button>
-          </Link>
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm">
+                <ArrowLeftIcon className="mr-2" />
+                대시보드로 돌아가기
+              </Button>
+            </Link>
+            {selectedTab === 'csv' && (
+              <Button
+                onClick={downloadTemplate}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <DownloadIcon className="w-4 h-4" />
+                템플릿 다운로드
+              </Button>
+            )}
+          </div>
           
-          <h1 className="text-3xl font-bold text-gray-900">대량 리뷰 업로드</h1>
+          <h1 className="text-3xl font-bold text-gray-900">리뷰 일괄 업로드</h1>
           <p className="text-gray-600 mt-2">
-            스크린샷에서 리뷰를 자동으로 추출합니다 (Google Vision AI)
+            CSV/Excel 파일 또는 이미지로 여러 리뷰를 한번에 업로드하세요
           </p>
         </div>
 
         {/* 탭 선택 */}
         <div className="flex gap-2 mb-6">
           <Button
-            variant={selectedTab === 'upload' ? 'default' : 'outline'}
-            onClick={() => setSelectedTab('upload')}
-            className={selectedTab === 'upload' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
+            variant={selectedTab === 'csv' ? 'default' : 'outline'}
+            onClick={() => setSelectedTab('csv')}
+            className={selectedTab === 'csv' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
+          >
+            <FileTextIcon className="mr-2" />
+            CSV/Excel 업로드
+          </Button>
+          <Button
+            variant={selectedTab === 'image' ? 'default' : 'outline'}
+            onClick={() => setSelectedTab('image')}
+            className={selectedTab === 'image' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
           >
             <ImageIcon className="mr-2" />
-            이미지 업로드
+            이미지 OCR
           </Button>
           <Button
             variant={selectedTab === 'paste' ? 'default' : 'outline'}
@@ -273,7 +401,247 @@ export default function BulkUploadPage() {
           </Button>
         </div>
 
-        {selectedTab === 'upload' ? (
+        {selectedTab === 'csv' ? (
+          /* CSV/Excel 업로드 탭 */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* 가이드 */}
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle className="text-lg">업로드 가이드</CardTitle>
+                <CardDescription>
+                  파일 형식과 필수 항목을 확인하세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Badge className="mt-1">1</Badge>
+                    <div>
+                      <p className="font-semibold text-sm">지원 파일 형식</p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        CSV (.csv) 또는 Excel (.xlsx, .xls)
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Badge className="mt-1">2</Badge>
+                    <div>
+                      <p className="font-semibold text-sm">필수 컬럼</p>
+                      <ul className="text-xs text-gray-600 mt-1 space-y-1">
+                        <li>• 플랫폼 (네이버, 카카오맵, 구글 등)</li>
+                        <li>• 업체명</li>
+                        <li>• 내용 (리뷰 본문)</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Badge className="mt-1">3</Badge>
+                    <div>
+                      <p className="font-semibold text-sm">선택 컬럼</p>
+                      <ul className="text-xs text-gray-600 mt-1 space-y-1">
+                        <li>• 작성자 (기본: 익명)</li>
+                        <li>• 평점 (기본: 5점)</li>
+                        <li>• 날짜 (기본: 오늘)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-gray-500 mb-3">
+                    💡 템플릿 파일을 다운로드하여 양식을 확인하세요
+                  </p>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="text-xs text-amber-800">
+                      <strong>주의사항:</strong>
+                    </p>
+                    <ul className="text-xs text-amber-700 mt-1 space-y-1">
+                      <li>• 최대 파일 크기: 5MB</li>
+                      <li>• 최대 리뷰 수: 1,000개</li>
+                      <li>• 중복 리뷰는 자동 제외</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 업로드 섹션 */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>파일 업로드</CardTitle>
+                <CardDescription>
+                  리뷰 데이터가 포함된 파일을 선택하세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* 파일 업로드 영역 */}
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                      csvFile 
+                        ? 'border-[#FF6B35] bg-orange-50' 
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {csvFile ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-center">
+                          {csvFile.name.endsWith('.csv') ? (
+                            <FileText className="w-16 h-16 text-[#FF6B35]" />
+                          ) : (
+                            <FileSpreadsheet className="w-16 h-16 text-[#FF6B35]" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{csvFile.name}</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {(csvFile.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCsvFile(null)
+                            setBulkUploadResult(null)
+                          }}
+                        >
+                          다른 파일 선택
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <UploadIcon className="w-12 h-12 text-gray-400 mx-auto" />
+                        <div>
+                          <p className="text-gray-600 mb-2">
+                            파일을 드래그하거나 클릭하여 선택
+                          </p>
+                          <input
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            onChange={handleCsvFileSelect}
+                            className="hidden"
+                            id="csv-file-upload"
+                          />
+                          <label
+                            htmlFor="csv-file-upload"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                          >
+                            <FileTextIcon className="w-4 h-4" />
+                            파일 선택
+                          </label>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          CSV, XLSX, XLS 파일 지원 (최대 5MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 업로드 진행률 */}
+                  {isProcessing && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">업로드 중...</span>
+                        <span className="font-semibold">{currentProgress}%</span>
+                      </div>
+                      <Progress value={currentProgress} className="h-2" />
+                    </div>
+                  )}
+
+                  {/* 업로드 결과 */}
+                  {bulkUploadResult && (
+                    <div className={`rounded-lg p-4 ${
+                      bulkUploadResult.success 
+                        ? 'bg-green-50 border border-green-200' 
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {bulkUploadResult.success ? (
+                          <CheckCircledIcon className="w-5 h-5 text-green-600 mt-0.5" />
+                        ) : (
+                          <CrossCircledIcon className="w-5 h-5 text-red-600 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <p className={`font-semibold ${
+                            bulkUploadResult.success ? 'text-green-800' : 'text-red-800'
+                          }`}>
+                            {bulkUploadResult.message}
+                          </p>
+                          
+                          {bulkUploadResult.success && (
+                            <div className="mt-3 space-y-1 text-sm text-green-700">
+                              <p>• 전체 리뷰: {bulkUploadResult.total}개</p>
+                              <p>• 추가된 리뷰: {bulkUploadResult.created}개</p>
+                              {bulkUploadResult.skipped! > 0 && (
+                                <p>• 중복 제외: {bulkUploadResult.skipped}개</p>
+                              )}
+                            </div>
+                          )}
+                          
+                          {bulkUploadResult.errors && bulkUploadResult.errors.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-sm font-semibold text-red-700 mb-2">
+                                오류 상세:
+                              </p>
+                              <ul className="space-y-1">
+                                {bulkUploadResult.errors.slice(0, 5).map((error, index) => (
+                                  <li key={index} className="text-xs text-red-600 flex items-start gap-1">
+                                    <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                    <span>{error}</span>
+                                  </li>
+                                ))}
+                                {bulkUploadResult.errors.length > 5 && (
+                                  <li className="text-xs text-red-600">
+                                    ... 외 {bulkUploadResult.errors.length - 5}개 오류
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 액션 버튼 */}
+                  <div className="flex gap-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      asChild
+                    >
+                      <Link href="/dashboard">취소</Link>
+                    </Button>
+                    <Button
+                      className="flex-1 bg-[#FF6B35] hover:bg-[#E55A2B]"
+                      onClick={processCsvFile}
+                      disabled={!csvFile || isProcessing}
+                    >
+                      {isProcessing ? "업로드 중..." : "업로드"}
+                    </Button>
+                  </div>
+
+                  {bulkUploadResult?.success && bulkUploadResult.created! > 0 && (
+                    <div className="text-center">
+                      <Button
+                        variant="link"
+                        className="text-[#FF6B35] hover:text-[#E55A2B]"
+                        asChild
+                      >
+                        <Link href="/dashboard/reviews">
+                          업로드된 리뷰 보기 →
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : selectedTab === 'image' ? (
           <>
             {/* 업로드 영역 */}
             <Card className="mb-6">
@@ -299,7 +667,7 @@ export default function BulkUploadPage() {
                     type="file"
                     multiple
                     accept="image/*"
-                    onChange={handleFileSelect}
+                    onChange={handleImageFileSelect}
                     className="hidden"
                   />
                 </div>
