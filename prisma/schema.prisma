@@ -26,6 +26,10 @@ model User {
   // 권한 관리
   role      String   @default("user") // user, admin, super_admin
   
+  // 비밀번호 재설정
+  resetToken String?
+  resetTokenExpiry DateTime?
+  
   // 프로필 설정
   isPublic  Boolean  @default(true)
   
