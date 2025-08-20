@@ -23,6 +23,9 @@ model User {
   phone     String?
   avatar    String?
   
+  // 권한 관리
+  role      String   @default("user") // user, admin, super_admin
+  
   // 프로필 설정
   isPublic  Boolean  @default(true)
   

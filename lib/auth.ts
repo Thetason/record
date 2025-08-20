@@ -45,7 +45,8 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          username: user.username
+          username: user.username,
+          role: user.role
         }
       }
     })
@@ -55,6 +56,17 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.username = (user as any).username
+        token.role = (user as any).role
+      }
+      // DB에서 최신 role 정보 가져오기
+      if (token.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+          select: { role: true }
+        })
+        if (dbUser) {
+          token.role = dbUser.role
+        }
       }
       return token
     },
@@ -62,6 +74,7 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.id = token.id as string
         session.user.username = token.username as string
+        session.user.role = token.role as string
       }
       return session
     }
