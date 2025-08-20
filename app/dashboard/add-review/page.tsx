@@ -186,7 +186,7 @@ export default function AddReviewPage() {
       if (data.isMockData) {
         alert("테스트 모드: 샘플 데이터가 입력되었습니다.\nGoogle Vision API를 설정하면 실제 OCR이 가능합니다.")
       } else {
-        alert(`텍스트가 성공적으로 추출되었습니다! (신뢰도: ${Math.round((data.confidence || 0.95) * 100)}%)`
+        alert(`텍스트가 성공적으로 추출되었습니다! (신뢰도: ${Math.round((data.confidence || 0.95) * 100)}%)`)
       }
     } catch (error: any) {
       console.error("OCR error:", error)
