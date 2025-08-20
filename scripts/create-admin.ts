@@ -43,6 +43,7 @@ async function createAdmin() {
         }
       })
       console.log('✅ 관리자 계정이 생성되었습니다:')
+      console.log('   아이디:', newAdmin.username)
       console.log('   이메일:', newAdmin.email)
       console.log('   비밀번호:', adminData.password)
       console.log('   권한:', newAdmin.role)
@@ -75,6 +76,7 @@ async function createAdmin() {
         }
       })
       console.log('\n✅ 지원팀 계정이 생성되었습니다:')
+      console.log('   아이디:', supportAdmin.username)
       console.log('   이메일:', supportAdmin.email)
       console.log('   비밀번호:', subAdminData.password)
       console.log('   권한:', supportAdmin.role)

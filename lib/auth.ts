@@ -14,22 +14,22 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("이메일과 비밀번호를 입력해주세요")
+        if (!credentials?.username || !credentials?.password) {
+          throw new Error("아이디와 비밀번호를 입력해주세요")
         }
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email
+            username: credentials.username
           }
         })
 
         if (!user || !user.password) {
-          throw new Error("이메일 또는 비밀번호가 일치하지 않습니다")
+          throw new Error("아이디 또는 비밀번호가 일치하지 않습니다")
         }
 
         const isPasswordValid = await bcrypt.compare(
@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
         )
 
         if (!isPasswordValid) {
-          throw new Error("이메일 또는 비밀번호가 일치하지 않습니다")
+          throw new Error("아이디 또는 비밀번호가 일치하지 않습니다")
         }
 
         return {

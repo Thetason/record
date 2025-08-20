@@ -8,7 +8,7 @@ import Link from "next/link"
 export default function LoginPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: ""
   })
 
@@ -23,13 +23,13 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const result = await signIn("credentials", {
-        email: formData.email,
+        username: formData.username,
         password: formData.password,
         redirect: false
       })
 
       if (result?.error) {
-        setError("이메일 또는 비밀번호가 올바르지 않습니다.")
+        setError("아이디 또는 비밀번호가 올바르지 않습니다.")
       } else {
         router.push("/dashboard")
       }
@@ -75,14 +75,14 @@ export default function LoginPage() {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">이메일</label>
+              <label htmlFor="username" className="text-sm font-medium">아이디</label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="이메일을 입력하세요"
+                id="username"
+                name="username"
+                type="text"
+                placeholder="아이디를 입력하세요"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
-                value={formData.email}
+                value={formData.username}
                 onChange={handleChange}
                 required
               />
