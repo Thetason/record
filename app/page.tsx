@@ -10,12 +10,12 @@ import Image from "next/image"
 
 // 해시태그 데이터
 const hashtags = [
-  "#네일샵_단골관리", "#미용실_독립준비", "#필라테스_회원관리",
-  "#PT트레이너_창업", "#요가강사_프리랜서", "#속눈썹_고객관리",
-  "#왁싱샵_리뷰관리", "#마사지샵_단골", "#메이크업_포트폴리오",
-  "#헤어디자이너_독립", "#피부관리_고객", "#네일아트_리뷰",
-  "#반영구_시술리뷰", "#타투이스트_포트폴리오", "#퍼스널컬러_진단",
-  "#스포츠마사지_회원", "#필라테스_독립", "#크로스핏_회원관리"
+  "#보컬레슨_수강생관리", "#음악학원_독립준비", "#보컬트레이닝_리뷰",
+  "#노래교실_회원관리", "#뮤지컬_입시지도", "#음치교정_전문",
+  "#발성교정_전문가", "#녹음실습_지도", "#버스킹_코칭",
+  "#보컬코치_프리랜서", "#가요_레슨", "#성악_레슨",
+  "#화상레슨_전문", "#보컬건강_관리", "#무대경험_지도",
+  "#음역대확장_전문", "#감정표현_코칭", "#오디션_준비"
 ]
 
 export default function HomePage() {
@@ -26,6 +26,7 @@ export default function HomePage() {
   const [visibleReviews, setVisibleReviews] = useState(3)
   
   const targetAudiences = [
+    "보컬트레이너",
     "미용사",
     "강사", 
     "네일샵 사장님",
@@ -50,12 +51,12 @@ export default function HomePage() {
       setShowDemo(true)
       let count = 0
       const interval = setInterval(() => {
-        if (count <= 69) {
+        if (count <= 342) {
           setReviewCount(count)
-          count += 2
+          count += 10
         } else {
           clearInterval(interval)
-          setReviewCount(69)
+          setReviewCount(342)
         }
       }, 30)
     }, 500)
@@ -89,71 +90,79 @@ export default function HomePage() {
   const demoReviews = [
     {
       platform: "네이버",
-      business: "비너스필라테스",
+      business: "서영빈 선생님",
       rating: 5,
-      content: "수업 때마다 컨디션에 맞게 진행해주시기 때문에 무리하지 않는 선에서 운동할 수 있어서 좋아요. 동작할 때 꼼꼼히 봐주시고, 제가 불편하거나 자극이 없어서 아쉬운 부분이 있다고 말씀드리면 바로 수정도 해주셔서 좋아요. 최고입니다!",
-      author: "헤이지오니",
-      date: "5.22.목",
-      reviewCount: "리뷰 497",
-      visitCount: "사진 22",
+      content: "일단 시설이 너무너무 좋고 깔끔해서 깜짝 놀랐어요..! 선생님도 제 스타일에 맞춰서 어떤 부분을 어떻게 바꾸면 좋을지, 어떤식으로 하면 더 잘 바꿀 수 있을지 다 자세하게 봐주셨고요. 첫 수업 많이 긴장했었는데 선생님이 막 칭찬도 해주시고 엄청 친절히 가르쳐주셔서 떨 딸 수 있었습니다!",
+      author: "김맹면",
+      date: "22.6.3",
+      reviewCount: "리뷰 17",
+      visitCount: "사진 23",
+      isNaverReview: true,
+      verified: true
+    },
+    {
+      platform: "네이버",
+      business: "서영빈 선생님",
+      rating: 5,
+      content: "선생님이 늘 친절하시고, 꼼꼼하시고, 정말 열정적으로 잘 가르쳐주십니다. 저에게 필요했던 부분을 잘 지도해주셔서, 요즘 노래부르는 게 더 재밌어졌어요~ 감사합니다 :)",
+      author: "20221001",
+      date: "22.6.4",
+      reviewCount: "리뷰 716",
+      visitCount: "사진 27",
+      isNaverReview: true,
+      verified: true
+    },
+    {
+      platform: "네이버",
+      business: "서영빈 선생님",
+      rating: 5,
+      content: "친구 축가를 부르기 위해 배우게 되었는데요... 사실 음치 박치라 반쯤 포기하고 시작했는데, 쌤이 포기하지 않고 이끌어나가주고 있습니다. 항상 용기를 가득 채워주고, 열정을 가지고 가르쳐 주세요. 중간에 포기할 뻔한 순간도 있었지만, 그때마다 진심으로 할 수 있다고 말씀해주시고 좋은 말도 많이해주셔서 용기를 얻고 있습니다!",
+      author: "ho****",
+      date: "22.12.1",
+      reviewCount: "리뷰 69",
+      visitCount: "사진 79",
+      isNaverReview: true,
+      verified: true
+    },
+    {
+      platform: "네이버",
+      business: "서영빈 선생님",
+      rating: 5,
+      content: "이전에도 취미로 노래를 배웠었지만 뜻대로 되지않아 자신감만 떨어지던 날날을 보내던 중에 쾌라우디 뮤직, 그리고 영빈쌤을 만났어요! 멘탈관리도 보컬레슨에 있어서 중요한 영역이라고 말씀하시는 선생님께... 학생 수업 때마다 칭찬감에 가득주십니다...",
+      author: "cod****",
+      date: "22.12.2",
+      reviewCount: "리뷴 7",
+      visitCount: "사진 6",
+      isNaverReview: true,
+      verified: true
+    },
+    {
+      platform: "네이버",
+      business: "서영빈 선생님",
+      rating: 5,
+      content: "평소에 음악 듣는 것도 좋아하고 노래 부르는 것도 좋아했었는데, 꾼을 이쯀으로 정해서 학원을 찾던 도중 쾌라우디뮤직, 영빈쌤을 만났어요!! 수업을 받으지는 한 달 정도 지났는데, 한 달 전에 제가 불러본 것과 현재 부르는 게 조금씩 변하고 있다는 게 너무 신기하고 재밌어요!! 그냥 힐링 그 자체입니다",
+      author: "aki****",
+      date: "23.4.6",
+      reviewCount: "리뷴 12",
+      visitCount: "사진 4",
       isNaverReview: true,
       verified: true
     },
     {
       platform: "카카오",
-      business: "밸런스드필라테스",
-      rating: 5,
-      content: "서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요.",
-      author: "이**",
-      date: "2024.08.06",
-      isKakaoReview: true,
-      verified: true
-    },
-    {
-      platform: "네이버",
-      business: "필라오라인",
-      rating: 5,
-      content: "6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님!",
-      author: "박**",
-      date: "2024.08.05",
-      imageUrl: null,
-      verified: true
-    },
-    {
-      platform: "인스타",
-      business: "휘트니스스튜디오",
-      rating: 5,
-      content: "운동을 싫어했던 제가 이제는 운동이 즐거워졌어요! 서연쌤의 마법 같은 수업 덕분입니다.",
-      author: "김**",
-      date: "2024.08.04",
-      imageUrl: "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?w=400&h=300&fit=crop",
-      verified: false
-    },
-    {
-      platform: "네이버",
-      business: "퍼섹드필라테스",
-      rating: 5,
-      content: "서연선생님 수업은 정말 다르네요. 전에 다른 곳에서 받던 수업과 비교해도 훨씬 전문적이고 케어가 좋아요.",
-      author: "류**",
-      date: "2024.08.03",
-      imageUrl: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400&h=300&fit=crop",
-      verified: true
-    },
-    {
-      platform: "카카오",
-      business: "우리동네필라테스",
+      business: "빈 보컬 스튜디오",
       rating: 4,
-      content: "바른 자세를 알려주실만 아니라 일상생활에서도 실천할 수 있는 팁도 알려주셔서 너무 좋았어요!",
+      content: "복식호흡이 뭔지도 몰랐는데 이제는 자연스럽게 돼요! 일상생활에서도 활용할 수 있는 발성팁도 알려주셔서 목이 편해졌어요.",
       author: "조**",
       date: "2024.08.02",
-      imageUrl: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&h=300&fit=crop",
+      imageUrl: "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=400&h=300&fit=crop",
       verified: true
     },
     {
       platform: "네이버",
-      business: "에스필라테스",
+      business: "YB 보컬 아카데미",
       rating: 5,
-      content: "서연강사님께 3개월째 수업 받고 있는데 이제 내 몸이 달라진 게 느껴져요. 가족들도 변화를 알아채네요!",
+      content: "영빈선생님께 3개월째 레슨 받고 있는데 음정, 박자감이 확실히 좋아졌어요. 친구들이 노래 잘한다고 칭찬해줘요!",
       author: "최**",
       date: "2024.08.01",
       imageUrl: null,
@@ -161,29 +170,29 @@ export default function HomePage() {
     },
     {
       platform: "인스타",
-      business: "전지현필라테스",
+      business: "서영빈 보컬 클래스",
       rating: 5,
-      content: "있는 그대로의 모습에서 더 나은 모습으로! 서연선생님과 함께 운동하면서 자신감도 얻었어요.",
+      content: "취미로 시작했는데 이제는 버스킹도 해요! 영빈쌤과 함께하면서 무대 자신감도 생기고 실력도 늘었어요. 최고의 선생님!",
       author: "서**",
       date: "2024.07.31",
-      imageUrl: "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=400&h=300&fit=crop",
+      imageUrl: "https://images.unsplash.com/photo-1516924962500-2b4b3b99ea02?w=400&h=300&fit=crop",
       verified: false
     },
     {
       platform: "네이버",
-      business: "핀트필라테스",
+      business: "빈 뮤직 스튜디오",
       rating: 5,
-      content: "서연선생님 수업은 정말 다르다. 상담부터 시작해서 수업까지 모든 과정이 완벽했어요.",
+      content: "상담부터 레슨까지 모든 과정이 체계적이에요. 개인별 맞춤 커리큘럼으로 진행해주셔서 실력이 빠르게 늘어요!",
       author: "이**",
       date: "2024.07.30",
-      imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
+      imageUrl: "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=400&h=300&fit=crop",
       verified: true
     },
     {
       platform: "카카오",
-      business: "체어필라테스",
+      business: "YB 보컬 트레이닝",
       rating: 5,
-      content: "무리하지 않는 선에서 운동 강도를 높여주셨어요. 뒤병안아 시작했는데 이제는 뒤통증이 사라졌어요!",
+      content: "목이 쉽게 아팠는데 올바른 발성법을 배우고 나서는 3시간 노래해도 멀쩡해요! 보컬 건강까지 챙겨주시는 선생님이세요.",
       author: "손**",
       date: "2024.07.29",
       imageUrl: null,
@@ -354,7 +363,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               실제 <span className="text-[#FF6B35]">Re:cord</span> 사용 화면
             </h2>
-            <p className="text-gray-600 text-lg">69개 리뷰를 가진 김서연 필라테스 강사님의 프로필</p>
+            <p className="text-gray-600 text-lg">342개 리뷰를 가진 서영빈 보컬트레이너의 프로필</p>
           </div>
           
           {/* 실제 데모 화면 */}
@@ -369,11 +378,11 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                      김
+                      서
                     </div>
                     <div>
-                      <h3 className="font-bold text-xl">김서연</h3>
-                      <p className="text-gray-600">필라테스 강사</p>
+                      <h3 className="font-bold text-xl">서영빈</h3>
+                      <p className="text-gray-600">보컬트레이너</p>
                       <div className="flex items-center gap-1 mt-1">
                         <div className="flex text-yellow-500">
                           {[...Array(5)].map((_, i) => (
@@ -401,9 +410,9 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 33개</span>
-                    <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 21개</span>
-                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 15개</span>
+                    <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 187개</span>
+                    <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 98개</span>
+                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 57개</span>
                   </div>
                 </div>
                 
@@ -416,70 +425,62 @@ export default function HomePage() {
                         <div key={i} className="bg-white border rounded-lg overflow-hidden animate-slideIn hover:shadow-md transition-shadow" 
                              style={{ animationDelay: `${1000 + i * 200}ms` }}>
                           
-                          {/* 네이버 리뷰 스타일 - 정확한 UI 재현 */}
+                          {/* 리뷰 UI - 법률적으로 안전한 독립 디자인 */}
                           {review.isNaverReview ? (
-                            <div className="bg-white rounded-lg border border-gray-100">
-                              {/* 네이버 리뷰 헤더 */}
-                              <div className="p-4">
-                                <div className="flex items-start gap-3">
-                                  {/* 프로필 이미지 */}
-                                  <div className="flex-shrink-0">
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-200 to-blue-200 flex items-center justify-center">
-                                      <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                                      </svg>
+                            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                              {/* 플랫폼 표시 - 텍스트로만 */}
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-600 font-medium">출처: 네이버</span>
+                                  {review.verified && (
+                                    <div className="flex items-center gap-1">
+                                      <Shield className="w-3 h-3 text-blue-600" />
+                                      <span className="text-xs text-blue-600">인증됨</span>
                                     </div>
-                                  </div>
-                                  
-                                  {/* 유저 정보 */}
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium text-[15px] text-gray-900">{review.author}</span>
-                                      <button className="px-3 py-1 bg-[#03c75a] text-white text-xs rounded-sm font-medium hover:bg-[#02b351]">
-                                        팔로우
-                                      </button>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-[13px] text-gray-500">
-                                      <span className="text-gray-600">{review.reviewCount}</span>
-                                      <span className="text-gray-400">·</span>
-                                      <span className="text-gray-600">{review.visitCount}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {/* 리뷰 내용 */}
-                                <div className="mt-4">
-                                  <p className="text-[15px] text-gray-800 leading-[1.6] whitespace-pre-wrap">
-                                    {review.content}
-                                  </p>
-                                  <button className="text-[13px] text-gray-500 mt-2 hover:underline">더보기</button>
-                                </div>
-                                
-                                {/* 반응 버튼 */}
-                                <div className="mt-4 flex items-center gap-3">
-                                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 rounded-full hover:bg-pink-100 transition-colors">
-                                    <span className="text-[15px]">💗</span>
-                                    <span className="text-[13px] text-gray-700">친절해요</span>
-                                    <span className="text-[13px] font-medium text-gray-900">+4</span>
-                                  </button>
+                                  )}
                                 </div>
                               </div>
                               
-                              {/* 하단 정보 */}
-                              <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                                <div className="flex items-center justify-between">
-                                  <button className="flex items-center gap-2 text-[13px] text-gray-600 hover:text-gray-900">
-                                    <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center">
-                                      <span className="text-[11px]">😊</span>
+                              {/* 리뷰 본문 */}
+                              <div className="p-4">
+                                <div className="flex items-start gap-3">
+                                  {/* 프로필 */}
+                                  <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                      <span className="text-sm font-medium text-white">
+                                        {review.author.charAt(0)}
+                                      </span>
                                     </div>
-                                    <span>반응 남기기</span>
-                                  </button>
-                                  <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
-                                    <span>{review.date}</span>
-                                    <span>·</span>
-                                    <span>3번째 방문</span>
-                                    <span>·</span>
-                                    <span className="text-[#03c75a]">영수증</span>
+                                  </div>
+                                  
+                                  {/* 내용 */}
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-medium text-sm text-gray-900">{review.author}</span>
+                                      <span className="text-xs text-gray-500">· {review.date}</span>
+                                    </div>
+                                    
+                                    {/* 별점 */}
+                                    <div className="flex items-center gap-1 mb-2">
+                                      {[...Array(5)].map((_, j) => (
+                                        <StarFilledIcon 
+                                          key={j} 
+                                          className={`w-4 h-4 ${j < review.rating ? 'text-yellow-400' : 'text-gray-200'}`} 
+                                        />
+                                      ))}
+                                    </div>
+                                    
+                                    {/* 리뷰 텍스트 */}
+                                    <p className="text-sm text-gray-700 leading-relaxed">
+                                      {review.content}
+                                    </p>
+                                    
+                                    {/* 메타 정보 */}
+                                    <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
+                                      <span>{review.reviewCount}</span>
+                                      <span>·</span>
+                                      <span>{review.visitCount}</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -726,15 +727,15 @@ export default function HomePage() {
                 <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-4 rounded-lg">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-sm font-bold">
-                      김
+                      서
                     </div>
                     <div>
-                      <p className="font-medium text-sm">김서연 강사님</p>
+                      <p className="font-medium text-sm">서영빈 트레이너님</p>
                       <p className="text-xs text-gray-600">리뷰 {reviewCount}개 · ⭐ {avgRating.toFixed(1)}</p>
                     </div>
                   </div>
                   <p className="text-xs text-gray-700 italic">
-                    "최고의 강사님! 항상 친절하고..."
+                    "발성부터 호흡까지 체계적으로..."
                   </p>
                 </div>
               </Card>
