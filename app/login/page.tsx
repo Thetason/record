@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
@@ -15,26 +15,50 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     
+    console.log("🚀 로그인 폼 제출:", {
+      username: formData.username,
+      hasPassword: !!formData.password,
+      passwordLength: formData.password?.length
+    })
+    
     setIsLoading(true)
     try {
+      console.log("📞 NextAuth signIn 호출 중...")
       const result = await signIn("credentials", {
         username: formData.username,
         password: formData.password,
         redirect: false
       })
 
+      console.log("📬 NextAuth signIn 결과:", {
+        ok: result?.ok,
+        error: result?.error,
+        status: result?.status,
+        url: result?.url
+      })
+
       if (result?.error) {
+        console.log("❌ 로그인 실패:", result.error)
         setError("아이디 또는 비밀번호가 올바르지 않습니다.")
-      } else {
+      } else if (result?.ok) {
+        console.log("✅ 로그인 성공, 대시보드로 이동")
         router.push("/dashboard")
+      } else {
+        console.log("⚠️ 예상치 못한 결과:", result)
+        setError("로그인 중 오류가 발생했습니다.")
       }
     } catch (error) {
-      console.error("Login error:", error)
+      console.error("💥 Login error:", error)
       setError("로그인 중 오류가 발생했습니다.")
     } finally {
       setIsLoading(false)
@@ -47,6 +71,14 @@ export default function LoginPage() {
       ...prev,
       [name]: value
     }))
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+        <div className="text-center">로딩 중...</div>
+      </div>
+    )
   }
 
   return (
@@ -84,6 +116,7 @@ export default function LoginPage() {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
                 value={formData.username}
                 onChange={handleChange}
+                autoComplete="username"
                 required
               />
             </div>
@@ -99,6 +132,7 @@ export default function LoginPage() {
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
                   value={formData.password}
                   onChange={handleChange}
+                  autoComplete="current-password"
                   required
                 />
                 <button
