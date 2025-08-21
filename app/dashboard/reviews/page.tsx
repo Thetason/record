@@ -130,7 +130,6 @@ export default function ReviewsPage() {
             fiveStars: 0
           })
         }
-      }
       } else {
         console.error("Failed to fetch reviews:", res.statusText)
         setReviews([])

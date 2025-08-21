@@ -253,8 +253,8 @@ export default function AddReviewPage() {
       } else {
         const confidence = Math.round((data.confidence || 0.95) * 100)
         const message = data.isMockData 
-          ? "테스트 모드: 샘플 데이터가 입력되었습니다.
-Google Vision API를 설정하면 실제 OCR이 작동합니다."
+          ? `테스트 모드: 샘플 데이터가 입력되었습니다.
+Google Vision API를 설정하면 실제 OCR이 작동합니다.`
           : `${fieldsUpdated}개 필드가 자동으로 입력되었습니다! (신뢰도: ${confidence}%)`
         
         // 토스트나 알림 대신 임시 성공 메시지 표시

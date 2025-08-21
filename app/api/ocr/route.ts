@@ -108,11 +108,11 @@ export async function POST(req: NextRequest) {
       // 다양한 플랫폼의 샘플 데이터 랜덤 선택
       const mockData = [
         {
-          text: '네이버 리뷰
+          text: `네이버 리뷰
 ★★★★★
 정말 친절하고 꼼꼼하게 가르쳐주세요!
 김**
-2024.08.20',
+2024.08.20`,
           parsed: {
             platform: '네이버',
             business: '뷰티 살롱',
@@ -123,11 +123,11 @@ export async function POST(req: NextRequest) {
           }
         },
         {
-          text: '카카오맵
+          text: `카카오맵
 ⭐⭐⭐⭐
 서비스가 좋아요 추천합니다
 이**
-2024.08.19',
+2024.08.19`,
           parsed: {
             platform: '카카오맵',
             business: '헬스장',
@@ -138,11 +138,11 @@ export async function POST(req: NextRequest) {
           }
         },
         {
-          text: '구글 리뷰
+          text: `구글 리뷰
 ★★★★★ 5.0
  Very professional and friendly staff!
 John D.
-August 18, 2024',
+August 18, 2024`,
           parsed: {
             platform: '구글',
             business: 'Hair Salon',
