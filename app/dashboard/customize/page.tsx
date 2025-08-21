@@ -95,8 +95,8 @@ export default function CustomizePage() {
     setSaved(false);
 
     try {
-      const res = await fetch('/api/user', {
-        method: 'PATCH',
+      const res = await fetch('/api/users/me', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customization)
       });

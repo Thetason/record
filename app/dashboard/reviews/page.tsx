@@ -49,6 +49,7 @@ export default function ReviewsPage() {
     platforms: 0,
     fiveStars: 0
   })
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -102,14 +103,17 @@ export default function ReviewsPage() {
       const res = await fetch("/api/reviews")
       if (res.ok) {
         const data = await res.json()
-        const reviewsList = data.reviews || data
+        const reviewsList = Array.isArray(data) ? data : (data.reviews || [])
         setReviews(reviewsList)
         
         // 통계 계산
         if (reviewsList.length > 0) {
           const total = reviewsList.length
-          const avgRating = reviewsList.reduce((sum: number, r: Review) => sum + r.rating, 0) / total
-          const platforms = new Set(reviewsList.map((r: Review) => r.platform)).size
+          const validReviews = reviewsList.filter((r: Review) => typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5)
+          const avgRating = validReviews.length > 0 
+            ? validReviews.reduce((sum: number, r: Review) => sum + r.rating, 0) / validReviews.length 
+            : 0
+          const platforms = new Set(reviewsList.filter((r: Review) => r.platform).map((r: Review) => r.platform)).size
           const fiveStars = reviewsList.filter((r: Review) => r.rating === 5).length
 
           setStats({
@@ -118,20 +122,32 @@ export default function ReviewsPage() {
             platforms,
             fiveStars
           })
+        } else {
+          setStats({
+            total: 0,
+            avgRating: 0,
+            platforms: 0,
+            fiveStars: 0
+          })
         }
+      }
+      } else {
+        console.error("Failed to fetch reviews:", res.statusText)
+        setReviews([])
       }
     } catch (error) {
       console.error("Failed to fetch reviews:", error)
+      setReviews([])
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
-      return
-    }
+  const handleDeleteClick = (id: string) => {
+    setDeletingReviewId(id)
+  }
 
+  const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`/api/reviews/${id}`, {
         method: "DELETE"
@@ -139,13 +155,23 @@ export default function ReviewsPage() {
 
       if (res.ok) {
         setReviews(reviews.filter(review => review.id !== id))
+        setDeletingReviewId(null)
+        // 성공적으로 삭제되었다는 피드백을 위해 아주 짧은 알림 표시
+        setTimeout(() => {
+          // 여기에 토스트 알림을 추가할 수 있습니다
+        }, 100)
       } else {
-        alert("리뷰 삭제에 실패했습니다.")
+        const errorData = await res.json()
+        alert(errorData.message || "리뷰 삭제에 실패했습니다.")
       }
     } catch (error) {
       console.error("Delete error:", error)
       alert("리뷰 삭제 중 오류가 발생했습니다.")
     }
+  }
+
+  const handleCancelDelete = () => {
+    setDeletingReviewId(null)
   }
 
   const handleEdit = (id: string) => {
@@ -161,7 +187,8 @@ export default function ReviewsPage() {
       "네이버": "bg-green-100 text-green-800",
       "카카오맵": "bg-yellow-100 text-yellow-800",
       "구글": "bg-blue-100 text-blue-800",
-      "크몽": "bg-purple-100 text-purple-800"
+      "크몽": "bg-purple-100 text-purple-800",
+      "인스타그램": "bg-pink-100 text-pink-800"
     }
     return colors[platform] || "bg-gray-100 text-gray-800"
   }
@@ -432,14 +459,35 @@ export default function ReviewsPage() {
                           >
                             <Pencil1Icon className="w-4 h-4" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(review.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </Button>
+                          {deletingReviewId === review.id ? (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(review.id)}
+                                className="text-red-600 hover:text-red-700 text-xs"
+                              >
+                                확인
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCancelDelete}
+                                className="text-gray-600 hover:text-gray-700 text-xs"
+                              >
+                                취소
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteClick(review.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

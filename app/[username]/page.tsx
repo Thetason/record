@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 async function getProfile(username: string) {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/profile/${username}`,
+      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3004'}/api/profile/${username}`,
       { 
         cache: 'no-store',
         next: { revalidate: 60 } // 60초마다 재검증

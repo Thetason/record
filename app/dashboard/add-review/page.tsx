@@ -30,6 +30,7 @@ const platforms = [
   { value: "카카오맵", label: "카카오맵", color: "bg-yellow-100 text-yellow-800" },
   { value: "구글", label: "구글", color: "bg-blue-100 text-blue-800" },
   { value: "크몽", label: "크몽", color: "bg-purple-100 text-purple-800" },
+  { value: "인스타그램", label: "인스타그램", color: "bg-pink-100 text-pink-800" },
   { value: "기타", label: "기타", color: "bg-gray-100 text-gray-800" }
 ]
 
@@ -43,6 +44,8 @@ export default function AddReviewPage() {
   const [error, setError] = useState("")
   const [watermarkEnabled, setWatermarkEnabled] = useState(true)
   const [watermarkedImage, setWatermarkedImage] = useState<string | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [ocrResult, setOcrResult] = useState<any>(null)
 
   const {
     register,
@@ -57,6 +60,63 @@ export default function AddReviewPage() {
   if (status === "unauthenticated") {
     router.push("/login")
     return null
+  }
+
+  const processImageFile = async (file: File) => {
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+      setError("이미지 파일만 업로드할 수 있습니다")
+      return
+    }
+
+    // 파일 크기 검증
+    if (file.size > 10 * 1024 * 1024) {
+      setError("파일 크기는 10MB 이하여야 합니다")
+      return
+    }
+
+    setUploadedFile(file)
+    setError("")
+
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const originalImage = e.target?.result as string
+      setUploadedImage(originalImage)
+      
+      // 워터마크 추가
+      if (watermarkEnabled && session?.user?.username) {
+        try {
+          const watermarked = await addWatermark(originalImage, `Re:cord @${session.user.username}`)
+          setWatermarkedImage(watermarked)
+        } catch (error) {
+          console.error('Failed to add watermark:', error)
+          setWatermarkedImage(originalImage)
+        }
+      } else {
+        setWatermarkedImage(originalImage)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      await processImageFile(files[0])
+    }
   }
 
   const onSubmit = async (data: ReviewForm) => {
@@ -82,7 +142,7 @@ export default function AddReviewPage() {
 
       if (!res.ok) {
         const errorData = await res.json()
-        throw new Error(errorData.error || "리뷰 추가 실패")
+        throw new Error(errorData.message || errorData.error || "리뷰 추가에 실패했습니다.")
       }
 
       router.push("/dashboard/reviews")
@@ -97,32 +157,19 @@ export default function AddReviewPage() {
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      setUploadedFile(file)
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        const originalImage = e.target?.result as string
-        setUploadedImage(originalImage)
-        
-        // 워터마크 추가
-        if (watermarkEnabled && session?.user?.username) {
-          try {
-            const watermarked = await addWatermark(originalImage, `Re:cord @${session.user.username}`)
-            setWatermarkedImage(watermarked)
-          } catch (error) {
-            console.error('Failed to add watermark:', error)
-            setWatermarkedImage(originalImage)
-          }
-        } else {
-          setWatermarkedImage(originalImage)
-        }
-      }
-      reader.readAsDataURL(file)
+      await processImageFile(file)
     }
   }
 
   const handleOCRExtract = async () => {
     if (!uploadedFile) {
-      alert("이미지를 먼저 업로드해주세요")
+      setError("이미지를 먼저 업로드해주세요")
+      return
+    }
+
+    // 파일 크기 체크 (클라이언트 측)
+    if (uploadedFile.size > 10 * 1024 * 1024) {
+      setError("파일 크기는 10MB 이하여야 합니다")
       return
     }
 
@@ -144,53 +191,106 @@ export default function AddReviewPage() {
       }
 
       const data = await res.json()
-      
-      // 추출된 데이터를 폼에 자동 입력
       console.log('OCR 결과:', data)
+      
+      // 추출 결과 처리
+      let fieldsUpdated = 0
       
       if (data.parsed) {
         const { platform, business, rating, content, author, reviewDate } = data.parsed
         
         // 플랫폼 설정
-        if (platform) {
+        if (platform && platform.trim()) {
           const matchedPlatform = platforms.find(p => 
             platform.includes(p.value) || p.value.includes(platform)
           )
           if (matchedPlatform) {
             setValue("platform", matchedPlatform.value)
+            fieldsUpdated++
           }
         }
         
         // 비즈니스명 설정
-        if (business) setValue("businessName", business)
+        if (business && business.trim()) {
+          setValue("businessName", business.trim())
+          fieldsUpdated++
+        }
         
         // 평점 설정
-        if (rating) setValue("rating", rating.toString())
+        if (rating && rating >= 1 && rating <= 5) {
+          setValue("rating", rating.toString())
+          fieldsUpdated++
+        }
         
         // 작성자명 설정
-        if (author) setValue("customerName", author)
+        if (author && author.trim()) {
+          setValue("customerName", author.trim())
+          fieldsUpdated++
+        }
         
         // 날짜 설정
-        if (reviewDate) setValue("reviewDate", reviewDate)
+        if (reviewDate && reviewDate.trim()) {
+          setValue("reviewDate", reviewDate)
+          fieldsUpdated++
+        }
         
         // 리뷰 내용 설정
-        if (content) {
-          setValue("content", content)
+        if (content && content.trim() && content.length >= 5) {
+          setValue("content", content.trim())
+          fieldsUpdated++
         }
-      } else if (data.text) {
-        // parsed 데이터가 없으면 전체 텍스트를 내용에 입력
-        setValue("content", data.text)
+      } else if (data.text && data.text.trim() && data.text.length >= 10) {
+        // 파싱된 데이터가 없으면 전체 텍스트를 내용에 입력
+        setValue("content", data.text.trim())
+        fieldsUpdated++
       }
 
-      // 성공 메시지
-      if (data.isMockData) {
-        alert("테스트 모드: 샘플 데이터가 입력되었습니다.\nGoogle Vision API를 설정하면 실제 OCR이 가능합니다.")
+      // 결과 피드백
+      if (data.success === false) {
+        setError(data.message || "이미지에서 텍스트를 찾을 수 없습니다")
+      } else if (fieldsUpdated === 0) {
+        setError("추출된 정보가 없습니다. 더 선명한 이미지를 사용해보세요")
       } else {
-        alert(`텍스트가 성공적으로 추출되었습니다! (신뢰도: ${Math.round((data.confidence || 0.95) * 100)}%)`)
+        const confidence = Math.round((data.confidence || 0.95) * 100)
+        const message = data.isMockData 
+          ? "테스트 모드: 샘플 데이터가 입력되었습니다.
+Google Vision API를 설정하면 실제 OCR이 작동합니다."
+          : `${fieldsUpdated}개 필드가 자동으로 입력되었습니다! (신뢰도: ${confidence}%)`
+        
+        // 토스트나 알림 대신 임시 성공 메시지 표시
+        const successAlert = document.createElement('div')
+        successAlert.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm'
+        successAlert.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0">
+              ✅
+            </div>
+            <div class="text-sm">
+              ${message}
+              ${data.message ? `<br><span class="text-green-100">${data.message}</span>` : ''}
+            </div>
+          </div>
+        `
+        document.body.appendChild(successAlert)
+        
+        setTimeout(() => {
+          successAlert.remove()
+        }, 5000)
       }
+
     } catch (error: any) {
       console.error("OCR error:", error)
-      setError(error.message || "텍스트 추출 중 오류가 발생했습니다")
+      let errorMessage = "텍스트 추출 중 오류가 발생했습니다"
+      
+      if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = "네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요"
+      } else if (error.message.includes('timeout')) {
+        errorMessage = "요청 시간이 초과되었습니다. 더 작은 이미지를 사용해보세요"
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsExtracting(false)
     }
@@ -244,7 +344,16 @@ export default function AddReviewPage() {
                     <li>필요시 수정 후 저장</li>
                   </ol>
                 </div>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    isDragOver 
+                      ? 'border-[#FF6B35] bg-orange-50' 
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   {uploadedImage ? (
                     <div className="space-y-4">
                       <div className="relative">
@@ -308,10 +417,18 @@ export default function AddReviewPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <UploadIcon className="w-12 h-12 text-gray-400 mx-auto" />
+                      <UploadIcon className={`w-12 h-12 mx-auto transition-colors ${
+                        isDragOver ? 'text-[#FF6B35]' : 'text-gray-400'
+                      }`} />
                       <div>
-                        <p className="text-sm text-gray-600 mb-2">
-                          리뷰 이미지를 드래그하거나 클릭하여 업로드
+                        <p className={`text-sm mb-2 transition-colors ${
+                          isDragOver 
+                            ? 'text-[#FF6B35] font-medium' 
+                            : 'text-gray-600'
+                        }`}>
+                          {isDragOver 
+                            ? '이미지를 여기에 놓아주세요' 
+                            : '리뷰 이미지를 드래그하거나 클릭하여 업로드 (JPG, PNG, WebP)'}
                         </p>
                         <input
                           type="file"
@@ -322,11 +439,18 @@ export default function AddReviewPage() {
                         />
                         <label
                           htmlFor="image-upload"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6B35] text-white rounded-lg cursor-pointer hover:bg-[#E55A2B] transition-colors"
+                          className={`inline-flex items-center gap-2 px-4 py-2 text-white rounded-lg cursor-pointer transition-colors ${
+                            isDragOver 
+                              ? 'bg-[#E55A2B]' 
+                              : 'bg-[#FF6B35] hover:bg-[#E55A2B]'
+                          }`}
                         >
                           <UploadIcon className="w-4 h-4" />
                           이미지 선택
                         </label>
+                        <p className="text-xs text-gray-500 mt-2">
+                          최대 파일 크기: 10MB | 지원 형식: JPG, PNG, WebP
+                        </p>
                       </div>
                     </div>
                   )}
@@ -427,13 +551,18 @@ export default function AddReviewPage() {
                   <textarea
                     id="content"
                     rows={4}
+                    maxLength={2000}
                     className="w-full p-3 border border-gray-300 rounded-lg resize-none"
-                    placeholder="리뷰 내용을 입력하세요..."
+                    placeholder="리뷰 내용을 입력하세요... (최대 2000자)"
                     {...register("content", {
                       required: "리뷰 내용을 입력해주세요",
                       minLength: {
                         value: 10,
                         message: "리뷰 내용은 최소 10자 이상이어야 합니다"
+                      },
+                      maxLength: {
+                        value: 2000,
+                        message: "리뷰 내용은 최대 2000자까지만 입력할 수 있습니다"
                       }
                     })}
                   />

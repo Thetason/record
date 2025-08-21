@@ -80,43 +80,51 @@ export default function SharePage() {
   };
 
   const handleKakaoShare = () => {
-    // Kakao SDK 로드 체크
-    if (window.Kakao && !window.Kakao.isInitialized()) {
-      window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
-    }
+    try {
+      // Kakao SDK 로드 체크
+      if (typeof window !== 'undefined' && window.Kakao) {
+        if (!window.Kakao.isInitialized()) {
+          window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
+        }
 
-    if (window.Kakao) {
-      window.Kakao.Share.sendDefault({
-        objectType: 'feed',
-        content: {
-          title: `${session?.user?.name}님의 리뷰 프로필`,
-          description: '진짜 고객 리뷰를 한 곳에서 확인하세요',
-          imageUrl: 'https://record-rho.vercel.app/og-image.png',
-          link: {
-            mobileWebUrl: profileUrl,
-            webUrl: profileUrl,
-          },
-        },
-        buttons: [
-          {
-            title: '프로필 보기',
+        window.Kakao.Share.sendDefault({
+          objectType: 'feed',
+          content: {
+            title: `${session?.user?.name}님의 리뷰 프로필`,
+            description: '진짜 고객 리뷰를 한 곳에서 확인하세요',
+            imageUrl: 'https://record-rho.vercel.app/og-image.png',
             link: {
               mobileWebUrl: profileUrl,
               webUrl: profileUrl,
             },
           },
-        ],
-      });
+          buttons: [
+            {
+              title: '프로필 보기',
+              link: {
+                mobileWebUrl: profileUrl,
+                webUrl: profileUrl,
+              },
+            },
+          ],
+        });
+      } else {
+        alert('카카오톡 공유 기능을 사용할 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('카카오톡 공유 실패:', error);
+      alert('카카오톡 공유 중 오류가 발생했습니다.');
     }
   };
 
-  const handleEmailSignature = () => {
-    const signature = `
+  const handleEmailSignature = async () => {
+    try {
+      const signature = `
 <table cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif; max-width: 400px;">
   <tr>
     <td style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
       <div style="color: white;">
-        <h3 style="margin: 0 0 10px 0; font-size: 18px;">${session?.user?.name}</h3>
+        <h3 style="margin: 0 0 10px 0; font-size: 18px;">${session?.user?.name || '사용자'}</h3>
         <p style="margin: 0 0 15px 0; font-size: 14px; opacity: 0.9;">고객 리뷰 프로필</p>
         <a href="${profileUrl}" style="display: inline-block; padding: 8px 16px; background: white; color: #667eea; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">
           내 리뷰 보기 →
@@ -133,8 +141,12 @@ export default function SharePage() {
   </tr>
 </table>`;
 
-    navigator.clipboard.writeText(signature);
-    alert('이메일 서명이 클립보드에 복사되었습니다!');
+      await navigator.clipboard.writeText(signature);
+      alert('이메일 서명이 클립보드에 복사되었습니다!');
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+      alert('클립보드 복사에 실패했습니다. 브라우저 설정을 확인해주세요.');
+    }
   };
 
   const shareOptions = [

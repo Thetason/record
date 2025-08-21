@@ -86,27 +86,87 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { platform, business, rating, content, author, reviewDate, imageUrl } = body
+    const { platform, business, rating, content, author, reviewDate, imageUrl, originalUrl, verifiedBy } = body
 
     // 입력 검증
-    if (!platform || !business || !rating || !content || !author || !reviewDate) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    const missingFields = []
+    if (!platform) missingFields.push('platform')
+    if (!business) missingFields.push('business')
+    if (!rating) missingFields.push('rating')
+    if (!content) missingFields.push('content')
+    if (!author) missingFields.push('author')
+    if (!reviewDate) missingFields.push('reviewDate')
+
+    if (missingFields.length > 0) {
+      return NextResponse.json({ 
+        error: 'Missing required fields',
+        message: `다음 필드가 필요합니다: ${missingFields.join(', ')}`,
+        missingFields
+      }, { status: 400 })
     }
 
-    if (rating < 1 || rating > 5) {
-      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 })
+    // 평점 검증
+    const numericRating = parseInt(rating)
+    if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+      return NextResponse.json({ 
+        error: 'Invalid rating',
+        message: '평점은 1점부터 5점까지만 가능합니다.'
+      }, { status: 400 })
+    }
+
+    // 날짜 검증
+    const parsedDate = new Date(reviewDate)
+    if (isNaN(parsedDate.getTime())) {
+      return NextResponse.json({
+        error: 'Invalid date',
+        message: '올바른 날짜 형식이 아닙니다.'
+      }, { status: 400 })
+    }
+
+    // 미래 날짜 방지
+    if (parsedDate > new Date()) {
+      return NextResponse.json({
+        error: 'Invalid date',
+        message: '리뷰 작성일은 오늘 이후일 수 없습니다.'
+      }, { status: 400 })
+    }
+
+    // 컨텐츠 길이 검증
+    if (content.length < 10) {
+      return NextResponse.json({
+        error: 'Invalid content',
+        message: '리뷰 내용은 최소 10자 이상이어야 합니다.'
+      }, { status: 400 })
+    }
+
+    if (content.length > 2000) {
+      return NextResponse.json({
+        error: 'Invalid content', 
+        message: '리뷰 내용은 최대 2000자까지만 가능합니다.'
+      }, { status: 400 })
     }
 
     const review = await prisma.review.create({
       data: {
         platform,
         business,
-        rating: parseInt(rating),
+        rating: numericRating,
         content,
         author,
-        reviewDate: new Date(reviewDate),
+        reviewDate: parsedDate,
         imageUrl,
+        originalUrl,
+        verifiedBy,
+        isVerified: verifiedBy ? true : false,
         userId: session.user.id
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            username: true
+          }
+        }
       }
     })
 

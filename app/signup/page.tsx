@@ -22,15 +22,83 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({})
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
   const [allChecked, setAllChecked] = useState(false)
+
+  // Validation helper functions
+  const validateEmail = (email: string): string | null => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!email) return "이메일을 입력해주세요"
+    if (!emailRegex.test(email)) return "올바른 이메일 주소를 입력해주세요"
+    if (email.length > 254) return "이메일 주소가 너무 깁니다"
+    return null
+  }
+
+  const validatePassword = (password: string): string | null => {
+    if (!password) return "비밀번호를 입력해주세요"
+    if (password.length < 8) return "비밀번호는 8자 이상이어야 합니다"
+    if (!/(?=.*[a-z])/.test(password)) return "비밀번호에 소문자를 포함해주세요"
+    if (!/(?=.*[A-Z])/.test(password)) return "비밀번호에 대문자를 포함해주세요"
+    if (!/(?=.*\d)/.test(password)) return "비밀번호에 숫자를 포함해주세요"
+    if (password.length > 128) return "비밀번호가 너무 깁니다"
+    return null
+  }
+
+  const validateUsername = (username: string): string | null => {
+    if (!username) return "사용자명을 입력해주세요"
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/
+    const reservedWords = ['admin', 'root', 'api', 'www', 'mail', 'ftp', 'admin', 'test', 'guest', 'user', 'null', 'undefined']
+    
+    if (!usernameRegex.test(username)) {
+      if (username.length < 3) return "사용자명은 3자 이상이어야 합니다"
+      if (username.length > 20) return "사용자명은 20자 이하여야 합니다"
+      return "사용자명에는 영문자, 숫자, 밑줄(_), 하이픈(-)만 사용 가능합니다"
+    }
+    
+    if (reservedWords.includes(username.toLowerCase())) {
+      return "이 사용자명은 사용할 수 없습니다"
+    }
+    
+    return null
+  }
+
+  const validateName = (name: string): string | null => {
+    if (!name || !name.trim()) return "이름을 입력해주세요"
+    if (name.trim().length > 50) return "이름이 너무 깁니다"
+    return null
+  }
+
+  const validateForm = (): boolean => {
+    const errors: {[key: string]: string} = {}
+    
+    const nameError = validateName(formData.name)
+    if (nameError) errors.name = nameError
+    
+    const usernameError = validateUsername(formData.username)
+    if (usernameError) errors.username = usernameError
+    
+    const emailError = validateEmail(formData.email)
+    if (emailError) errors.email = emailError
+    
+    const passwordError = validatePassword(formData.password)
+    if (passwordError) errors.password = passwordError
+    
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "비밀번호가 일치하지 않습니다"
+    }
+    
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setFieldErrors({})
     
-    if (formData.password !== formData.confirmPassword) {
-      setError("비밀번호가 일치하지 않습니다")
+    // 클라이언트 사이드 validation
+    if (!validateForm()) {
       return
     }
 
@@ -95,6 +163,24 @@ export default function SignupPage() {
       [name]: type === "checkbox" ? checked : value
     }))
     
+    // Clear field error when user starts typing
+    if (type !== "checkbox" && fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
+    
+    // Clear confirm password error when password changes
+    if (name === "password" && fieldErrors.confirmPassword) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors.confirmPassword
+        return newErrors
+      })
+    }
+    
     // Check if all checkboxes are checked
     if (type === "checkbox") {
       const newFormData = { ...formData, [name]: checked }
@@ -158,11 +244,18 @@ export default function SignupPage() {
                 name="name"
                 type="text"
                 placeholder="실제 이름을 입력하세요"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  fieldErrors.name 
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                    : 'border-gray-300 focus:ring-[#FF6B35] focus:border-[#FF6B35]'
+                }`}
                 value={formData.name}
                 onChange={handleChange}
                 required
               />
+              {fieldErrors.name && (
+                <p className="text-red-600 text-xs mt-1">{fieldErrors.name}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -171,13 +264,20 @@ export default function SignupPage() {
                 id="username"
                 name="username"
                 type="text"
-                placeholder="프로필 URL에 사용됩니다"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                placeholder="3-20자, 영문자/숫자/밑줄/하이픈만 사용"
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  fieldErrors.username 
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                    : 'border-gray-300 focus:ring-[#FF6B35] focus:border-[#FF6B35]'
+                }`}
                 value={formData.username}
                 onChange={handleChange}
                 required
               />
-              {formData.username && (
+              {fieldErrors.username && (
+                <p className="text-red-600 text-xs mt-1">{fieldErrors.username}</p>
+              )}
+              {formData.username && !fieldErrors.username && (
                 <p className="text-sm text-gray-600">
                   프로필 URL: re-cord.kr/{formData.username}
                 </p>
@@ -191,11 +291,18 @@ export default function SignupPage() {
                 name="email"
                 type="email"
                 placeholder="이메일을 입력하세요"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  fieldErrors.email 
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                    : 'border-gray-300 focus:ring-[#FF6B35] focus:border-[#FF6B35]'
+                }`}
                 value={formData.email}
                 onChange={handleChange}
                 required
               />
+              {fieldErrors.email && (
+                <p className="text-red-600 text-xs mt-1">{fieldErrors.email}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -206,7 +313,11 @@ export default function SignupPage() {
                   name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="8자 이상, 대소문자와 숫자 포함"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                  className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 pr-10 ${
+                    fieldErrors.password 
+                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                      : 'border-gray-300 focus:ring-[#FF6B35] focus:border-[#FF6B35]'
+                  }`}
                   value={formData.password}
                   onChange={handleChange}
                   required
@@ -219,6 +330,9 @@ export default function SignupPage() {
                   {showPassword ? "🙈" : "👁️"}
                 </button>
               </div>
+              {fieldErrors.password && (
+                <p className="text-red-600 text-xs mt-1">{fieldErrors.password}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -229,7 +343,11 @@ export default function SignupPage() {
                   name="confirmPassword"
                   type={showPassword ? "text" : "password"}
                   placeholder="비밀번호를 다시 입력하세요"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                  className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 pr-10 ${
+                    fieldErrors.confirmPassword 
+                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                      : 'border-gray-300 focus:ring-[#FF6B35] focus:border-[#FF6B35]'
+                  }`}
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
@@ -242,6 +360,9 @@ export default function SignupPage() {
                   {showPassword ? "🙈" : "👁️"}
                 </button>
               </div>
+              {fieldErrors.confirmPassword && (
+                <p className="text-red-600 text-xs mt-1">{fieldErrors.confirmPassword}</p>
+              )}
             </div>
 
             {/* 친근한 동의사항 섹션 */}

@@ -26,6 +26,17 @@ export async function GET(
       )
     }
 
+    // 프로필 조회수 증가 (자기 자신 조회 제외)
+    // TODO: IP 기반 중복 체크 추가 필요
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        profileViews: {
+          increment: 1
+        }
+      }
+    })
+
     // 통계 계산
     const totalReviews = user.reviews.length
     const averageRating = totalReviews > 0

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 // GET /api/users/me - 현재 사용자 정보 조회
 export async function GET() {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -56,14 +57,17 @@ export async function GET() {
 // PUT /api/users/me - 현재 사용자 정보 업데이트
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    const { name, username, bio, location, website, phone, avatar, isPublic } = body
+    const { 
+      name, username, bio, location, website, phone, avatar, isPublic,
+      theme, layout, bgImage, bgColor, accentColor, introVideo, customCss 
+    } = body
 
     // 사용자명 중복 확인 (본인 제외)
     if (username) {
@@ -86,7 +90,14 @@ export async function PUT(request: NextRequest) {
         ...(website !== undefined && { website }),
         ...(phone !== undefined && { phone }),
         ...(avatar !== undefined && { avatar }),
-        ...(isPublic !== undefined && { isPublic })
+        ...(isPublic !== undefined && { isPublic }),
+        ...(theme !== undefined && { theme }),
+        ...(layout !== undefined && { layout }),
+        ...(bgImage !== undefined && { bgImage }),
+        ...(bgColor !== undefined && { bgColor }),
+        ...(accentColor !== undefined && { accentColor }),
+        ...(introVideo !== undefined && { introVideo }),
+        ...(customCss !== undefined && { customCss })
       }
     })
 

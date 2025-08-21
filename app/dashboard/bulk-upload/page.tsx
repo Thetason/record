@@ -38,6 +38,16 @@ interface BulkUploadResult {
   created?: number
   skipped?: number
   errors?: string[]
+  validationErrors?: number
+  processingErrors?: number
+  summary?: {
+    totalProcessed: number
+    validReviews: number
+    successfullyCreated: number
+    duplicatesSkipped: number
+    validationErrors: number
+    processingErrors: number
+  }
 }
 
 export default function BulkUploadPage() {
@@ -251,14 +261,20 @@ export default function BulkUploadPage() {
     }
   }
 
-  // 템플릿 다운로드
+  // 템플릿 다운로드 개선
   const downloadTemplate = () => {
+    // 더 상세하고 다양한 예시 포함
     const csvContent = `플랫폼,업체명,작성자,평점,내용,날짜
 네이버,김서연 필라테스,김**,5,정말 친절하고 꼼꼼하게 가르쳐주세요! 몸의 변화가 확실히 느껴집니다.,2024-01-20
 카카오맵,서울 미용실,이**,4,컷트 실력이 좋아요. 다만 주차가 조금 불편합니다.,2024-01-18
-구글,정아 네일샵,박**,5,디자인 정말 예쁘게 잘해주시고 오래 유지됩니다!,2024-01-15`
+구글,정아 네일샵,박**,5,디자인 정말 예쁘게 잘해주시고 오래 유지됩니다!,2024-01-15
+인스타그램,맛집카페,최**,5,분위기도 좋고 음식도 맛있어요! 재방문 의사 100%,2024.01.10
+네이버,ABC 치과,익명,4,진료 꼼꼼하게 잘 봐주시네요 추천합니다,2024/01/05
+카카오맵,OO 헤어샵,정**,3,일반적인 서비스 수준이에요,01-01-2024`
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    // UTF-8 BOM 추가로 한글 깨짐 방지
+    const BOM = String.fromCharCode(0xFEFF)
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
     link.setAttribute("href", url)
@@ -267,6 +283,36 @@ export default function BulkUploadPage() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  // Excel 템플릿 다운로드
+  const downloadExcelTemplate = async () => {
+    const data = [
+      ["플랫폼", "업체명", "작성자", "평점", "내용", "날짜"],
+      ["네이버", "김서연 필라테스", "김**", 5, "정말 친절하고 꼼꼼하게 가르쳐주세요! 몸의 변화가 확실히 느껴집니다.", "2024-01-20"],
+      ["카카오맵", "서울 미용실", "이**", 4, "컷트 실력이 좋아요. 다만 주차가 조금 불편합니다.", "2024-01-18"],
+      ["구글", "정아 네일샵", "박**", 5, "디자인 정말 예쁘게 잘해주시고 오래 유지됩니다!", "2024-01-15"],
+      ["인스타그램", "맛집카페", "최**", 5, "분위기도 좋고 음식도 맛있어요! 재방문 의사 100%", "2024-01-10"],
+      ["네이버", "ABC 치과", "익명", 4, "진료 꼼꼼하게 잘 봐주시네요 추천합니다", "2024-01-05"]
+    ]
+
+    try {
+      // 동적 import로 번들 크기 최적화
+      const XLSX = await import('xlsx')
+      const ws = XLSX.utils.aoa_to_sheet(data)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, "리뷰 템플릿")
+      XLSX.writeFile(wb, "리뷰_업로드_템플릿.xlsx")
+    } catch (error) {
+      console.error('Excel 템플릿 생성 오류:', error)
+      toast({
+        title: "Excel 템플릿 생성 실패",
+        description: "CSV 템플릿을 대신 다운로드하겠습니다",
+        variant: "default"
+      })
+      downloadTemplate()
+    }
   }
 
   // 일괄 OCR 처리
@@ -357,14 +403,24 @@ export default function BulkUploadPage() {
               </Button>
             </Link>
             {selectedTab === 'csv' && (
-              <Button
-                onClick={downloadTemplate}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <DownloadIcon className="w-4 h-4" />
-                템플릿 다운로드
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={downloadTemplate}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <DownloadIcon className="w-4 h-4" />
+                  CSV 템플릿
+                </Button>
+                <Button
+                  onClick={downloadExcelTemplate}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Excel 템플릿
+                </Button>
+              </div>
             )}
           </div>
           
@@ -542,12 +598,39 @@ export default function BulkUploadPage() {
 
                   {/* 업로드 진행률 */}
                   {isProcessing && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">업로드 중...</span>
-                        <span className="font-semibold">{currentProgress}%</span>
+                    <div className="space-y-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ReloadIcon className="w-4 h-4 animate-spin text-blue-600" />
+                          <span className="text-sm font-medium text-blue-800">
+                            파일 처리 중...
+                          </span>
+                        </div>
+                        <span className="text-sm font-bold text-blue-800">
+                          {currentProgress}%
+                        </span>
                       </div>
-                      <Progress value={currentProgress} className="h-2" />
+                      <Progress value={currentProgress} className="h-3" />
+                      <div className="grid grid-cols-3 gap-4 text-xs text-blue-700">
+                        <div className="text-center">
+                          <div className="font-semibold">1. 파일 읽기</div>
+                          <div className={currentProgress >= 20 ? "text-green-600" : ""}>
+                            {currentProgress >= 20 ? "✓ 완료" : "진행 중..."}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold">2. 데이터 검증</div>
+                          <div className={currentProgress >= 60 ? "text-green-600" : ""}>
+                            {currentProgress >= 60 ? "✓ 완료" : currentProgress >= 20 ? "진행 중..." : "대기 중"}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold">3. 데이터베이스 저장</div>
+                          <div className={currentProgress >= 90 ? "text-green-600" : ""}>
+                            {currentProgress >= 90 ? "✓ 완료" : currentProgress >= 60 ? "진행 중..." : "대기 중"}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -571,7 +654,43 @@ export default function BulkUploadPage() {
                             {bulkUploadResult.message}
                           </p>
                           
-                          {bulkUploadResult.success && (
+                          {bulkUploadResult.success && bulkUploadResult.summary && (
+                            <div className="mt-4">
+                              {/* 성공 요약 정보 */}
+                              <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="bg-white rounded-lg p-3 border border-green-300">
+                                  <div className="text-lg font-bold text-green-800">
+                                    {bulkUploadResult.summary.successfullyCreated}
+                                  </div>
+                                  <div className="text-xs text-green-600">성공적으로 추가</div>
+                                </div>
+                                <div className="bg-white rounded-lg p-3 border border-green-300">
+                                  <div className="text-lg font-bold text-green-800">
+                                    {bulkUploadResult.summary.totalProcessed}
+                                  </div>
+                                  <div className="text-xs text-green-600">총 처리된 행</div>
+                                </div>
+                              </div>
+                              
+                              {(bulkUploadResult.summary.duplicatesSkipped > 0 || 
+                                bulkUploadResult.summary.validationErrors > 0) && (
+                                <div className="space-y-2 text-sm text-green-700">
+                                  {bulkUploadResult.summary.duplicatesSkipped > 0 && (
+                                    <p>• 중복 제외: {bulkUploadResult.summary.duplicatesSkipped}개</p>
+                                  )}
+                                  {bulkUploadResult.summary.validationErrors > 0 && (
+                                    <p>• 검증 오류: {bulkUploadResult.summary.validationErrors}개</p>
+                                  )}
+                                  {bulkUploadResult.summary.processingErrors > 0 && (
+                                    <p>• 처리 오류: {bulkUploadResult.summary.processingErrors}개</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 이전 버전 호환성 */}
+                          {bulkUploadResult.success && !bulkUploadResult.summary && (
                             <div className="mt-3 space-y-1 text-sm text-green-700">
                               <p>• 전체 리뷰: {bulkUploadResult.total}개</p>
                               <p>• 추가된 리뷰: {bulkUploadResult.created}개</p>
@@ -584,21 +703,18 @@ export default function BulkUploadPage() {
                           {bulkUploadResult.errors && bulkUploadResult.errors.length > 0 && (
                             <div className="mt-3">
                               <p className="text-sm font-semibold text-red-700 mb-2">
-                                오류 상세:
+                                오류 상세 ({bulkUploadResult.errors.length}개):
                               </p>
-                              <ul className="space-y-1">
-                                {bulkUploadResult.errors.slice(0, 5).map((error, index) => (
-                                  <li key={index} className="text-xs text-red-600 flex items-start gap-1">
-                                    <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                    <span>{error}</span>
-                                  </li>
-                                ))}
-                                {bulkUploadResult.errors.length > 5 && (
-                                  <li className="text-xs text-red-600">
-                                    ... 외 {bulkUploadResult.errors.length - 5}개 오류
-                                  </li>
-                                )}
-                              </ul>
+                              <div className="max-h-32 overflow-y-auto bg-white rounded border border-red-200 p-2">
+                                <ul className="space-y-1">
+                                  {bulkUploadResult.errors.map((error, index) => (
+                                    <li key={index} className="text-xs text-red-600 flex items-start gap-1">
+                                      <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                      <span className="break-words">{error}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
                             </div>
                           )}
                         </div>

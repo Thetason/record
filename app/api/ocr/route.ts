@@ -3,22 +3,42 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import vision from '@google-cloud/vision'
 
+// 허용된 이미지 파일 형식
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
 // Google Vision 클라이언트 초기화
-// 프로덕션: Base64 인코딩된 키, 로컬: JSON 파일
 const getVisionClient = () => {
-  if (process.env.NODE_ENV === 'production' && process.env.GOOGLE_VISION_API_KEY) {
-    return new vision.ImageAnnotatorClient({
-      credentials: JSON.parse(
+  try {
+    // 프로덕션 환경: Base64 인코딩된 서비스 계정 키
+    if (process.env.NODE_ENV === 'production' && process.env.GOOGLE_VISION_API_KEY) {
+      const credentials = JSON.parse(
         Buffer.from(process.env.GOOGLE_VISION_API_KEY, 'base64').toString()
-      ),
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID
-    })
-  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    return new vision.ImageAnnotatorClient({
-      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-    })
-  } else {
-    // API 키가 없을 때 더미 응답 반환
+      )
+      return new vision.ImageAnnotatorClient({
+        credentials,
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID
+      })
+    }
+    
+    // 로컬 개발 환경: 서비스 계정 JSON 파일
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      return new vision.ImageAnnotatorClient({
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+      })
+    }
+    
+    // API 키 방식 (간단한 설정용)
+    if (process.env.GOOGLE_CLOUD_API_KEY) {
+      return new vision.ImageAnnotatorClient({
+        apiKey: process.env.GOOGLE_CLOUD_API_KEY
+      })
+    }
+    
+    console.warn('Google Vision API credentials not configured')
+    return null
+  } catch (error) {
+    console.error('Failed to initialize Google Vision client:', error)
     return null
   }
 }
@@ -37,20 +57,45 @@ export async function POST(req: NextRequest) {
     }
 
     // FormData에서 이미지 파일 추출
-    const formData = await req.formData()
+    let formData: FormData
+    try {
+      formData = await req.formData()
+    } catch (error) {
+      return NextResponse.json(
+        { error: '잘못된 요청 형식입니다. FormData를 사용해주세요.' },
+        { status: 400 }
+      )
+    }
+
     const imageFile = formData.get('image') as File
     
-    if (!imageFile) {
+    if (!imageFile || !(imageFile instanceof File)) {
       return NextResponse.json(
         { error: '이미지 파일이 필요합니다' },
         { status: 400 }
       )
     }
 
-    // 파일 크기 체크 (10MB 제한)
-    if (imageFile.size > 10 * 1024 * 1024) {
+    // 파일 크기 체크
+    if (imageFile.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: '파일 크기는 10MB 이하여야 합니다' },
+        { error: `파일 크기는 ${MAX_FILE_SIZE / (1024 * 1024)}MB 이하여야 합니다` },
+        { status: 400 }
+      )
+    }
+
+    // 파일 형식 체크
+    if (!ALLOWED_IMAGE_TYPES.includes(imageFile.type)) {
+      return NextResponse.json(
+        { error: '지원되지 않는 파일 형식입니다. JPEG, PNG, WebP 파일만 업로드 가능합니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 빈 파일 체크
+    if (imageFile.size === 0) {
+      return NextResponse.json(
+        { error: '빈 파일입니다. 올바른 이미지 파일을 업로드해주세요.' },
         { status: 400 }
       )
     }
@@ -59,51 +104,154 @@ export async function POST(req: NextRequest) {
     if (!client) {
       // Google Vision API가 설정되지 않은 경우 더미 데이터 반환
       console.warn('Google Vision API not configured, returning mock data')
+      
+      // 다양한 플랫폼의 샘플 데이터 랜덤 선택
+      const mockData = [
+        {
+          text: '네이버 리뷰
+★★★★★
+정말 친절하고 꼼꼼하게 가르쳐주세요!
+김**
+2024.08.20',
+          parsed: {
+            platform: '네이버',
+            business: '뷰티 살롱',
+            rating: 5,
+            content: '정말 친절하고 꼼꼼하게 가르쳐주세요!',
+            author: '김**',
+            reviewDate: '2024-08-20'
+          }
+        },
+        {
+          text: '카카오맵
+⭐⭐⭐⭐
+서비스가 좋아요 추천합니다
+이**
+2024.08.19',
+          parsed: {
+            platform: '카카오맵',
+            business: '헬스장',
+            rating: 4,
+            content: '서비스가 좋아요 추천합니다',
+            author: '이**',
+            reviewDate: '2024-08-19'
+          }
+        },
+        {
+          text: '구글 리뷰
+★★★★★ 5.0
+ Very professional and friendly staff!
+John D.
+August 18, 2024',
+          parsed: {
+            platform: '구글',
+            business: 'Hair Salon',
+            rating: 5,
+            content: 'Very professional and friendly staff!',
+            author: 'John D.',
+            reviewDate: '2024-08-18'
+          }
+        }
+      ]
+      
+      const randomMockData = mockData[Math.floor(Math.random() * mockData.length)]
+      
       return NextResponse.json({
         success: true,
-        text: '네이버 리뷰\n★★★★★\n정말 친절하고 꼼꼼하게 가르쳐주세요!\n김**\n2024.01.20',
-        parsed: {
-          platform: '네이버',
-          business: '',
-          rating: 5,
-          content: '정말 친절하고 꼼꼼하게 가르쳐주세요!',
-          author: '김**',
-          reviewDate: '2024-01-20'
-        },
+        text: randomMockData.text,
+        parsed: randomMockData.parsed,
         confidence: 0.95,
-        isMockData: true
+        isMockData: true,
+        message: '테스트 모드: Google Vision API를 설정하면 실제 OCR이 작동합니다.'
       })
     }
 
     // 이미지를 Buffer로 변환
-    const bytes = await imageFile.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    let bytes: ArrayBuffer
+    let buffer: Buffer
+    
+    try {
+      bytes = await imageFile.arrayBuffer()
+      buffer = Buffer.from(bytes)
+    } catch (error) {
+      console.error('Failed to convert image to buffer:', error)
+      return NextResponse.json(
+        { error: '이미지 파일 처리 중 오류가 발생했습니다' },
+        { status: 500 }
+      )
+    }
+
+    // 이미지 유효성 검사 (간단한 헤더 체크)
+    if (!isValidImageBuffer(buffer)) {
+      return NextResponse.json(
+        { error: '올바르지 않은 이미지 파일입니다' },
+        { status: 400 }
+      )
+    }
 
     // Google Vision API로 텍스트 추출
-    const [result] = await client.textDetection({
-      image: {
-        content: buffer
-      },
-      imageContext: {
-        languageHints: ['ko', 'en'] // 한글과 영어 우선
+    let result: any
+    try {
+      const [visionResult] = await client.textDetection({
+        image: {
+          content: buffer
+        },
+        imageContext: {
+          languageHints: ['ko', 'en'], // 한글과 영어 우선
+          textDetectionParams: {
+            enableTextDetectionConfidenceScore: true
+          }
+        }
+      })
+      result = visionResult
+    } catch (error: any) {
+      console.error('Google Vision API error:', error)
+      
+      // API 쿼터 초과 에러 처리
+      if (error.code === 8 || error.message?.includes('quota')) {
+        return NextResponse.json(
+          { error: 'OCR 서비스 한도가 초과되었습니다. 잠시 후 다시 시도해주세요.' },
+          { status: 429 }
+        )
       }
-    })
+      
+      // 기타 API 에러
+      return NextResponse.json(
+        { 
+          error: 'OCR 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+          details: error.message
+        },
+        { status: 503 }
+      )
+    }
 
     const detections = result.textAnnotations
     
     if (!detections || detections.length === 0) {
-      return NextResponse.json(
-        { 
-          success: false,
-          text: '',
-          message: '텍스트를 찾을 수 없습니다' 
+      return NextResponse.json({
+        success: false,
+        text: '',
+        parsed: {
+          platform: '',
+          business: '',
+          rating: 5,
+          content: '',
+          author: '',
+          reviewDate: ''
         },
-        { status: 200 }
-      )
+        message: '이미지에서 텍스트를 찾을 수 없습니다. 더 선명한 이미지를 사용해보세요.',
+        confidence: 0
+      })
     }
 
     // 전체 텍스트 추출 (첫 번째 annotation이 전체 텍스트)
     const fullText = detections[0].description || ''
+    const confidence = detections[0].confidence || 0.95
+
+    // 신뢰도가 너무 낮은 경우 경고
+    if (confidence < 0.7) {
+      console.warn(`Low OCR confidence: ${confidence}`)
+    }
 
     // 리뷰 정보 파싱
     const parsedReview = parseReviewText(fullText)
@@ -112,7 +260,8 @@ export async function POST(req: NextRequest) {
       success: true,
       text: fullText,
       parsed: parsedReview,
-      confidence: detections[0].confidence || 0.95
+      confidence: confidence,
+      message: confidence < 0.8 ? '텍스트 인식 정확도가 낮을 수 있습니다. 결과를 확인해주세요.' : undefined
     })
 
   } catch (error) {
@@ -125,6 +274,27 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// 이미지 버퍼 유효성 검사
+function isValidImageBuffer(buffer: Buffer): boolean {
+  if (buffer.length < 8) return false
+  
+  const header = buffer.subarray(0, 12)
+  
+  // JPEG
+  if (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF) return true
+  
+  // PNG
+  if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) return true
+  
+  // WebP
+  if (header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46) {
+    return buffer.length >= 12 && 
+           header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50
+  }
+  
+  return false
 }
 
 // 리뷰 텍스트 파싱 함수

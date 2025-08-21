@@ -61,21 +61,71 @@ export async function PUT(
     }
 
     // 입력 검증
-    if (rating && (rating < 1 || rating > 5)) {
-      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 })
+    if (rating !== undefined) {
+      const numericRating = parseInt(rating)
+      if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+        return NextResponse.json({ 
+          error: 'Invalid rating',
+          message: '평점은 1점부터 5점까지만 가능합니다.'
+        }, { status: 400 })
+      }
     }
+
+    // 날짜 검증
+    if (reviewDate) {
+      const parsedDate = new Date(reviewDate)
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json({
+          error: 'Invalid date',
+          message: '올바른 날짜 형식이 아닙니다.'
+        }, { status: 400 })
+      }
+
+      if (parsedDate > new Date()) {
+        return NextResponse.json({
+          error: 'Invalid date',
+          message: '리뷰 작성일은 오늘 이후일 수 없습니다.'
+        }, { status: 400 })
+      }
+    }
+
+    // 컨텐츠 길이 검증
+    if (content) {
+      if (content.length < 10) {
+        return NextResponse.json({
+          error: 'Invalid content',
+          message: '리뷰 내용은 최소 10자 이상이어야 합니다.'
+        }, { status: 400 })
+      }
+
+      if (content.length > 2000) {
+        return NextResponse.json({
+          error: 'Invalid content',
+          message: '리뷰 내용은 최대 2000자까지만 가능합니다.'
+        }, { status: 400 })
+      }
+    }
+
+    const updateData = {}
+    if (platform) updateData.platform = platform
+    if (business) updateData.business = business
+    if (rating !== undefined) updateData.rating = parseInt(rating)
+    if (content) updateData.content = content
+    if (author) updateData.author = author
+    if (reviewDate) updateData.reviewDate = new Date(reviewDate)
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl
+    if (isPublic !== undefined) updateData.isPublic = isPublic
 
     const updatedReview = await prisma.review.update({
       where: { id: params.id },
-      data: {
-        ...(platform && { platform }),
-        ...(business && { business }),
-        ...(rating && { rating: parseInt(rating) }),
-        ...(content && { content }),
-        ...(author && { author }),
-        ...(reviewDate && { reviewDate: new Date(reviewDate) }),
-        ...(imageUrl !== undefined && { imageUrl }),
-        ...(isPublic !== undefined && { isPublic })
+      data: updateData,
+      include: {
+        user: {
+          select: {
+            name: true,
+            username: true
+          }
+        }
       }
     })
 

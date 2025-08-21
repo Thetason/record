@@ -101,10 +101,11 @@ export default function EditReviewPage() {
       })
 
       if (res.ok) {
+        alert("리뷰가 성공적으로 수정되었습니다.")
         router.push("/dashboard/reviews")
       } else {
         const error = await res.json()
-        alert(error.message || "리뷰 수정에 실패했습니다.")
+        alert(error.message || error.error || "리뷰 수정에 실패했습니다.")
       }
     } catch (error) {
       console.error("Update error:", error)
@@ -282,9 +283,10 @@ export default function EditReviewPage() {
                     id="content"
                     className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] resize-none"
                     rows={6}
+                    maxLength={2000}
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    placeholder="고객님이 남긴 리뷰 내용을 입력하세요"
+                    placeholder="고객님이 남긴 리뷰 내용을 입력하세요 (최대 2000자)"
                     required
                   />
                 </div>
