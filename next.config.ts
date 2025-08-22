@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   // 번들 최적화
   experimental: {
-    optimizeCss: true,
+    // optimizeCss는 production에서 문제 발생 가능
     optimizePackageImports: ['@heroicons/react', 'framer-motion', 'recharts'],
   },
 };
