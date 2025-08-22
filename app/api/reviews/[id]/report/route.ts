@@ -16,11 +16,33 @@ export async function POST(
 
     const { reason, description } = await req.json();
 
+    // 신고 사유 검증
+    const validReasons = [
+      'fake', // 허위 리뷰
+      'spam', // 스팸
+      'inappropriate', // 부적절한 내용
+      'copyright', // 저작권 침해
+      'other' // 기타
+    ];
+
+    if (!validReasons.includes(reason)) {
+      return NextResponse.json(
+        { error: '유효하지 않은 신고 사유입니다' },
+        { status: 400 }
+      );
+    }
+
+    // IP 주소 가져오기
+    const reporterIp = req.headers.get('x-forwarded-for') || 
+                      req.headers.get('x-real-ip') || 
+                      'unknown';
+
     // 이미 신고한 리뷰인지 확인
     const existingReport = await prisma.report.findFirst({
       where: {
         reviewId: params.id,
-        reporterEmail: session.user.email,
+        reporterIp,
+        status: 'pending'
       },
     });
 
@@ -32,9 +54,10 @@ export async function POST(
     const report = await prisma.report.create({
       data: {
         reviewId: params.id,
-        reporterEmail: session.user.email,
+        reporterIp,
         reason,
-        description,
+        description: description || null,
+        status: 'pending'
       },
     });
 
