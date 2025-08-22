@@ -1,5 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
+import KakaoProvider from "next-auth/providers/kakao"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
@@ -11,6 +13,21 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt"
   },
   providers: [
+    // 구글 로그인
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+    }),
+    
+    // 카카오 로그인
+    KakaoProvider({
+      clientId: process.env.KAKAO_CLIENT_ID!,
+      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+    }),
+    
+    // 기존 이메일/패스워드 로그인
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -91,18 +108,56 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account, profile }) {
+      // OAuth 로그인 시 username 자동 생성
+      if (account?.provider !== "credentials") {
+        const email = user.email!
+        const existingUser = await prisma.user.findUnique({
+          where: { email }
+        })
+        
+        if (!existingUser) {
+          // 새 사용자인 경우 username 생성
+          const username = email.split('@')[0] + '_' + Math.random().toString(36).substr(2, 5)
+          await prisma.user.create({
+            data: {
+              email,
+              username,
+              name: user.name || username,
+              avatar: user.image?.charAt(0).toUpperCase() || user.name?.charAt(0).toUpperCase() || 'U',
+              plan: 'free',
+              reviewLimit: 50
+            }
+          })
+        }
+      }
+      return true
+    },
+    
+    async jwt({ token, user, account }) {
       console.log("🎫 JWT callback 시작:", { 
         hasUser: !!user, 
         tokenUsername: token.username,
-        userId: user?.id 
+        userId: user?.id,
+        provider: account?.provider
       })
 
       if (user) {
         token.id = user.id
         token.email = user.email
-        token.username = (user as any).username
-        token.role = (user as any).role
+        
+        // OAuth 로그인인 경우 DB에서 username 가져오기
+        if (account?.provider !== "credentials") {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+            select: { username: true, role: true }
+          })
+          token.username = dbUser?.username
+          token.role = dbUser?.role || 'user'
+        } else {
+          token.username = (user as any).username
+          token.role = (user as any).role
+        }
         console.log("👤 JWT에 사용자 정보 추가:", {
           id: token.id,
           username: token.username,
