@@ -49,6 +49,13 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log("🔐 비밀번호 검증 중...")
+          
+          // bcrypt compare 전에 salt rounds 확인
+          const saltRounds = user.password.startsWith('$2a$') ? 
+            parseInt(user.password.split('$')[2]) : 
+            user.password.startsWith('$2b$') ? 
+            parseInt(user.password.split('$')[2]) : 10
+          
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
@@ -57,7 +64,8 @@ export const authOptions: NextAuthOptions = {
           console.log("🔑 비밀번호 검증 결과:", { 
             isValid: isPasswordValid,
             inputPassword: credentials.password.substring(0, 3) + "***",
-            hashedPassword: user.password.substring(0, 10) + "..."
+            hashedPassword: user.password.substring(0, 10) + "...",
+            saltRounds
           })
 
           if (!isPasswordValid) {

@@ -93,8 +93,18 @@ export async function POST(request: Request) {
       )
     }
 
-    // 비밀번호 해시화
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // 비밀번호 해시화 - salt rounds를 12로 증가시켜 보안 강화
+    const salt = await bcrypt.genSalt(12)
+    const hashedPassword = await bcrypt.hash(password, salt)
+    
+    // 해시 검증 (디버깅용)
+    const isHashValid = await bcrypt.compare(password, hashedPassword)
+    console.log("🔐 회원가입 해시 검증:", {
+      username,
+      passwordLength: password.length,
+      hashLength: hashedPassword.length,
+      hashValid: isHashValid
+    })
 
     // 사용자 생성
     const user = await prisma.user.create({
