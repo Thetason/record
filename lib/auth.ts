@@ -13,19 +13,22 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt"
   },
   providers: [
-    // 구글 로그인
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
-    }),
+    // OAuth 제공자는 환경변수가 있을 때만 활성화
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        allowDangerousEmailAccountLinking: true,
+      })
+    ] : []),
     
-    // 카카오 로그인
-    KakaoProvider({
-      clientId: process.env.KAKAO_CLIENT_ID!,
-      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
-    }),
+    ...(process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET ? [
+      KakaoProvider({
+        clientId: process.env.KAKAO_CLIENT_ID,
+        clientSecret: process.env.KAKAO_CLIENT_SECRET,
+        allowDangerousEmailAccountLinking: true,
+      })
+    ] : []),
     
     // 기존 이메일/패스워드 로그인
     CredentialsProvider({
