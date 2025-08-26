@@ -111,6 +111,11 @@ model Review {
   verifiedAt  DateTime? // 검증 완료 시간
   verifiedBy  String?  // 검증 방법 (manual, screenshot, api)
   
+  // 검증 상태
+  verificationStatus String @default("pending") // pending, approved, rejected, flagged
+  verificationNote String? // 관리자 메모
+  qualityScore Int?     // 리뷰 품질 점수 (0-100)
+  
   // 이미지 (OCR용)
   imageUrl    String?
   
@@ -133,10 +138,14 @@ model Report {
   reviewId    String
   review      Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   
-  reason      String   // 신고 사유
+  reason      String   // fake, duplicate, inappropriate, copyright, other
   description String?  // 상세 설명
   reporterIp  String   // 신고자 IP
+  reporterEmail String? // 신고자 이메일
   status      String   @default("pending") // pending, resolved, rejected
+  resolvedBy  String?  // 처리한 관리자 ID
+  resolvedAt  DateTime? // 처리 시간
+  resolution  String?  // 처리 결과 메모
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
