@@ -7,6 +7,7 @@ import { ArrowRightIcon, CheckIcon, StarFilledIcon } from "@radix-ui/react-icons
 import { Shield, Camera } from "lucide-react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { useSession } from "next-auth/react"
 
 // 해시태그 데이터
 const hashtags = [
@@ -24,6 +25,7 @@ const hashtags = [
 ]
 
 export default function HomePage() {
+  const { data: session, status } = useSession()
   const [reviewCount, setReviewCount] = useState(0)
   const [avgRating, setAvgRating] = useState(0)
   const [showDemo, setShowDemo] = useState(false)
@@ -248,14 +250,26 @@ export default function HomePage() {
             </div>
             
             <div className="flex gap-3">
-              <Link href="/login">
-                <Button variant="ghost" size="sm">로그인</Button>
-              </Link>
-              <Link href="/signup">
-                <Button size="sm" className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                  무료 시작하기
-                </Button>
-              </Link>
+              {status === "loading" ? (
+                <Button variant="ghost" size="sm" disabled>로딩중...</Button>
+              ) : session ? (
+                <Link href="/dashboard">
+                  <Button size="sm" className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    대시보드로 이동
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" size="sm">로그인</Button>
+                  </Link>
+                  <Link href="/signup">
+                    <Button size="sm" className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+                      무료 시작하기
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
