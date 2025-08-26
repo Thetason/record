@@ -59,6 +59,8 @@ model User {
   sessions  Session[]
   accounts  Account[]
   payments  Payment[]
+  tickets   Ticket[]
+  notifications Notification[]
   
   @@map("users")
 }
@@ -160,6 +162,117 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  userId      String?
+  userEmail   String
+  userName    String?
+  
+  category    String   // bug, feature, payment, account, review, other
+  priority    String   @default("normal") // low, normal, high, urgent
+  status      String   @default("open") // open, in_progress, resolved, closed
+  
+  subject     String
+  description String
+  
+  assignedTo  String?  // 관리자 ID
+  resolvedBy  String?  // 해결한 관리자 ID
+  resolvedAt  DateTime?
+  
+  // 대화 내역
+  messages    TicketMessage[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  authorId    String?  // null이면 시스템 메시지
+  authorName  String
+  authorRole  String   // user, admin, system
+  
+  content     String
+  attachments String[] // 첨부파일 URL
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("ticket_messages")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String   // email, push, in_app
+  category    String   // review_approved, review_rejected, plan_upgrade, payment_success, etc
+  
+  title       String
+  content     String
+  
+  isRead      Boolean  @default(false)
+  isSent      Boolean  @default(false)
+  sentAt      DateTime?
+  readAt      DateTime?
+  
+  metadata    Json?    // 추가 데이터
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?  // null이면 시스템 액션
+  userEmail   String?
+  
+  action      String   // login, logout, review_upload, review_delete, plan_upgrade, etc
+  category    String   // auth, review, payment, admin, system
+  
+  details     Json?    // 상세 내용
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  
+  title       String
+  content     String
+  type        String   // info, warning, success, error
+  target      String   @default("all") // all, free, premium, pro
+  
+  isActive    Boolean  @default(true)
+  isPinned    Boolean  @default(false)
+  
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  viewCount   Int      @default(0)
+  
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("announcements")
 }
 
 model Payment {
