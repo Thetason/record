@@ -164,58 +164,72 @@
             resultDiv.innerHTML = '<div class="result"><div class="spinner"></div> 로그인 시도 중...</div>';
             
             try {
-                // NextAuth signIn 사용
-                const response = await fetch('/api/auth/callback/credentials', {
+                // 1. 먼저 우리 API로 로그인 테스트
+                console.log('API 로그인 시도:', { username });
+                const apiResponse = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Type': 'application/json',
                     },
-                    body: new URLSearchParams({
-                        username: username,
-                        password: password,
-                        csrfToken: await getCsrfToken()
-                    })
+                    body: JSON.stringify({ username, password })
                 });
                 
-                // 세션 확인
-                const session = await fetch('/api/auth/session').then(r => r.json());
+                const apiData = await apiResponse.json();
+                console.log('API 응답:', apiData);
                 
-                if (session && session.user) {
-                    resultDiv.innerHTML = `
-                        <div class="result success">
-                            ✅ 로그인 성공!<br>
-                            사용자: ${session.user.username || session.user.email}<br>
-                            역할: ${session.user.role}<br>
-                            <br>
-                            <a href="/dashboard" style="color: #FF6B35; font-weight: bold;">대시보드로 이동 →</a>
-                        </div>
-                    `;
-                } else {
-                    // 직접 API 호출로 재시도
-                    const apiResponse = await fetch('/api/auth/login', {
+                if (apiResponse.ok && apiData.success) {
+                    // API 로그인 성공 후 NextAuth 세션 생성
+                    console.log('NextAuth 세션 생성 시도...');
+                    
+                    // NextAuth signIn 호출
+                    const authResponse = await fetch('/api/auth/callback/credentials', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded',
                         },
-                        body: JSON.stringify({ username, password })
+                        body: new URLSearchParams({
+                            username: username,
+                            password: password,
+                            csrfToken: await getCsrfToken()
+                        })
                     });
                     
-                    const data = await apiResponse.json();
+                    console.log('NextAuth 응답:', authResponse.status, authResponse.url);
                     
-                    if (apiResponse.ok && data.user) {
+                    // 세션 확인
+                    const session = await fetch('/api/auth/session').then(r => r.json());
+                    console.log('현재 세션:', session);
+                    
+                    if (session && session.user) {
                         resultDiv.innerHTML = `
                             <div class="result success">
-                                ✅ API 로그인 성공!<br>
-                                사용자: ${data.user.username}<br>
-                                이메일: ${data.user.email}<br>
-                                역할: ${data.user.role}
+                                ✅ 로그인 완료!<br>
+                                사용자: ${session.user.username || apiData.user.username}<br>
+                                이메일: ${session.user.email || apiData.user.email}<br>
+                                역할: ${session.user.role || apiData.user.role}<br>
+                                <br>
+                                <a href="/dashboard" style="color: #FF6B35; font-weight: bold;">대시보드로 이동 →</a>
                             </div>
                         `;
                     } else {
-                        resultDiv.innerHTML = `<div class="result error">❌ 로그인 실패: ${data.error || '알 수 없는 오류'}</div>`;
+                        // 세션은 없지만 API 로그인은 성공
+                        resultDiv.innerHTML = `
+                            <div class="result success">
+                                ✅ API 로그인 성공! (세션 생성 필요)<br>
+                                사용자: ${apiData.user.username}<br>
+                                이메일: ${apiData.user.email}<br>
+                                역할: ${apiData.user.role}<br>
+                                <br>
+                                ⚠️ NextAuth 세션이 생성되지 않았습니다.<br>
+                                <button onclick="location.href='/login'" style="margin-top: 10px; background: #FF6B35; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">로그인 페이지로 이동</button>
+                            </div>
+                        `;
                     }
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">❌ 로그인 실패: ${apiData.error || '알 수 없는 오류'}</div>`;
                 }
             } catch (error) {
+                console.error('로그인 오류:', error);
                 resultDiv.innerHTML = `<div class="result error">❌ 오류: ${error.message}</div>`;
             }
         }
