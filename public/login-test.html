@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #e55a2b;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #FF6B35;
+        }
+        .success {
+            border-color: #4caf50;
+            background: #e8f5e9;
+        }
+        .error {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+        .test-accounts {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .account {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .account:hover {
+            background: #f5f5f5;
+            transform: translateX(5px);
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.1);
+            border-radius: 50%;
+            border-top-color: #FF6B35;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Re:cord 로그인 테스트 페이지</h1>
+    
+    <div class="test-accounts">
+        <h3>📋 테스트 계정들 (클릭하여 자동 입력)</h3>
+        <div class="account" onclick="fillAccount('admin', 'Admin1234!')">
+            <strong>관리자:</strong> admin / Admin1234!
+        </div>
+        <div class="account" onclick="fillAccount('testuser', 'Testuser1234!')">
+            <strong>테스트 유저:</strong> testuser / Testuser1234!
+        </div>
+        <div class="account" onclick="fillAccount('syb2020', 'Syb20201234!')">
+            <strong>일반 유저 1:</strong> syb2020 / Syb20201234!
+        </div>
+        <div class="account" onclick="fillAccount('grammy2020', 'Grammy20201234!')">
+            <strong>일반 유저 2:</strong> grammy2020 / Grammy20201234!
+        </div>
+    </div>
+    
+    <div class="test-box">
+        <h2>로그인 테스트</h2>
+        <div class="form-group">
+            <label>아이디 (username):</label>
+            <input type="text" id="username" placeholder="예: admin">
+        </div>
+        <div class="form-group">
+            <label>비밀번호:</label>
+            <input type="password" id="password" placeholder="예: Admin1234!">
+        </div>
+        <button onclick="testLogin()">로그인 테스트</button>
+        <div id="result"></div>
+    </div>
+    
+    <div class="test-box">
+        <h2>현재 세션 확인</h2>
+        <button onclick="checkSession()">세션 확인</button>
+        <div id="session-result"></div>
+    </div>
+    
+    <div class="test-box">
+        <h2>로그아웃</h2>
+        <button onclick="testLogout()">로그아웃</button>
+        <div id="logout-result"></div>
+    </div>
+
+    <script>
+        function fillAccount(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            document.getElementById('result').innerHTML = `<div class="result">계정 정보가 입력되었습니다: ${username}</div>`;
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!username || !password) {
+                resultDiv.innerHTML = '<div class="result error">❌ 아이디와 비밀번호를 입력하세요</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="result"><div class="spinner"></div> 로그인 시도 중...</div>';
+            
+            try {
+                // NextAuth signIn 사용
+                const response = await fetch('/api/auth/callback/credentials', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        username: username,
+                        password: password,
+                        csrfToken: await getCsrfToken()
+                    })
+                });
+                
+                // 세션 확인
+                const session = await fetch('/api/auth/session').then(r => r.json());
+                
+                if (session && session.user) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            ✅ 로그인 성공!<br>
+                            사용자: ${session.user.username || session.user.email}<br>
+                            역할: ${session.user.role}<br>
+                            <br>
+                            <a href="/dashboard" style="color: #FF6B35; font-weight: bold;">대시보드로 이동 →</a>
+                        </div>
+                    `;
+                } else {
+                    // 직접 API 호출로 재시도
+                    const apiResponse = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                    
+                    const data = await apiResponse.json();
+                    
+                    if (apiResponse.ok && data.user) {
+                        resultDiv.innerHTML = `
+                            <div class="result success">
+                                ✅ API 로그인 성공!<br>
+                                사용자: ${data.user.username}<br>
+                                이메일: ${data.user.email}<br>
+                                역할: ${data.user.role}
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `<div class="result error">❌ 로그인 실패: ${data.error || '알 수 없는 오류'}</div>`;
+                    }
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 오류: ${error.message}</div>`;
+            }
+        }
+        
+        async function getCsrfToken() {
+            const response = await fetch('/api/auth/csrf');
+            const data = await response.json();
+            return data.csrfToken;
+        }
+        
+        async function checkSession() {
+            const resultDiv = document.getElementById('session-result');
+            resultDiv.innerHTML = '<div class="result"><div class="spinner"></div> 세션 확인 중...</div>';
+            
+            try {
+                const response = await fetch('/api/auth/session');
+                const session = await response.json();
+                
+                if (session && session.user) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            ✅ 로그인된 상태<br>
+                            사용자: ${session.user.username || session.user.email}<br>
+                            ID: ${session.user.id}<br>
+                            역할: ${session.user.role}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="result">❌ 로그인되지 않은 상태</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 오류: ${error.message}</div>`;
+            }
+        }
+        
+        async function testLogout() {
+            const resultDiv = document.getElementById('logout-result');
+            resultDiv.innerHTML = '<div class="result"><div class="spinner"></div> 로그아웃 중...</div>';
+            
+            try {
+                const csrfToken = await getCsrfToken();
+                const response = await fetch('/api/auth/signout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        csrfToken: csrfToken
+                    })
+                });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="result success">✅ 로그아웃 완료</div>';
+                    document.getElementById('session-result').innerHTML = '';
+                } else {
+                    resultDiv.innerHTML = '<div class="result error">❌ 로그아웃 실패</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 오류: ${error.message}</div>`;
+            }
+        }
+        
+        // 페이지 로드 시 세션 확인
+        window.onload = () => {
+            checkSession();
+        };
+    </script>
+</body>
+</html>
