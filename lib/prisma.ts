@@ -6,6 +6,24 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+  // 연결 풀 최적화 설정
+  transactionOptions: {
+    maxWait: 5000, // 5초 대기
+    timeout: 10000, // 10초 타임아웃
+  },
 })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// 글로벌 인스턴스로 연결 풀 재사용 (중요!)
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = prisma
+}
+
+// Graceful shutdown 처리
+process.on('beforeExit', async () => {
+  await prisma.$disconnect()
+})

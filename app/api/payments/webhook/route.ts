@@ -1,15 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import rapidPayment from '@/lib/rapid-payment';
+import { withRateLimit, corsHeaders, securityHeaders } from '@/lib/security';
 
 export async function POST(req: NextRequest) {
+  // Rate limiting 적용
+  const clientIp = req.ip || req.headers.get('x-forwarded-for') || 'unknown';
+  const rateLimitResponse = await withRateLimit(req, `webhook-${clientIp}`, 10); // 웹훅은 분당 10회 제한
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const signature = req.headers.get('x-rapid-signature');
-    const payload = await req.json();
+    const rawBody = await req.text();
+    let payload;
 
-    // 서명 검증
-    if (signature && !rapidPayment.verifyWebhook(signature, payload)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (parseError) {
+      console.error('Webhook payload parse error:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid JSON payload' }, 
+        { status: 400 }
+      );
+    }
+
+    // 필수 헤더 검증
+    if (!signature) {
+      console.error('Webhook signature missing');
+      return NextResponse.json(
+        { error: 'Missing signature' }, 
+        { status: 401 }
+      );
+    }
+
+    // 서명 검증 강화
+    if (!rapidPayment.verifyWebhook(signature, payload)) {
+      console.error('Webhook signature verification failed:', { 
+        receivedSignature: signature,
+        clientIp
+      });
+      return NextResponse.json(
+        { error: 'Invalid signature' }, 
+        { status: 401 }
+      );
+    }
+
+    // 페이로드 검증
+    if (!payload.event_type) {
+      console.error('Webhook missing event_type');
+      return NextResponse.json(
+        { error: 'Missing event_type' }, 
+        { status: 400 }
+      );
     }
 
     const { event_type, subscription_id, payment_id, status, customer_email } = payload;
