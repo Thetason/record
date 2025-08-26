@@ -43,7 +43,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   productionBrowserSourceMaps: false,
-  swcMinify: true,
   reactStrictMode: true,
   
   // 번들 최적화
@@ -55,11 +54,12 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-icons',
       'lucide-react',
       'react-hook-form',
-      'next-auth',
-      '@prisma/client'
+      'next-auth'
     ],
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
+  
+  // 서버 외부 패키지 (Prisma와 bcryptjs는 서버에서만 실행)
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
   // Headers for security and performance
   async headers() {
