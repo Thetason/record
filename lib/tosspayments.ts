@@ -1,59 +1,123 @@
-// 토스페이먼츠 결제 설정
-import { v4 as uuidv4 } from 'uuid'
+import { loadTossPayments } from '@tosspayments/payment-sdk'
 
-// 테스트 키 (프로덕션에서는 환경 변수로 교체)
-export const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
+// 토스페이먼츠 클라이언트 키 (테스트용)
+const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
+
+// 토스페이먼츠 시크릿 키 (서버 사이드용)
 export const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY || 'test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R'
 
-export const SUBSCRIPTION_PRODUCTS = {
-  premium_monthly: {
-    id: 'premium_monthly',
-    name: 'Re:cord 프리미엄 월간',
-    amount: 9900,
-    period: 'monthly',
-    plan: 'premium',
-    description: '리뷰 무제한, 고급 통계, 워터마크 제거'
+// 결제 플랜 정보
+export const PAYMENT_PLANS = {
+  premium: {
+    id: 'premium',
+    name: '프리미엄',
+    price: {
+      monthly: 9900,
+      yearly: 99000
+    },
+    features: [
+      '리뷰 무제한 등록',
+      '고급 통계 분석',
+      '맞춤형 리뷰 위젯',
+      '우선 고객 지원',
+      'CSV 대량 업로드'
+    ]
   },
-  premium_yearly: {
-    id: 'premium_yearly', 
-    name: 'Re:cord 프리미엄 연간',
-    amount: 99000, // 2개월 할인
-    period: 'yearly',
-    plan: 'premium',
-    description: '리뷰 무제한, 고급 통계, 워터마크 제거 (17% 할인)'
-  },
-  pro_monthly: {
-    id: 'pro_monthly',
-    name: 'Re:cord 프로 월간',
-    amount: 19900,
-    period: 'monthly',
-    plan: 'pro',
-    description: '프리미엄 + 커스텀 도메인, API, 팀 협업'
-  },
-  pro_yearly: {
-    id: 'pro_yearly',
-    name: 'Re:cord 프로 연간',
-    amount: 199000, // 2개월 할인
-    period: 'yearly', 
-    plan: 'pro',
-    description: '프리미엄 + 커스텀 도메인, API, 팀 협업 (17% 할인)'
+  pro: {
+    id: 'pro', 
+    name: '프로',
+    price: {
+      monthly: 19900,
+      yearly: 199000
+    },
+    features: [
+      '프리미엄 모든 기능',
+      'API 액세스',
+      '브랜드 제거',
+      '커스텀 도메인',
+      '전담 매니저 지원',
+      '맞춤형 디자인'
+    ]
   }
-} as const
-
-export type ProductId = keyof typeof SUBSCRIPTION_PRODUCTS
-
-export function generateOrderId(): string {
-  return `order_${Date.now()}_${uuidv4().slice(0, 8)}`
 }
 
+// 토스페이먼츠 클라이언트 초기화
+export async function initTossPayments() {
+  try {
+    return await loadTossPayments(CLIENT_KEY)
+  } catch (error) {
+    console.error('토스페이먼츠 초기화 실패:', error)
+    throw error
+  }
+}
+
+// 주문 ID 생성 (고유해야 함)
+export function generateOrderId() {
+  return `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+}
+
+// 결제 요청 데이터 생성
+export function createPaymentData(plan: string, period: 'monthly' | 'yearly', user: any) {
+  const selectedPlan = PAYMENT_PLANS[plan as keyof typeof PAYMENT_PLANS]
+  if (!selectedPlan) {
+    throw new Error('유효하지 않은 플랜입니다')
+  }
+
+  const amount = selectedPlan.price[period]
+  const orderId = generateOrderId()
+  const orderName = `${selectedPlan.name} ${period === 'monthly' ? '월간' : '연간'} 구독`
+
+  return {
+    amount,
+    orderId,
+    orderName,
+    customerName: user.name,
+    customerEmail: user.email,
+    successUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/payments/success`,
+    failUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/payments/fail`,
+  }
+}
+
+// 결제 검증 (서버 사이드)
 export async function verifyPayment(paymentKey: string, orderId: string, amount: number) {
-  const basicToken = Buffer.from(`${TOSS_SECRET_KEY}:`).toString('base64')
+  const url = `https://api.tosspayments.com/v1/payments/${paymentKey}`
   
   try {
-    const response = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY + ':').toString('base64')}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error('결제 검증 실패')
+    }
+
+    const payment = await response.json()
+
+    // 결제 정보 검증
+    if (payment.orderId !== orderId || payment.totalAmount !== amount) {
+      throw new Error('결제 정보가 일치하지 않습니다')
+    }
+
+    return payment
+  } catch (error) {
+    console.error('결제 검증 오류:', error)
+    throw error
+  }
+}
+
+// 결제 승인 (서버 사이드)
+export async function confirmPayment(paymentKey: string, orderId: string, amount: number) {
+  const url = 'https://api.tosspayments.com/v1/payments/confirm'
+  
+  try {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${basicToken}`,
+        Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY + ':').toString('base64')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -63,27 +127,27 @@ export async function verifyPayment(paymentKey: string, orderId: string, amount:
       }),
     })
 
-    const data = await response.json()
-    
     if (!response.ok) {
-      throw new Error(data.message || '결제 검증 실패')
+      const error = await response.json()
+      throw new Error(error.message || '결제 승인 실패')
     }
 
-    return data
+    return await response.json()
   } catch (error) {
-    console.error('Payment verification error:', error)
+    console.error('결제 승인 오류:', error)
     throw error
   }
 }
 
+// 결제 취소 (서버 사이드)
 export async function cancelPayment(paymentKey: string, cancelReason: string) {
-  const basicToken = Buffer.from(`${TOSS_SECRET_KEY}:`).toString('base64')
+  const url = `https://api.tosspayments.com/v1/payments/${paymentKey}/cancel`
   
   try {
-    const response = await fetch(`https://api.tosspayments.com/v1/payments/${paymentKey}/cancel`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${basicToken}`,
+        Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY + ':').toString('base64')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -91,15 +155,14 @@ export async function cancelPayment(paymentKey: string, cancelReason: string) {
       }),
     })
 
-    const data = await response.json()
-    
     if (!response.ok) {
-      throw new Error(data.message || '결제 취소 실패')
+      const error = await response.json()
+      throw new Error(error.message || '결제 취소 실패')
     }
 
-    return data
+    return await response.json()
   } catch (error) {
-    console.error('Payment cancellation error:', error)
+    console.error('결제 취소 오류:', error)
     throw error
   }
 }

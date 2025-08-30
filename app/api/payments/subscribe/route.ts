@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import rapidPayment, { SUBSCRIPTION_PLANS, generateOrderId } from '@/lib/rapid-payment';
+import { PAYMENT_PLANS, createPaymentData } from '@/lib/tosspayments';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const { planId, period } = await req.json();
 
     // 플랜 확인
-    const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+    const plan = PAYMENT_PLANS[planId as keyof typeof PAYMENT_PLANS];
     if (!plan) {
       return NextResponse.json({ error: '유효하지 않은 플랜입니다' }, { status: 400 });
     }

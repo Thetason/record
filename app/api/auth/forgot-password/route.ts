@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/email'
 import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
@@ -38,16 +39,21 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // 실제 프로덕션에서는 이메일 전송 서비스 사용
-    // 예: SendGrid, AWS SES, Nodemailer 등
+    // 비밀번호 재설정 이메일 발송
     const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`
     
-    // 개발 환경에서는 콘솔에 출력
-    if (process.env.NODE_ENV === 'development') {
-      console.log('=================================')
-      console.log('비밀번호 재설정 링크:')
-      console.log(resetUrl)
-      console.log('=================================')
+    try {
+      await sendEmail(user.email, 'resetPassword', user.name || user.username, resetUrl)
+      console.log('비밀번호 재설정 이메일 발송:', user.email)
+    } catch (emailError) {
+      console.error('이메일 발송 실패:', emailError)
+      // 개발 환경에서는 콘솔에 링크 출력
+      if (process.env.NODE_ENV === 'development') {
+        console.log('=================================')
+        console.log('비밀번호 재설정 링크:')
+        console.log(resetUrl)
+        console.log('=================================')
+      }
     }
 
     // TODO: 실제 이메일 전송 구현

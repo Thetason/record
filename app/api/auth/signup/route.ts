@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import { sendEmail } from "@/lib/email"
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,6 +63,13 @@ export async function POST(request: NextRequest) {
         reviewLimit: 50
       }
     })
+
+    // 환영 이메일 발송 (에러가 나도 회원가입은 성공 처리)
+    try {
+      await sendEmail(user.email, 'welcome', user.name || user.username)
+    } catch (emailError) {
+      console.error('환영 이메일 발송 실패:', emailError)
+    }
 
     return NextResponse.json({
       success: true,

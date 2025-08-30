@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model User {
@@ -202,7 +201,7 @@ model TicketMessage {
   authorRole  String   // user, admin, system
   
   content     String
-  attachments String[] // 첨부파일 URL
+  attachments String?  // 첨부파일 URL (JSON string)
   
   createdAt   DateTime @default(now())
   
