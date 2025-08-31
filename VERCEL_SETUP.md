@@ -16,7 +16,7 @@ Vercel 배포 URL: https://record-fte9ce9mc-bins-projects-304b9405.vercel.app/
 
 ```bash
 # NextAuth 설정 (필수!)
-NEXTAUTH_URL=https://record-fte9ce9mc-bins-projects-304b9405.vercel.app
+NEXTAUTH_URL=https://record-rho.vercel.app
 NEXTAUTH_SECRET=your-production-secret-key-min-32-chars-long
 
 # 데이터베이스 (PostgreSQL 권장)
