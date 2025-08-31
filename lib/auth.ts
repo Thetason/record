@@ -40,7 +40,8 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         console.log("🔐 NextAuth authorize 시작:", { 
           username: credentials?.username,
-          hasPassword: !!credentials?.password 
+          hasPassword: !!credentials?.password,
+          timestamp: new Date().toISOString()
         })
 
         if (!credentials?.username || !credentials?.password) {

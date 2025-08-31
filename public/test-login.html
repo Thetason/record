@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Re:cord 로그인 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FF6B35;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-info {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #4caf50;
+        }
+        .login-info h3 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        .login-info code {
+            background: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #FF6B35;
+        }
+        button {
+            width: 100%;
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #ff5722;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            display: block;
+        }
+        .link-btn {
+            display: inline-block;
+            margin-top: 10px;
+            color: #FF6B35;
+            text-decoration: none;
+        }
+        .link-btn:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Re:cord 로그인 테스트</h1>
+        
+        <div class="login-info">
+            <h3>✅ 확인된 로그인 정보</h3>
+            <p>
+                아이디: <code>syb2020</code><br>
+                비밀번호: <code>Syb20201234!</code>
+            </p>
+        </div>
+
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="아이디" value="syb2020" required>
+            <input type="password" id="password" placeholder="비밀번호" value="Syb20201234!" required>
+            <button type="submit" id="loginBtn">로그인</button>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="/login" class="link-btn">실제 로그인 페이지로 이동 →</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            // 로딩 상태
+            resultDiv.className = 'result loading';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '🔄 로그인 중...';
+            loginBtn.disabled = true;
+            
+            try {
+                // CSRF 토큰 가져오기
+                const csrfResponse = await fetch('/api/auth/csrf');
+                const csrfData = await csrfResponse.json();
+                
+                console.log('CSRF Token:', csrfData.csrfToken);
+                
+                // 로그인 요청
+                const response = await fetch('/api/auth/callback/credentials', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        username: username,
+                        password: password,
+                        csrfToken: csrfData.csrfToken
+                    }),
+                    redirect: 'manual'
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (response.ok || response.status === 302) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ 로그인 성공!<br><br>
+                        2초 후 대시보드로 이동합니다...
+                    `;
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 2000);
+                } else {
+                    const text = await response.text();
+                    console.error('Login failed:', text);
+                    
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        ❌ 로그인 실패<br><br>
+                        상태 코드: ${response.status}<br>
+                        ${text.includes('CredentialsSignin') ? '아이디 또는 비밀번호가 올바르지 않습니다' : '알 수 없는 오류'}
+                    `;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    ❌ 로그인 오류<br><br>
+                    ${error.message}
+                `;
+            } finally {
+                loginBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
