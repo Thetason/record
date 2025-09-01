@@ -1,40 +1,103 @@
-import { withAuth } from "next-auth/middleware"
-import { NextResponse } from "next/server"
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token
-    const isAdminPath = req.nextUrl.pathname.startsWith('/admin')
-    const isApiAdminPath = req.nextUrl.pathname.startsWith('/api/admin')
-    
-    // 관리자 경로 접근 시 권한 체크
-    if ((isAdminPath || isApiAdminPath) && token) {
-      // role이 admin 또는 super_admin이 아니면 접근 거부
-      if (token.role !== 'admin' && token.role !== 'super_admin') {
-        if (isApiAdminPath) {
-          return new NextResponse(
-            JSON.stringify({ error: 'Forbidden' }),
-            { status: 403, headers: { 'content-type': 'application/json' } }
-          )
-        }
-        return NextResponse.redirect(new URL('/dashboard', req.url))
-      }
-    }
-    
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token
-    },
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+  
+  // CORS 헤더 설정
+  const origin = request.headers.get('origin');
+  const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    process.env.NEXTAUTH_URL || ''
+  ];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
-)
+  
+  // Preflight 요청 처리
+  if (request.method === 'OPTIONS') {
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Max-Age', '86400');
+    return new NextResponse(null, { status: 200, headers: response.headers });
+  }
+  
+  // 보안 헤더 추가
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  
+  // CSP (Content Security Policy) 설정
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://api.resend.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+  ].join('; ');
+  
+  response.headers.set('Content-Security-Policy', csp);
+  
+  // 인증이 필요한 경로 보호
+  const token = await getToken({ req: request });
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || 
+                     request.nextUrl.pathname.startsWith('/signup');
+  
+  // 보호된 경로들
+  const protectedPaths = [
+    '/dashboard',
+    '/admin',
+    '/profile',
+    '/settings'
+  ];
+  
+  const isProtectedPath = protectedPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  );
+  
+  // 관리자 전용 경로
+  const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
+  
+  // 인증되지 않은 사용자가 보호된 경로 접근 시
+  if (isProtectedPath && !token) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+  
+  // 인증된 사용자가 인증 페이지 접근 시
+  if (isAuthPage && token) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+  
+  // 관리자 권한 확인
+  if (isAdminPath && token?.role !== 'admin') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+  
+  return response;
+}
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/api/reviews/:path*",
-    "/admin/:path*",
-    "/api/admin/:path*",
-  ]
-}
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api/auth (auth endpoints)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|public).*)',
+  ],
+};

@@ -1,0 +1,403 @@
+{
+  "timestamp": "2025-08-21T02:26:39.136Z",
+  "summary": {
+    "total": 18,
+    "passed": 14,
+    "failed": 4,
+    "successRate": 78
+  },
+  "categories": [
+    {
+      "name": "회원가입",
+      "total": 5,
+      "passed": 4,
+      "failed": 1
+    },
+    {
+      "name": "공개 프로필",
+      "total": 3,
+      "passed": 2,
+      "failed": 1
+    },
+    {
+      "name": "보안",
+      "total": 4,
+      "passed": 3,
+      "failed": 1
+    },
+    {
+      "name": "CSV 처리",
+      "total": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "name": "성능",
+      "total": 3,
+      "passed": 2,
+      "failed": 1
+    }
+  ],
+  "details": [
+    {
+      "category": "회원가입",
+      "name": "정상 회원가입",
+      "success": false,
+      "details": {
+        "status": 400,
+        "expected": 200,
+        "response": {
+          "error": "사용자명은 3-20자의 영문자, 숫자, 밑줄(_), 하이픈(-)만 사용 가능합니다"
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:25.809Z"
+    },
+    {
+      "category": "회원가입",
+      "name": "중복 이메일",
+      "success": true,
+      "details": {
+        "status": 400,
+        "expected": 400,
+        "response": {
+          "error": "사용자명은 3-20자의 영문자, 숫자, 밑줄(_), 하이픈(-)만 사용 가능합니다"
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:25.822Z"
+    },
+    {
+      "category": "회원가입",
+      "name": "약한 비밀번호",
+      "success": true,
+      "details": {
+        "status": 400,
+        "expected": 400,
+        "response": {
+          "error": "비밀번호는 8자 이상이어야 하며, 대문자, 소문자, 숫자를 각각 하나 이상 포함해야 합니다"
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:25.834Z"
+    },
+    {
+      "category": "회원가입",
+      "name": "잘못된 이메일 형식",
+      "success": true,
+      "details": {
+        "status": 400,
+        "expected": 400,
+        "response": {
+          "error": "올바른 이메일 주소를 입력해주세요"
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:25.845Z"
+    },
+    {
+      "category": "회원가입",
+      "name": "필수 필드 누락",
+      "success": true,
+      "details": {
+        "status": 400,
+        "expected": 400,
+        "response": {
+          "error": "모든 필드를 입력해주세요"
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:25.856Z"
+    },
+    {
+      "category": "공개 프로필",
+      "name": "존재하는 사용자 프로필",
+      "success": true,
+      "details": {
+        "status": 200,
+        "expected": 200,
+        "response": {
+          "id": "cmek1fi1c0000ebrr91y58kxw",
+          "username": "testuser",
+          "name": "테스트 사용자",
+          "profession": "필라테스 강사",
+          "bio": "10년 경력의 필라테스 전문가입니다. 재활과 체형교정을 전문으로 하며, 개인의 신체 특성에 맞춘 맞춤형 운동을 제공합니다.",
+          "avatar": "",
+          "coverImage": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&h=600&fit=crop",
+          "totalReviews": 5,
+          "averageRating": 4.6,
+          "platforms": [
+            "네이버",
+            "카카오맵",
+            "구글",
+            "크몽",
+            "인스타그램"
+          ],
+          "experience": "10년차",
+          "location": "서울 강남구",
+          "specialties": [
+            "재활 필라테스",
+            "체형 교정",
+            "산전/산후 관리",
+            "다이어트",
+            "근력 강화"
+          ],
+          "certifications": [
+            "KPEE 필라테스 지도자",
+            "재활 트레이닝 전문가",
+            "스포츠 마사지 1급"
+          ],
+          "socialLinks": {
+            "instagram": "https://instagram.com/pilates_kim",
+            "website": "https://pilates-kim.com"
+          },
+          "theme": "default",
+          "layout": "grid",
+          "bgImage": null,
+          "bgColor": "#ffffff",
+          "accentColor": "#FF6B35",
+          "introVideo": null,
+          "customCss": null,
+          "reviews": [
+            {
+              "id": "cmek1fi6q0002ebrrqzkcz33q",
+              "platform": "네이버",
+              "business": "맛있는 카페",
+              "rating": 5,
+              "content": "정말 맛있고 분위기도 좋아요. 직원분들도 친절하시고 커피 맛도 훌륭합니다. 다시 방문하고 싶은 곳이에요!",
+              "author": "김고객",
+              "reviewDate": "2024-08-15T00:00:00.000Z",
+              "verified": false,
+              "verifiedAt": null,
+              "verifiedBy": null,
+              "originalUrl": null
+            },
+            {
+              "id": "cmek1fibq0004ebrreelkorpi",
+              "platform": "카카오맵",
+              "business": "행복한 식당",
+              "rating": 4,
+              "content": "음식이 깔끔하고 맛있어요. 가격도 합리적이고 직원분들이 친절해서 좋았습니다.",
+              "author": "이리뷰",
+              "reviewDate": "2024-08-10T00:00:00.000Z",
+              "verified": false,
+              "verifiedAt": null,
+              "verifiedBy": null,
+              "originalUrl": null
+            },
+            {
+              "id": "cmek1fie80006ebrri9jhbh77",
+              "platform": "구글",
+              "business": "편안한 숙소",
+              "rating": 5,
+              "content": "Very comfortable stay! Clean rooms and excellent service. Highly recommended!",
+              "author": "John Smith",
+              "reviewDate": "2024-08-05T00:00:00.000Z",
+              "verified": false,
+              "verifiedAt": null,
+              "verifiedBy": null,
+              "originalUrl": null
+            },
+            {
+              "id": "cmek1figp0008ebrr4423rpwm",
+              "platform": "크몽",
+              "business": "전문 서비스",
+              "rating": 5,
+              "content": "전문적이고 빠른 서비스였습니다. 요청사항을 정확히 이해하시고 완벽하게 작업해주셨어요.",
+              "author": "박만족",
+              "reviewDate": "2024-07-30T00:00:00.000Z",
+              "verified": false,
+              "verifiedAt": null,
+              "verifiedBy": null,
+              "originalUrl": null
+            },
+            {
+              "id": "cmek1fij7000aebrreyzl118q",
+              "platform": "인스타그램",
+              "business": "예쁜 카페",
+              "rating": 4,
+              "content": "인스타 감성이 물씬~ 사진 찍기 좋고 디저트도 맛있어요 💕 #카페추천 #데이트코스",
+              "author": "coffeelover_",
+              "reviewDate": "2024-07-25T00:00:00.000Z",
+              "verified": false,
+              "verifiedAt": null,
+              "verifiedBy": null,
+              "originalUrl": null
+            }
+          ]
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:27.496Z"
+    },
+    {
+      "category": "공개 프로필",
+      "name": "존재하지 않는 사용자",
+      "success": true,
+      "details": {
+        "status": 404,
+        "expected": 404,
+        "response": {
+          "error": "프로필을 찾을 수 없습니다"
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:27.695Z"
+    },
+    {
+      "category": "공개 프로필",
+      "name": "잘못된 사용자명 형식",
+      "success": false,
+      "details": {
+        "status": 404,
+        "expected": 400,
+        "response": {
+          "error": "프로필을 찾을 수 없습니다"
+        }
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:27.874Z"
+    },
+    {
+      "category": "보안",
+      "name": "SQL Injection 테스트",
+      "success": true,
+      "details": {
+        "status": 404,
+        "expected": [
+          400,
+          404
+        ],
+        "endpoint": "/api/profile/' OR 1=1 --"
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:28.046Z"
+    },
+    {
+      "category": "보안",
+      "name": "XSS 페이로드 테스트",
+      "success": true,
+      "details": {
+        "status": 404,
+        "expected": [
+          400,
+          404
+        ],
+        "endpoint": "/api/profile/<script>alert(\"xss\")</script>"
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:30.879Z"
+    },
+    {
+      "category": "보안",
+      "name": "경로 순회 공격",
+      "success": true,
+      "details": {
+        "status": 404,
+        "expected": [
+          400,
+          404
+        ],
+        "endpoint": "/api/profile/../../../etc/passwd"
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:31.398Z"
+    },
+    {
+      "category": "보안",
+      "name": "비정상적으로 긴 요청",
+      "success": false,
+      "details": {
+        "status": 404,
+        "expected": [
+          400,
+          414
+        ],
+        "endpoint": "/api/profile/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:31.616Z"
+    },
+    {
+      "category": "CSV 처리",
+      "name": "정상 CSV 데이터",
+      "success": true,
+      "details": {
+        "validCount": 2,
+        "expectedValid": 2,
+        "errors": []
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:31.617Z"
+    },
+    {
+      "category": "CSV 처리",
+      "name": "필수 필드 누락 CSV",
+      "success": true,
+      "details": {
+        "validCount": 0,
+        "expectedValid": 0,
+        "errors": [
+          "2행: 필수 정보가 누락되었습니다",
+          "3행: 필수 정보가 누락되었습니다"
+        ]
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:31.617Z"
+    },
+    {
+      "category": "CSV 처리",
+      "name": "특수문자 포함 CSV",
+      "success": true,
+      "details": {
+        "validCount": 2,
+        "expectedValid": 2,
+        "errors": []
+      },
+      "performance": null,
+      "timestamp": "2025-08-21T02:26:31.617Z"
+    },
+    {
+      "category": "성능",
+      "name": "홈페이지 로딩",
+      "success": true,
+      "details": {
+        "responseTime": 974,
+        "maxTime": 2000,
+        "status": 200
+      },
+      "performance": {
+        "responseTime": 974
+      },
+      "timestamp": "2025-08-21T02:26:32.591Z"
+    },
+    {
+      "category": "성능",
+      "name": "공개 프로필 페이지",
+      "success": false,
+      "details": {
+        "responseTime": 6151,
+        "maxTime": 3000,
+        "status": 200
+      },
+      "performance": {
+        "responseTime": 6151
+      },
+      "timestamp": "2025-08-21T02:26:38.742Z"
+    },
+    {
+      "category": "성능",
+      "name": "API 응답 속도",
+      "success": true,
+      "details": {
+        "responseTime": 393,
+        "maxTime": 1000,
+        "status": 200
+      },
+      "performance": {
+        "responseTime": 393
+      },
+      "timestamp": "2025-08-21T02:26:39.135Z"
+    }
+  ]
+}

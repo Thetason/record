@@ -1,7 +1,10 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
 # dependencies
 /node_modules
 /.pnp
 .pnp.js
+.yarn/install-state.gz
 
 # testing
 /coverage
@@ -24,6 +27,10 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+.env.production
+.env.development
+.env.staging
 
 # vercel
 .vercel
@@ -33,19 +40,36 @@ yarn-error.log*
 next-env.d.ts
 
 # prisma
-prisma/dev.db
-prisma/dev.db-journal
 prisma/*.db
 prisma/*.db-journal
+prisma/migrations/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS files
+# OS
 Thumbs.db
 
-# Google Cloud credentials
-credentials/
-*.json
+# Logs
+logs
+*.log
+
+# Google Vision API keys
 google-vision-key.json
+*-service-account.json
+
+# Backup files
+*.backup
+*.bak
+
+# Test files
+test-*.js
+*.test.js
+
+# Temporary files
+*.tmp
+temp/
+tmp/

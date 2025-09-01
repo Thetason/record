@@ -1,66 +1,87 @@
-// 메모리 기반 Rate Limiting (프로덕션에서는 Redis 사용 권장)
-const requests = new Map<string, { count: number; resetTime: number }>()
+import { NextRequest, NextResponse } from 'next/server';
+import { LRUCache } from 'lru-cache';
 
-interface RateLimitResult {
-  success: boolean
-  count: number
-  limit: number
-  remaining: number
-  retryAfter?: number
-}
+type Options = {
+  uniqueTokenPerInterval?: number;
+  interval?: number;
+};
 
-export async function rateLimit(
-  identifier: string,
-  limit: number = 60,
-  window: number = 60000 // 1분
-): Promise<RateLimitResult> {
-  const now = Date.now()
-  const windowStart = now - window
-  
-  // 기존 요청 정보 가져오기
-  const current = requests.get(identifier)
-  
-  // 윈도우가 지났으면 초기화
-  if (!current || current.resetTime <= windowStart) {
-    requests.set(identifier, { count: 1, resetTime: now + window })
-    return {
-      success: true,
-      count: 1,
-      limit,
-      remaining: limit - 1
-    }
-  }
-  
-  // 제한 초과 확인
-  if (current.count >= limit) {
-    const retryAfter = Math.ceil((current.resetTime - now) / 1000)
-    return {
-      success: false,
-      count: current.count,
-      limit,
-      remaining: 0,
-      retryAfter
-    }
-  }
-  
-  // 카운트 증가
-  current.count++
-  requests.set(identifier, current)
-  
+// Rate limiter 인스턴스 생성
+export function rateLimit(options?: Options) {
+  const tokenCache = new LRUCache({
+    max: options?.uniqueTokenPerInterval || 500,
+    ttl: options?.interval || 60000, // 60초
+  });
+
   return {
-    success: true,
-    count: current.count,
-    limit,
-    remaining: limit - current.count
-  }
+    check: (req: NextRequest, limit: number, token: string) =>
+      new Promise<void>((resolve, reject) => {
+        const tokenCount = (tokenCache.get(token) as number[]) || [0];
+        
+        if (tokenCount[0] === 0) {
+          tokenCache.set(token, [1]);
+        } else {
+          tokenCache.set(token, [tokenCount[0] + 1]);
+        }
+        
+        const currentUsage = (tokenCache.get(token) as number[])[0];
+        const isRateLimited = currentUsage > limit;
+        
+        if (isRateLimited) {
+          reject(new Error('Rate limit exceeded'));
+        } else {
+          resolve();
+        }
+      }),
+  };
 }
 
-// 정기적으로 오래된 항목 정리
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, value] of requests.entries()) {
-    if (value.resetTime < now) {
-      requests.delete(key)
+// IP 주소 추출 헬퍼
+export function getIP(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
+  return ip;
+}
+
+// Rate limit 응답 헬퍼
+export function rateLimitResponse(retryAfter: number = 60) {
+  return NextResponse.json(
+    { 
+      error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+      retryAfter 
+    },
+    { 
+      status: 429,
+      headers: {
+        'Retry-After': retryAfter.toString(),
+        'X-RateLimit-Limit': '60',
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': new Date(Date.now() + retryAfter * 1000).toISOString(),
+      }
     }
-  }
-}, 60000) // 1분마다 정리
+  );
+}
+
+// API별 rate limit 설정
+export const apiLimits = {
+  // 인증 관련
+  login: 5,        // 분당 5회
+  signup: 3,       // 분당 3회
+  resetPassword: 3, // 분당 3회
+  
+  // 데이터 조회
+  read: 100,       // 분당 100회
+  
+  // 데이터 생성/수정
+  write: 30,       // 분당 30회
+  upload: 10,      // 분당 10회
+  
+  // OCR
+  ocr: 5,          // 분당 5회
+  
+  // 결제
+  payment: 5,      // 분당 5회
+  
+  // 기본값
+  default: 60      // 분당 60회
+};

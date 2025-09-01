@@ -11,11 +11,14 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
       url: process.env.DATABASE_URL,
     },
   },
-  // 연결 풀 최적화 설정
+  // 연결 풀 최적화 설정 강화
   transactionOptions: {
     maxWait: 5000, // 5초 대기
     timeout: 10000, // 10초 타임아웃
   },
+  // 연결 풀 설정 추가
+  datasourceUrl: process.env.DATABASE_URL,
+  errorFormat: 'pretty',
 })
 
 // 글로벌 인스턴스로 연결 풀 재사용 (중요!)
