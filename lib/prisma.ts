@@ -6,18 +6,11 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-  // 연결 풀 최적화 설정 강화
+  // 연결 풀 최적화 설정
   transactionOptions: {
     maxWait: 5000, // 5초 대기
     timeout: 10000, // 10초 타임아웃
   },
-  // 연결 풀 설정 추가
-  datasourceUrl: process.env.DATABASE_URL,
   errorFormat: 'pretty',
 })
 

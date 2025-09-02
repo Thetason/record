@@ -166,3 +166,30 @@ export async function cancelPayment(paymentKey: string, cancelReason: string) {
     throw error
   }
 }
+
+// 구독 상품 정보 (SUBSCRIPTION_PRODUCTS 추가)
+export const SUBSCRIPTION_PRODUCTS = {
+  premium: {
+    id: 'premium_monthly',
+    name: '프리미엄 플랜',
+    price: 9900,
+    interval: 'month',
+    features: [
+      '리뷰 500개 저장',
+      '고급 통계',
+      '우선 지원'
+    ]
+  },
+  pro: {
+    id: 'pro_monthly',
+    name: '프로 플랜',
+    price: 19900,
+    interval: 'month',
+    features: [
+      '리뷰 무제한 저장',
+      '전체 기능',
+      'API 액세스',
+      '전담 지원'
+    ]
+  }
+}
