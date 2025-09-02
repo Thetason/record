@@ -144,12 +144,41 @@ export default function ProfilePage() {
     }))
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // 파일 크기 체크
+      if (file.size > 5 * 1024 * 1024) {
+        setError("파일 크기는 5MB 이하여야 합니다.")
+        return
+      }
+
+      // 미리보기 설정
       const reader = new FileReader()
-      reader.onload = (e) => {
-        setPreviewImage(e.target?.result as string)
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string
+        setPreviewImage(base64)
+        
+        // 즉시 서버에 업로드
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          })
+          
+          if (!res.ok) {
+            throw new Error('이미지 업로드 실패')
+          }
+          
+          const data = await res.json()
+          setPreviewImage(data.avatar)
+        } catch (error) {
+          console.error('Upload error:', error)
+          setError('이미지 업로드 중 오류가 발생했습니다.')
+        }
       }
       reader.readAsDataURL(file)
     }
