@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
+        { 
+          success: false,
+          error: '로그인이 필요합니다.' 
+        },
         { status: 401 }
       );
     }
@@ -45,18 +48,37 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
+        { 
+          success: false,
+          error: '사용자를 찾을 수 없습니다.' 
+        },
         { status: 404 }
       );
     }
 
     // 요청 데이터 파싱
-    const formData = await req.formData();
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (parseError) {
+      console.error('FormData 파싱 에러:', parseError);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: '잘못된 요청 형식입니다.' 
+        },
+        { status: 400 }
+      );
+    }
+    
     const image = formData.get('image') as File;
     
     if (!image) {
       return NextResponse.json(
-        { error: '이미지가 필요합니다.' },
+        { 
+          success: false,
+          error: '이미지가 필요합니다.' 
+        },
         { status: 400 }
       );
     }
@@ -64,7 +86,10 @@ export async function POST(req: NextRequest) {
     // 이미지 크기 체크 (10MB 제한)
     if (image.size > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { error: '이미지 크기는 10MB 이하여야 합니다.' },
+        { 
+          success: false,
+          error: '이미지 크기는 10MB 이하여야 합니다.' 
+        },
         { status: 400 }
       );
     }
@@ -141,6 +166,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(
       { 
+        success: false,
         error: 'OCR 처리 중 오류가 발생했습니다.',
         details: process.env.NODE_ENV === 'development' ? error : undefined
       },
