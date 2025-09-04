@@ -23,3 +23,6 @@ if (!globalForPrisma.prisma) {
 process.on('beforeExit', async () => {
   await prisma.$disconnect()
 })
+
+// Default export for compatibility with files importing default prisma
+export default prisma

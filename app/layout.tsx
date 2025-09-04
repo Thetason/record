@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/providers/AuthProvider";
 import { ToastContainer } from "@/components/ui/toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Re:cord - 리뷰는 누군가의 기억입니다",
@@ -19,8 +16,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-
-      <body className={inter.className}>
+      {/* Use system fonts to avoid remote font fetch during build */}
+      <body className="font-sans antialiased">
         <ErrorBoundary>
           <AuthProvider>
             {children}
