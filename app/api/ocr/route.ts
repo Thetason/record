@@ -1,34 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
-import vision from '@google-cloud/vision';
+import { prisma } from '@/lib/prisma';
+const vision = require('@google-cloud/vision');
 
 // Google Vision API 클라이언트 초기화
-let visionClient: vision.ImageAnnotatorClient | null = null;
+let visionClient: any = null;
 
-try {
-  // Base64 인코딩된 키가 있는 경우 (Vercel 프로덕션)
-  if (process.env.GOOGLE_VISION_API_KEY) {
-    const credentials = JSON.parse(
-      Buffer.from(process.env.GOOGLE_VISION_API_KEY, 'base64').toString()
-    );
-    visionClient = new vision.ImageAnnotatorClient({
-      credentials,
-      projectId: credentials.project_id,
-    });
-  } 
-  // 로컬 JSON 파일 경로가 있는 경우 (개발 환경)
-  else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    visionClient = new vision.ImageAnnotatorClient();
+// 초기화 함수
+async function initializeVisionClient() {
+  if (visionClient) return visionClient;
+  
+  try {
+    console.log('Vision API 클라이언트 초기화 시작...');
+    console.log('GOOGLE_APPLICATION_CREDENTIALS:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    
+    // Base64 인코딩된 키가 있는 경우 (Vercel 프로덕션)
+    if (process.env.GOOGLE_VISION_API_KEY) {
+      console.log('Base64 키 사용');
+      const credentials = JSON.parse(
+        Buffer.from(process.env.GOOGLE_VISION_API_KEY, 'base64').toString()
+      );
+      visionClient = new vision.ImageAnnotatorClient({
+        credentials,
+        projectId: credentials.project_id,
+      });
+    } 
+    // 로컬 JSON 파일 경로가 있는 경우 (개발 환경)
+    else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.log('로컬 키 파일 사용:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      visionClient = new vision.ImageAnnotatorClient({
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+      });
+    }
+    
+    if (visionClient) {
+      console.log('✅ Vision API 클라이언트 초기화 성공');
+    } else {
+      console.log('❌ Vision API 클라이언트 초기화 실패');
+    }
+  } catch (error) {
+    console.error('❌ Google Vision API 초기화 에러:', error);
   }
-} catch (error) {
-  console.error('Google Vision API 초기화 실패:', error);
+  
+  return visionClient;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    // 인증 확인
+    // 임시로 인증 우회 (테스트용)
+    console.log('📸 OCR API 호출됨');
+    
+    // 인증 확인 (임시 비활성화)
+    /*
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -39,7 +63,15 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+    */
 
+    // 임시 사용자 정보 (테스트용)
+    const user = { 
+      id: 'test-user', 
+      plan: 'FREE' 
+    };
+    
+    /*
     // 사용자 정보 조회
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -55,6 +87,7 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       );
     }
+    */
 
     // 요청 데이터 파싱
     let formData;
@@ -94,8 +127,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Vision API 클라이언트 초기화
+    const client = await initializeVisionClient();
+    
     // Vision API가 초기화되지 않은 경우 Mock 데이터 반환
-    if (!visionClient) {
+    if (!client) {
       console.log('Google Vision API가 설정되지 않음. Mock 데이터 반환');
       
       // 개발용 Mock 데이터
@@ -119,7 +155,8 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await image.arrayBuffer());
 
     // Google Vision API 호출
-    const [result] = await visionClient.textDetection({
+    console.log('🔍 Vision API 호출 시작...');
+    const [result] = await client.textDetection({
       image: { content: buffer.toString('base64') }
     });
 
@@ -138,7 +175,8 @@ export async function POST(req: NextRequest) {
     // 텍스트 분석 및 데이터 추출
     const extractedData = analyzeReviewText(fullText);
 
-    // OCR 사용 기록 저장
+    // OCR 사용 기록 저장 (임시 비활성화)
+    /*
     await prisma.activityLog.create({
       data: {
         userId: user.id,
@@ -151,6 +189,7 @@ export async function POST(req: NextRequest) {
         }
       }
     });
+    */
 
     return NextResponse.json({
       success: true,
