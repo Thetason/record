@@ -42,11 +42,13 @@ SMTP_PASS=your-app-password
 ```
 → 설정하면 바로 작동
 
-### OCR 
+### OCR ✅ 구현 완료
 ```env
 GOOGLE_VISION_API_KEY=base64_encoded_key
 ```
-→ 설정하면 실제 OCR 작동 (현재는 Mock 데이터)
+→ Google Vision API 완전 통합
+→ 설정 스크립트 제공: `node scripts/setup-google-vision.js`
+→ 테스트 페이지: `/dashboard/ocr-test`
 
 ### 결제
 ```env

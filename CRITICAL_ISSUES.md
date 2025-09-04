@@ -14,7 +14,7 @@ prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
 - **해결 시간**: 1-2일
 
 ### 2. 핵심 기능 미구현 (CRITICAL)
-- **리뷰 OCR 기능 없음** (핵심 기능!)
+- **~~리뷰 OCR 기능 없음~~** ✅ 구현 완료! (Google Vision API 통합)
 - **이메일 발송 시스템 없음** (회원가입 인증 불가)
 - **실제 결제 연동 안 됨** (토스페이먼츠 미연동)
 - **백업 시스템 없음** (데이터 손실 위험)
