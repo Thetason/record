@@ -109,7 +109,10 @@ export async function GET(
           content: "김서연 강사님 정말 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요. 허리 통증이 있었는데 3개월만에 완전히 좋아졌습니다.",
           author: "정**",
           reviewDate: "2024-08-07",
-          verified: true
+          verified: true,
+          verifiedAt: null,
+          verifiedBy: null,
+          originalUrl: null
         },
         {
           id: "2",
@@ -119,7 +122,10 @@ export async function GET(
           content: "서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요. 체형 교정 효과도 확실히 보고 있습니다.",
           author: "이**",
           reviewDate: "2024-08-06",
-          verified: true
+          verified: true,
+          verifiedAt: null,
+          verifiedBy: null,
+          originalUrl: null
         },
         {
           id: "3",
@@ -129,7 +135,10 @@ export async function GET(
           content: "6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님! 운동 처방도 너무 정확해서 만족도 200%입니다.",
           author: "박**",
           reviewDate: "2024-08-05",
-          verified: true
+          verified: true,
+          verifiedAt: null,
+          verifiedBy: null,
+          originalUrl: null
         },
         {
           id: "4",
@@ -139,7 +148,10 @@ export async function GET(
           content: "Professional and caring instructor. Kim Seoyeon really knows her stuff. My posture has improved significantly after just 2 months of training.",
           author: "Sarah K.",
           reviewDate: "2024-08-04",
-          verified: true
+          verified: true,
+          verifiedAt: null,
+          verifiedBy: null,
+          originalUrl: null
         },
         {
           id: "5",
@@ -149,7 +161,10 @@ export async function GET(
           content: "산후 회복 프로그램으로 김서연 선생님 수업 들었는데 정말 만족스러웠어요! 몸도 마음도 건강해지는 느낌. 강추합니다!",
           author: "최**",
           reviewDate: "2024-08-03",
-          verified: true
+          verified: true,
+          verifiedAt: null,
+          verifiedBy: null,
+          originalUrl: null
         },
         {
           id: "6",
@@ -159,7 +174,10 @@ export async function GET(
           content: "회원님 한 분 한 분 신경써주시는게 느껴져요. 운동 효과도 좋고 무엇보다 재밌게 운동할 수 있어서 좋습니다!",
           author: "강**",
           reviewDate: "2024-08-02",
-          verified: true
+          verified: true,
+          verifiedAt: null,
+          verifiedBy: null,
+          originalUrl: null
         }
       ]
       mockProfile.totalReviews = mockProfile.reviews.length
