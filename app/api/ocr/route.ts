@@ -362,7 +362,7 @@ function parseNaver(text: string): { author: string; body: string; date: string;
     if (m) author = m[1].trim();
   }
 
-  // 리뷰/사진/팔로우 등 상단 메타 제거
+  // 리뷰/사진/팔로우 등 상단 메타 제거 + 상단 네비/시계/심볼 노이즈 제거
   const noiseTop = [
     /^리뷰\s*\d+(?:개)?$/,
     /^사진\s*\d+(?:장)?$/,
@@ -370,8 +370,19 @@ function parseNaver(text: string): { author: string; body: string; date: string;
     /^팔로잉$/,
     /^프로필$/,
     /^후기\s*모아보기$/,
+    /^(홈\s*)(소식)?\s*(예약)?\s*(리뷰)?$/,
+    /^주변$/,
+    /^정보$/,
+    /^지도보기?$/,
+    /^길찾기$/,
+    /^전화$/,
+    /^저장$/
   ];
   let start = 0;
+  const isSymbolOnly = (s: string) => /^[^\w가-힣]+$/.test(s);
+  const looksLikeClock = (s: string) => /\d{1,2}:\d{2}/.test(s);
+  const looksLikeNetwork = (s: string) => /(5G|LTE|wifi|Wi-?Fi|X)/i.test(s);
+
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
     if (i === 0 && author && l === author) { start = i + 1; continue; }
@@ -379,7 +390,7 @@ function parseNaver(text: string): { author: string; body: string; date: string;
     if (/^\[[^\]]+\]$/.test(l)) { start = i + 1; continue; } // 카테고리 태그 [보컬, 미디]
     if (/^리뷰\s*[\d,]+\s*[.,·]\s*사진\s*[\d,]+$/.test(l)) { start = i + 1; continue; }
     // 연속적으로 메타만 있는 구간 스킵
-    if (i <= 4 && (l.length <= 3 || /^(팔로우|팔로잉)$/.test(l))) { start = i + 1; continue; }
+    if (i <= 6 && (l.length <= 3 || /^(팔로우|팔로잉)$/.test(l) || isSymbolOnly(l) || looksLikeClock(l) || looksLikeNetwork(l))) { start = i + 1; continue; }
     break;
   }
 
@@ -413,6 +424,8 @@ function parseNaver(text: string): { author: string; body: string; date: string;
 
   // 잔여 노이즈 라인 필터
   bodyLines = bodyLines.filter(l => !/^리뷰\s*\d+|^사진\s*\d+|^팔로우/.test(l));
+  // 추가 노이즈: 단일 기호/별/물음표/단독 X 라인 삭제
+  bodyLines = bodyLines.filter(l => !/^(\?|x|X|☆|★|\*|\-|=|—|·|ㆍ)$/.test(l));
 
   // 비즈니스명 후보: 상단 근처의 한국어 중심 라인 중 노이즈 제외, 특정 키워드 포함 우선
   const bizKeywords = ['학원','클래스','스튜디오','센터','샵','뮤직','필라테스','PT','뷰티','헤어','네일','요가','보컬'];
