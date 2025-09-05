@@ -314,7 +314,10 @@ export default function AddReviewPage() {
         if (platform && platform.trim()) {
           const matchedPlatform = platforms.find(p => 
             platform.includes(p.value) || p.value.includes(platform)
-          )
+          ) || (platform === 'naver' ? platforms.find(p => p.value === '네이버')
+              : platform === 'kakao' ? platforms.find(p => p.value === '카카오맵')
+              : platform === 'google' ? platforms.find(p => p.value === '구글')
+              : undefined)
           if (matchedPlatform) {
             setValue("platform", matchedPlatform.value)
             fieldsUpdated++
@@ -355,6 +358,10 @@ export default function AddReviewPage() {
         // 플랫폼
         if (d.platform) {
           const matched = platforms.find(p => p.value.includes(d.platform) || d.platform.includes(p.value))
+            || (d.platform === 'naver' ? platforms.find(p => p.value === '네이버')
+                : d.platform === 'kakao' ? platforms.find(p => p.value === '카카오맵')
+                : d.platform === 'google' ? platforms.find(p => p.value === '구글')
+                : undefined)
           if (matched) { setValue("platform", matched.value); fieldsUpdated++ }
         }
         // 작성자

@@ -229,7 +229,11 @@ function analyzeReviewText(text: string) {
   const cleaned = normalizeText(text);
   // 플랫폼 감지
   let platform = 'unknown';
-  if (cleaned.includes('네이버') || cleaned.includes('NAVER') || /\b리뷰\s*\d+\b/.test(cleaned)) {
+  if (
+    cleaned.includes('네이버') || cleaned.includes('NAVER') ||
+    /리뷰\s*[\d,]+.*사진\s*[\d,]+/.test(cleaned) ||
+    /^팔로우$/m.test(cleaned)
+  ) {
     platform = 'naver';
   } else if (text.includes('카카오') || text.includes('kakao')) {
     platform = 'kakao';
@@ -337,7 +341,8 @@ function normalizeText(s: string): string {
 }
 
 function parseNaver(text: string): { author: string; body: string; date: string } {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const rawLines = text.split('\n').map(l => l.trim());
+  const lines = rawLines.filter(Boolean);
   let author = '';
   let date = '';
 
@@ -361,10 +366,13 @@ function parseNaver(text: string): { author: string; body: string; date: string 
   ];
   let start = 0;
   for (let i = 0; i < lines.length; i++) {
-    if (i <= 2 && (lines[i] === author || noiseTop.some(r => r.test(lines[i])))) {
-      start = i + 1; continue;
-    }
-    if (/^리뷰\s*\d+|^사진\s*\d+|^팔로우/.test(lines[i])) { start = i + 1; continue; }
+    const l = lines[i];
+    if (i === 0 && author && l === author) { start = i + 1; continue; }
+    if (noiseTop.some(r => r.test(l))) { start = i + 1; continue; }
+    if (/^\[[^\]]+\]$/.test(l)) { start = i + 1; continue; } // 카테고리 태그 [보컬, 미디]
+    if (/^리뷰\s*[\d,]+\s*[.,·]\s*사진\s*[\d,]+$/.test(l)) { start = i + 1; continue; }
+    // 연속적으로 메타만 있는 구간 스킵
+    if (i <= 4 && (l.length <= 3 || /^(팔로우|팔로잉)$/.test(l))) { start = i + 1; continue; }
     break;
   }
 
@@ -381,8 +389,14 @@ function parseNaver(text: string): { author: string; body: string; date: string 
 
   // 본문 후보
   let bodyLines = lines.slice(start, end);
+  // 중간에 끼어든 하트/불릿/단어 태그 정리
+  bodyLines = bodyLines.filter(l => !/^[•♡♥※▶·ㆍ]+/.test(l));
+  // 짧은 태그성 라인 제거(2~4글자, ‘해요/좋아요/깔끔/아늑’ 등 키워드 포함)
+  const tagHints = ['해요', '좋아요', '깔끔', '아늑', '재방문', '추천', '친절', '실력', '가성비'];
+  bodyLines = bodyLines.filter(l => !(l.length <= 6 && tagHints.some(k => l.includes(k))));
   // 날짜 후보를 본문 상하단에서 탐색
-  const dateLine = bodyLines.find(l => /(\d{4}[.\-]\d{1,2}[.\-]\d{1,2})|(\d{1,2}[.\-]\d{1,2})|(\d+\s*일\s*전)|(어제|그제)/.test(l));
+  const dateLine = bodyLines.find(l => /(\d{4}[.\-]\d{1,2}[.\-]\d{1,2})|(\d{1,2}[.\-]\d{1,2})|(\d+\s*일\s*전)|(어제|그제)/.test(l))
+    || rawLines.reverse().find(l => /(\d{4}|\d{2})[.\-]\d{1,2}[.\-]\d{1,2}/.test(l));
   if (dateLine) {
     const d = analyzeReviewText(dateLine).date; // reuse
     if (d) date = d;
