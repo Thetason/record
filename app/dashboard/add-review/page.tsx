@@ -569,13 +569,12 @@ export default function AddReviewPage() {
                     <div className="space-y-4">
                       <div className="relative group">
                         <Dialog open={imagePreviewOpen} onOpenChange={(o)=>{ setImagePreviewOpen(o); if(!o) setZoom(1); }}>
-                          <DialogTrigger asChild>
-                            <img 
-                              src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} 
-                              alt="Uploaded review" 
-                              className="w-full h-48 object-cover rounded-lg cursor-zoom-in"
-                            />
-                          </DialogTrigger>
+                          <img 
+                            src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} 
+                            alt="Uploaded review" 
+                            className="w-full h-48 object-cover rounded-lg cursor-zoom-in"
+                            onClick={() => { setImagePreviewOpen(true); setZoom(1); }}
+                          />
                           <div className="absolute inset-0 hidden group-hover:flex items-center justify-center rounded-lg bg-black/30 text-white text-xs">
                             클릭하여 확대 보기
                           </div>
