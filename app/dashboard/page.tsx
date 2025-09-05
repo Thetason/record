@@ -285,8 +285,6 @@ export default function DashboardPage() {
             <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" />
             <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" />
             <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/reviews/add" />
-            $1
-            <NavItem icon={<UploadIcon />} label="OCR 테스트" href="/dashboard/ocr-test" />
             <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
             <NavItem icon={<GearIcon />} label="커스터마이즈" href="/dashboard/customize" />
           </nav>
@@ -630,16 +628,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <Link href="/dashboard/bulk-upload">
+                <Link href="/dashboard/reviews/add">
                   <Button className="w-full h-auto p-4 flex flex-col items-center gap-2 bg-[#FF6B35] hover:bg-[#E55A2B]">
                     <UploadIcon className="w-5 h-5" />
-                    <span className="text-sm">대량 업로드</span>
-                  </Button>
-                </Link>
-                <Link href="/dashboard/add-review">
-                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2">
-                    <PlusIcon className="w-5 h-5" />
-                    <span className="text-sm">리뷰 추가</span>
+                    <span className="text-sm">리뷰 추가 (이미지/대량)</span>
                   </Button>
                 </Link>
                 <Link href="/dashboard/profile">

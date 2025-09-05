@@ -266,9 +266,15 @@ export default function AddReviewPage() {
   }
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      await processImageFile(file)
+    const files = Array.from(event.target.files || [])
+    if (files.length === 0) return
+    if (files.length === 1) {
+      await processImageFile(files[0])
+    } else {
+      setBatchFiles(files)
+      setCurrentBatchIndex(0)
+      setSuccessMessage(`${files.length}개의 파일이 준비되었습니다. 하나씩 처리합니다.`)
+      await processImageFile(files[0], true)
     }
   }
 
