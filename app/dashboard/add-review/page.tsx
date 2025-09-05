@@ -47,6 +47,9 @@ export default function AddReviewPage() {
   const [watermarkedImage, setWatermarkedImage] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [ocrResult, setOcrResult] = useState<any>(null)
+  const [useNormalized, setUseNormalized] = useState(true)
+  const [ocrRawText, setOcrRawText] = useState<string>("")
+  const [ocrNormalizedText, setOcrNormalizedText] = useState<string>("")
   
   // 새로운 UX 개선 상태
   const [showPreview, setShowPreview] = useState(false)
@@ -379,7 +382,9 @@ export default function AddReviewPage() {
         // 평점
         if (d.rating && d.rating >= 1 && d.rating <= 5) { setValue("rating", d.rating.toString()); fieldsUpdated++ }
         // 내용
-        const body = d.reviewText || d.text
+        setOcrRawText(d.rawText || d.text || "")
+        setOcrNormalizedText(d.reviewText || d.normalizedText || d.text || "")
+        const body = (useNormalized ? (d.reviewText || d.normalizedText) : (d.rawText || d.text)) || d.text
         if (body && body.trim().length >= 5) { setValue("content", body.trim()); fieldsUpdated++ }
       } else if (data.text && data.text.trim() && data.text.length >= 10) {
         // 파싱된 데이터가 없으면 전체 텍스트를 내용에 입력
@@ -400,7 +405,7 @@ export default function AddReviewPage() {
         const isMock = Boolean(data.mock || data.data?.mock)
         const message = isMock 
           ? `테스트 모드: 샘플 데이터가 입력되었습니다.
-Google Vision API를 설정하면 실제 OCR이 작동합니다.`
+ Google Vision API를 설정하면 실제 OCR이 작동합니다.`
           : `${fieldsUpdated}개 필드가 자동으로 입력되었습니다!`
         
         setSuccessMessage(message)
@@ -767,6 +772,24 @@ Google Vision API를 설정하면 실제 OCR이 작동합니다.`
                 {/* Review Content */}
                 <FormItem>
                   <FormLabel htmlFor="content">리뷰 내용</FormLabel>
+                  {/* 정리본/원문 탭 & 토글 */}
+                  {(ocrRawText || ocrNormalizedText) && (
+                    <div className="flex items-center justify-between mb-2 text-xs text-gray-600">
+                      <div className="inline-flex gap-1 bg-gray-100 rounded p-1">
+                        <button
+                          type="button"
+                          onClick={() => { setUseNormalized(true); if (ocrNormalizedText) setValue('content', ocrNormalizedText) }}
+                          className={`px-2 py-1 rounded ${useNormalized ? 'bg-white text-gray-900 shadow' : ''}`}
+                        >정리본</button>
+                        <button
+                          type="button"
+                          onClick={() => { setUseNormalized(false); if (ocrRawText) setValue('content', ocrRawText) }}
+                          className={`px-2 py-1 rounded ${!useNormalized ? 'bg-white text-gray-900 shadow' : ''}`}
+                        >원문</button>
+                      </div>
+                      <span>{useNormalized ? '띄어쓰기 보정 적용' : '원문 보기'}</span>
+                    </div>
+                  )}
                   <textarea
                     id="content"
                     rows={10}

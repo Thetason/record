@@ -180,11 +180,11 @@ export async function POST(req: NextRequest) {
     
     // Rebuild text in reading order when Google's assembled text is noisy
     const rebuilt = rebuildReadingOrder(result);
-    let fullText = (rebuilt || full || detections?.[0]?.description || '').trim();
-    fullText = refineSpacing(fullText);
+    const rawFullText = (rebuilt || full || detections?.[0]?.description || '').trim();
+    const normalizedFullText = refineSpacing(rawFullText);
     
     // 텍스트 분석 및 데이터 추출
-    const extractedData = analyzeReviewText(fullText);
+    const extractedData = analyzeReviewText(normalizedFullText);
 
     // OCR 사용 기록 저장 (임시 비활성화)
     /*
@@ -206,7 +206,9 @@ export async function POST(req: NextRequest) {
       success: true,
       data: {
         ...extractedData,
-        text: fullText,
+        text: normalizedFullText,
+        rawText: rawFullText,
+        normalizedText: normalizedFullText,
         confidence: detections[0].confidence || 0.9
       }
     });
