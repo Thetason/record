@@ -470,7 +470,7 @@ Google Vision API를 설정하면 실제 OCR이 작동합니다.`
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-6">
         {/* 성공 메시지 */}
         {successMessage && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2 animate-slideIn">
@@ -502,7 +502,7 @@ Google Vision API를 설정하면 실제 OCR이 작동합니다.`
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* OCR Upload Section */}
           <Card className="lg:col-span-1">
             <CardHeader>
@@ -769,9 +769,9 @@ Google Vision API를 설정하면 실제 OCR이 작동합니다.`
                   <FormLabel htmlFor="content">리뷰 내용</FormLabel>
                   <textarea
                     id="content"
-                    rows={4}
+                    rows={10}
                     maxLength={2000}
-                    className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+                    className="w-full p-4 border border-gray-300 rounded-lg resize-y text-base md:text-lg leading-relaxed"
                     placeholder="리뷰 내용을 입력하세요... (최대 2000자)"
                     {...register("content", {
                       required: "리뷰 내용을 입력해주세요",

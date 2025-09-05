@@ -180,7 +180,8 @@ export async function POST(req: NextRequest) {
     
     // Rebuild text in reading order when Google's assembled text is noisy
     const rebuilt = rebuildReadingOrder(result);
-    const fullText = (rebuilt || full || detections?.[0]?.description || '').trim();
+    let fullText = (rebuilt || full || detections?.[0]?.description || '').trim();
+    fullText = refineSpacing(fullText);
     
     // 텍스트 분석 및 데이터 추출
     const extractedData = analyzeReviewText(fullText);
@@ -536,4 +537,22 @@ function rebuildReadingOrder(result: any): string | null {
   // Sort paragraph lines by y then x
   lines.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
   return lines.map(l => l.text).join('\n').trim() || null;
+}
+
+// Post-OCR spacing refinement for Korean-heavy lines
+function refineSpacing(text: string): string {
+  return text.split('\n').map(line => {
+    const tokens = line.trim().split(/\s+/);
+    const hangul = /[\uAC00-\uD7AF]/;
+    const singleHangul = tokens.filter(t => t.length === 1 && hangul.test(t)).length;
+    const ratio = tokens.length ? singleHangul / tokens.length : 0;
+    if (ratio >= 0.5) {
+      // Collapse spaces between Hangul letters, keep punctuation spacing sane
+      return line
+        .replace(/(?<=[\uAC00-\uD7AF])\s+(?=[\uAC00-\uD7AF])/g, '')
+        .replace(/\s+([,\.\!\?%\)\]\}])/g, '$1')
+        .replace(/([\(\[\{])\s+/g, '$1');
+    }
+    return line;
+  }).join('\n');
 }
