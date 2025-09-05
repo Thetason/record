@@ -372,6 +372,8 @@ export default function AddReviewPage() {
         }
         // 작성자
         if (d.author) { setValue("customerName", d.author); fieldsUpdated++ }
+        // 업체명(가능한 경우)
+        if (d.business) { setValue("businessName", d.business); fieldsUpdated++ }
         // 날짜
         if (d.date) { setValue("reviewDate", d.date); fieldsUpdated++ }
         // 평점

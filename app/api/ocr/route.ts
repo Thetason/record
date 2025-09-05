@@ -308,11 +308,13 @@ function analyzeReviewText(text: string) {
 
   // 네이버 전용 파서: 상단 메타/팔로우/접기/하단 태그 제거, 본문만 추출
   let body = cleaned;
+  let business = '';
   if (platform === 'naver') {
     const n = parseNaver(cleaned);
     author = n.author || author;
     date = n.date || date;
     body = n.body || cleaned;
+    business = n.business || '';
   } else if (platform === 'kakao') {
     const k = parseKakao(cleaned);
     author = k.author || author;
@@ -327,6 +329,7 @@ function analyzeReviewText(text: string) {
     rating,
     date,
     author,
+    business,
     reviewText: body
   };
 }
@@ -340,11 +343,12 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-function parseNaver(text: string): { author: string; body: string; date: string } {
+function parseNaver(text: string): { author: string; body: string; date: string; business: string } {
   const rawLines = text.split('\n').map(l => l.trim());
   const lines = rawLines.filter(Boolean);
   let author = '';
   let date = '';
+  let business = '';
 
   // 후보: 첫 줄(마스킹 이름), 혹은 "작성자: xxx"
   const top = lines[0] || '';
@@ -407,8 +411,18 @@ function parseNaver(text: string): { author: string; body: string; date: string 
   // 잔여 노이즈 라인 필터
   bodyLines = bodyLines.filter(l => !/^리뷰\s*\d+|^사진\s*\d+|^팔로우/.test(l));
 
+  // 비즈니스명 후보: 상단 근처의 한국어 중심 라인 중 노이즈 제외, 특정 키워드 포함 우선
+  const bizKeywords = ['학원','클래스','스튜디오','센터','샵','뮤직','필라테스','PT','뷰티','헤어','네일','요가','보컬'];
+  const isNoise = (s: string) => /^(홈|리뷰|사진|정보|지도|길찾기|전화|저장|공유|리뷰\s|사진\s|팔로우|팔로잉|프로필|후기\s*모아보기)$/.test(s);
+  const topWindow = lines.slice(0, Math.min(lines.length, 12));
+  const bizCandidates = topWindow
+    .filter(l => !isNoise(l) && /[가-힣]{2,}/.test(l) && l.length <= 30)
+    .map(l => ({ l, score: bizKeywords.some(k => l.includes(k)) ? 2 : 1 }))
+    .sort((a,b)=> b.score - a.score || b.l.length - a.l.length);
+  if (bizCandidates[0]) business = bizCandidates[0].l.replace(/[†‡★☆✩✭✮✯⭐️]+/g,'').trim();
+
   const body = bodyLines.join('\n').trim();
-  return { author, body, date };
+  return { author, body, date, business };
 }
 
 // Kakao style: 상단 닉네임/별점/방문일자, 하단 "지도보기/공유/신고" 또는 "좋아요"류 제거
