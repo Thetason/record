@@ -350,6 +350,22 @@ export default function AddReviewPage() {
           setValue("content", content.trim())
           fieldsUpdated++
         }
+      } else if (data.success && data.data) {
+        const d = data.data
+        // 플랫폼
+        if (d.platform) {
+          const matched = platforms.find(p => p.value.includes(d.platform) || d.platform.includes(p.value))
+          if (matched) { setValue("platform", matched.value); fieldsUpdated++ }
+        }
+        // 작성자
+        if (d.author) { setValue("customerName", d.author); fieldsUpdated++ }
+        // 날짜
+        if (d.date) { setValue("reviewDate", d.date); fieldsUpdated++ }
+        // 평점
+        if (d.rating && d.rating >= 1 && d.rating <= 5) { setValue("rating", d.rating.toString()); fieldsUpdated++ }
+        // 내용
+        const body = d.reviewText || d.text
+        if (body && body.trim().length >= 5) { setValue("content", body.trim()); fieldsUpdated++ }
       } else if (data.text && data.text.trim() && data.text.length >= 10) {
         // 파싱된 데이터가 없으면 전체 텍스트를 내용에 입력
         setValue("content", data.text.trim())
@@ -362,10 +378,12 @@ export default function AddReviewPage() {
       } else if (fieldsUpdated === 0) {
         setError("추출된 정보가 없습니다. 더 선명한 이미지를 사용해보세요")
       } else {
-        const confidence = Math.round((data.confidence || 0.95) * 100)
+        const rawConfidence = (data.data?.confidence ?? data.confidence ?? 0.95)
+        const confidence = Math.round(rawConfidence * 100)
         setOcrConfidence(confidence)
         
-        const message = data.isMockData 
+        const isMock = Boolean(data.mock || data.data?.mock)
+        const message = isMock 
           ? `테스트 모드: 샘플 데이터가 입력되었습니다.
 Google Vision API를 설정하면 실제 OCR이 작동합니다.`
           : `${fieldsUpdated}개 필드가 자동으로 입력되었습니다!`
