@@ -568,15 +568,49 @@ export default function AddReviewPage() {
                   {uploadedImage ? (
                     <div className="space-y-4">
                       <div className="relative group">
-                        <img 
-                          src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} 
-                          alt="Uploaded review" 
-                          className="w-full h-48 object-cover rounded-lg cursor-zoom-in"
-                          onClick={() => { setImagePreviewOpen(true); setZoom(1); }}
-                        />
-                        <div className="absolute inset-0 hidden group-hover:flex items-center justify-center rounded-lg bg-black/30 text-white text-xs">
-                          클릭하여 확대 보기
-                        </div>
+                        <Dialog open={imagePreviewOpen} onOpenChange={(o)=>{ setImagePreviewOpen(o); if(!o) setZoom(1); }}>
+                          <DialogTrigger asChild>
+                            <img 
+                              src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} 
+                              alt="Uploaded review" 
+                              className="w-full h-48 object-cover rounded-lg cursor-zoom-in"
+                            />
+                          </DialogTrigger>
+                          <div className="absolute inset-0 hidden group-hover:flex items-center justify-center rounded-lg bg-black/30 text-white text-xs">
+                            클릭하여 확대 보기
+                          </div>
+                          <DialogContent className="max-w-5xl w-[90vw]" onOpenAutoFocus={(e)=>e.preventDefault()}>
+                            <DialogHeader>
+                              <DialogTitle>업로드 이미지 미리보기</DialogTitle>
+                            </DialogHeader>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="text-sm text-gray-500">마우스 휠/트랙패드로 확대·축소, 드래그로 이동</div>
+                              <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
+                                <span className="w-16 text-center text-sm">{Math.round(zoom * 100)}%</span>
+                                <Button size="sm" variant="outline" onClick={() => setZoom(z => Math.min(3, z + 0.1))}>+</Button>
+                                <Button size="sm" variant="ghost" onClick={() => setZoom(1)}>원본</Button>
+                              </div>
+                            </div>
+                            <div 
+                              className="relative w-full h-[70vh] overflow-auto rounded-lg bg-black/5 cursor-grab active:cursor-grabbing"
+                              onWheel={(e) => {
+                                e.preventDefault();
+                                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                                setZoom(z => Math.min(3, Math.max(0.5, z + delta)));
+                              }}
+                            >
+                              <div className="min-w-full min-h-full flex items-center justify-center">
+                                <img
+                                  src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage || ''}
+                                  alt="Preview"
+                                  style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+                                  className="select-none pointer-events-none max-w-none"
+                                />
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                         {watermarkEnabled && (
                           <Badge className="absolute top-2 right-2 bg-green-600">
                             <Shield className="w-3 h-3 mr-1" />
