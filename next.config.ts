@@ -58,8 +58,8 @@ const nextConfig: NextConfig = {
     ],
   },
   
-  // 서버 외부 패키지 (Prisma와 bcryptjs는 서버에서만 실행)
-  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
+  // 서버 외부 패키지 (서버 전용 런타임에서만 사용)
+  serverExternalPackages: ['@prisma/client', 'bcryptjs', '@google-cloud/vision'],
   
   // Headers for security and performance
   async headers() {

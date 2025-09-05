@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -48,6 +50,8 @@ async function initializeVisionClient() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Feature flag: allow disabling OCR and always return mock
+    const ocrEnabled = process.env.ENABLE_OCR !== 'false';
     // 임시로 인증 우회 (테스트용)
     console.log('📸 OCR API 호출됨');
     
@@ -128,7 +132,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Vision API 클라이언트 초기화
-    const client = await initializeVisionClient();
+    const client = ocrEnabled ? await initializeVisionClient() : null;
     
     // Vision API가 초기화되지 않은 경우 Mock 데이터 반환
     if (!client) {
@@ -156,21 +160,27 @@ export async function POST(req: NextRequest) {
 
     // Google Vision API 호출
     console.log('🔍 Vision API 호출 시작...');
-    const [result] = await client.textDetection({
-      image: { content: buffer.toString('base64') }
+    // Prefer documentTextDetection to get structured blocks/paragraphs/words
+    const [result] = await client.documentTextDetection({
+      image: { content: buffer.toString('base64') },
+      imageContext: { languageHints: ['ko', 'en'] }
     });
 
+    // Try Google's assembled text first
+    const full = result.fullTextAnnotation?.text?.trim();
+    // Fallback to annotations array
     const detections = result.textAnnotations;
     
-    if (!detections || detections.length === 0) {
+    if (!full && (!detections || detections.length === 0)) {
       return NextResponse.json(
         { error: '텍스트를 찾을 수 없습니다.' },
         { status: 400 }
       );
     }
-
-    // 전체 텍스트 추출
-    const fullText = detections[0].description || '';
+    
+    // Rebuild text in reading order when Google's assembled text is noisy
+    const rebuilt = rebuildReadingOrder(result);
+    const fullText = (rebuilt || full || detections?.[0]?.description || '').trim();
     
     // 텍스트 분석 및 데이터 추출
     const extractedData = analyzeReviewText(fullText);
@@ -216,9 +226,10 @@ export async function POST(req: NextRequest) {
 
 // 텍스트에서 리뷰 정보 추출
 function analyzeReviewText(text: string) {
+  const cleaned = normalizeText(text);
   // 플랫폼 감지
   let platform = 'unknown';
-  if (text.includes('네이버') || text.includes('NAVER')) {
+  if (cleaned.includes('네이버') || cleaned.includes('NAVER') || /\b리뷰\s*\d+\b/.test(cleaned)) {
     platform = 'naver';
   } else if (text.includes('카카오') || text.includes('kakao')) {
     platform = 'kakao';
@@ -230,11 +241,11 @@ function analyzeReviewText(text: string) {
 
   // 평점 추출 (별점 또는 숫자)
   let rating = 5;
-  const starMatch = text.match(/⭐+/);
+  const starMatch = cleaned.match(/⭐+/);
   if (starMatch) {
     rating = starMatch[0].length;
   } else {
-    const ratingMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:점|\/\s*5)/);
+    const ratingMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*(?:점|\/\s*5)/);
     if (ratingMatch) {
       rating = Math.min(5, Math.max(1, parseFloat(ratingMatch[1])));
     }
@@ -245,16 +256,32 @@ function analyzeReviewText(text: string) {
   const datePatterns = [
     /(\d{4})[년.-](\d{1,2})[월.-](\d{1,2})/,
     /(\d{1,2})[월.-](\d{1,2})[일]/,
-    /(\d{4})\.(\d{1,2})\.(\d{1,2})/
+    /(\d{4})\.(\d{1,2})\.(\d{1,2})/,
+    /(\d{1,2})\.(\d{1,2})(?:\.(?:월|\w+))?/,
+    /(\d{1,2})\s*일\s*전/, // 3일 전
+    /(어제|그제)/
   ];
   
   for (const pattern of datePatterns) {
-    const dateMatch = text.match(pattern);
+    const dateMatch = cleaned.match(pattern);
     if (dateMatch) {
-      const year = dateMatch[1].length === 4 ? dateMatch[1] : new Date().getFullYear();
-      const month = dateMatch[2] || dateMatch[1];
-      const day = dateMatch[3] || dateMatch[2];
-      date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      if (pattern.source.includes('일\\s*전')) {
+        const days = parseInt(dateMatch[1], 10) || 0;
+        const d = new Date();
+        d.setDate(d.getDate() - days);
+        date = d.toISOString().split('T')[0];
+      } else if (dateMatch[1] === '어제' || dateMatch[1] === '그제') {
+        const delta = dateMatch[1] === '어제' ? 1 : 2;
+        const d = new Date();
+        d.setDate(d.getDate() - delta);
+        date = d.toISOString().split('T')[0];
+      } else {
+        const y = dateMatch[1];
+        const year = y && y.length === 4 ? y : String(new Date().getFullYear());
+        const month = (dateMatch[2] || dateMatch[1]).toString();
+        const day = (dateMatch[3] || dateMatch[2]).toString();
+        date = `${month.length === 1 && year === String(new Date().getFullYear()) && !dateMatch[3] ? year : year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+      }
       break;
     }
   }
@@ -264,15 +291,31 @@ function analyzeReviewText(text: string) {
   const authorPatterns = [
     /작성자\s*[:：]\s*([^\n]+)/,
     /닉네임\s*[:：]\s*([^\n]+)/,
-    /([가-힣]{2,4})\s*님/
+    /([가-힣A-Za-z0-9*]{2,15})\s*님/
   ];
   
   for (const pattern of authorPatterns) {
-    const authorMatch = text.match(pattern);
+    const authorMatch = cleaned.match(pattern);
     if (authorMatch) {
       author = authorMatch[1].trim();
       break;
     }
+  }
+
+  // 네이버 전용 파서: 상단 메타/팔로우/접기/하단 태그 제거, 본문만 추출
+  let body = cleaned;
+  if (platform === 'naver') {
+    const n = parseNaver(cleaned);
+    author = n.author || author;
+    date = n.date || date;
+    body = n.body || cleaned;
+  } else if (platform === 'kakao') {
+    const k = parseKakao(cleaned);
+    author = k.author || author;
+    date = k.date || date;
+    body = k.body || cleaned;
+  } else {
+    body = parseGeneric(cleaned);
   }
 
   return {
@@ -280,6 +323,189 @@ function analyzeReviewText(text: string) {
     rating,
     date,
     author,
-    reviewText: text
+    reviewText: body
   };
+}
+
+function normalizeText(s: string): string {
+  return s
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\t\f\v]+/g, ' ')
+    .replace(/ +/g, ' ')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim();
+}
+
+function parseNaver(text: string): { author: string; body: string; date: string } {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let author = '';
+  let date = '';
+
+  // 후보: 첫 줄(마스킹 이름), 혹은 "작성자: xxx"
+  const top = lines[0] || '';
+  if (/^[A-Za-z0-9가-힣*]{2,15}$/.test(top)) author = top;
+  const authorLine = lines.find(l => /작성자\s*[:：]/.test(l));
+  if (authorLine) {
+    const m = authorLine.match(/[:：]\s*(.+)$/);
+    if (m) author = m[1].trim();
+  }
+
+  // 리뷰/사진/팔로우 등 상단 메타 제거
+  const noiseTop = [
+    /^리뷰\s*\d+(?:개)?$/,
+    /^사진\s*\d+(?:장)?$/,
+    /^팔로우(?:\s*\+?\d+)?$/i,
+    /^팔로잉$/,
+    /^프로필$/,
+    /^후기\s*모아보기$/,
+  ];
+  let start = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (i <= 2 && (lines[i] === author || noiseTop.some(r => r.test(lines[i])))) {
+      start = i + 1; continue;
+    }
+    if (/^리뷰\s*\d+|^사진\s*\d+|^팔로우/.test(lines[i])) { start = i + 1; continue; }
+    break;
+  }
+
+  // 하단 노이즈(접기/시설 태그류) 컷오프
+  const bottomNoise = [
+    '접기', '더보기', '번역', '공유', '신고', '메뉴', '답글', '사장님', '사장님 댓글',
+    '시설이 깔끔해요', '아늑해요', '실력이', '친절해요', '재방문', '추천', '가성비가 좋아요',
+  ];
+  let end = lines.length;
+  for (let i = start; i < lines.length; i++) {
+    if (lines[i] === '접기') { end = i; break; }
+    if (bottomNoise.some(k => lines[i].includes(k)) && (i - start) > 1) { end = i; break; }
+  }
+
+  // 본문 후보
+  let bodyLines = lines.slice(start, end);
+  // 날짜 후보를 본문 상하단에서 탐색
+  const dateLine = bodyLines.find(l => /(\d{4}[.\-]\d{1,2}[.\-]\d{1,2})|(\d{1,2}[.\-]\d{1,2})|(\d+\s*일\s*전)|(어제|그제)/.test(l));
+  if (dateLine) {
+    const d = analyzeReviewText(dateLine).date; // reuse
+    if (d) date = d;
+    // 날짜만 있는 라인은 본문에서 제거
+    bodyLines = bodyLines.filter(l => l !== dateLine);
+  }
+
+  // 잔여 노이즈 라인 필터
+  bodyLines = bodyLines.filter(l => !/^리뷰\s*\d+|^사진\s*\d+|^팔로우/.test(l));
+
+  const body = bodyLines.join('\n').trim();
+  return { author, body, date };
+}
+
+// Kakao style: 상단 닉네임/별점/방문일자, 하단 "지도보기/공유/신고" 또는 "좋아요"류 제거
+function parseKakao(text: string): { author: string; body: string; date: string } {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let author = '';
+  let date = '';
+
+  // 첫 줄 닉네임 또는 "작성자:"
+  const top = lines[0] || '';
+  if (/^[A-Za-z0-9가-힣*]{2,15}$/.test(top)) author = top;
+  const authorLine = lines.find(l => /작성자\s*[:：]/.test(l));
+  if (authorLine) author = authorLine.split(/[:：]/)[1]?.trim() || author;
+
+  // 상단 메타/버튼 제거
+  const topNoise = [/^지도보기$/, /^공유$/, /^신고$/, /^좋아요\s*\d*$/, /^팔로우$/];
+  let start = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (i <= 2 && (lines[i] === author || topNoise.some(r => r.test(lines[i])))) {
+      start = i + 1; continue;
+    }
+    break;
+  }
+
+  // 하단 노이즈 제거
+  const bottomNoise = ['더보기', '접기', '공유', '신고', '번역', '좋아요'];
+  let end = lines.length;
+  for (let i = start; i < lines.length; i++) {
+    if (bottomNoise.some(k => lines[i].includes(k)) && (i - start) > 1) { end = i; break; }
+  }
+
+  let bodyLines = lines.slice(start, end);
+  // 방문일/작성일 추출
+  const dateLine = bodyLines.find(l => /(\d{4}[.\-]\d{1,2}[.\-]\d{1,2})|(\d{1,2}[.\-]\d{1,2})|(\d+\s*일\s*전)|(어제|그제)/.test(l));
+  if (dateLine) {
+    const d = analyzeReviewText(dateLine).date;
+    if (d) date = d;
+    bodyLines = bodyLines.filter(l => l !== dateLine);
+  }
+
+  // 태그/속성 라인 제거(예: 분위기/서비스/가격대 등)
+  const attrHints = ['분위기', '서비스', '가격', '메뉴', '청결', '직원', '추천'];
+  bodyLines = bodyLines.filter(l => !attrHints.some(k => l.includes(k)));
+
+  return { author, body: bodyLines.join('\n').trim(), date };
+}
+
+// Generic cleanup for platforms: drop common UI words
+function parseGeneric(text: string): string {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const ui = ['접기', '더보기', '공유', '신고', '번역', '팔로우', '프로필'];
+  return lines.filter(l => !ui.includes(l)).join('\n').trim();
+}
+
+// Heuristic re-ordering using geometry (blocks/paragraphs/words)
+function rebuildReadingOrder(result: any): string | null {
+  // Prefer paragraph-level reconstruction from fullTextAnnotation
+  const pages = result.fullTextAnnotation?.pages || [];
+  const lines: { x: number; y: number; text: string }[] = [];
+
+  const getCenter = (vertices: any[]) => {
+    const xs = vertices.map((v: any) => v.x || 0);
+    const ys = vertices.map((v: any) => v.y || 0);
+    const x = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const y = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const h = Math.max(...ys) - Math.min(...ys);
+    return { x, y, h };
+  };
+
+  for (const page of pages) {
+    for (const block of page.blocks || []) {
+      for (const para of block.paragraphs || []) {
+        const words = (para.words || []).map((w: any) => (w.symbols || []).map((s: any) => s.text).join(''));
+        const text = words.join(' ').trim();
+        if (!text) continue;
+        const { x, y } = getCenter(para.boundingBox?.vertices || []);
+        lines.push({ x, y, text });
+      }
+    }
+  }
+
+  // Fallback to word annotations if no paragraphs
+  if (lines.length === 0 && Array.isArray(result.textAnnotations)) {
+    const words = result.textAnnotations.slice(1).map((a: any) => {
+      const { x, y, h } = getCenter(a.boundingPoly?.vertices || []);
+      return { x, y, h, text: a.description };
+    });
+    if (words.length === 0) return null;
+    // Group words into lines by similar Y (tolerance relative to word height)
+    words.sort((a: any, b: any) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+    const grouped: { y: number; items: typeof words }[] = [];
+    for (const w of words) {
+      const band = grouped.find(g => Math.abs(g.y - w.y) <= Math.max(8, w.h * 0.6));
+      if (band) {
+        band.items.push(w);
+        // keep representative y as average for stability
+        band.y = (band.y * (band.items.length - 1) + w.y) / band.items.length;
+      } else {
+        grouped.push({ y: w.y, items: [w] });
+      }
+    }
+    // Sort bands top->bottom, words left->right
+    grouped.sort((a, b) => a.y - b.y);
+    const rebuiltText = grouped
+      .map(g => g.items.sort((a, b) => a.x - b.x).map(i => i.text).join(' '))
+      .join('\n');
+    return rebuiltText.trim();
+  }
+
+  // Simple multi-column handling: split by big x gaps if needed could be added later
+  // Sort paragraph lines by y then x
+  lines.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+  return lines.map(l => l.text).join('\n').trim() || null;
 }
