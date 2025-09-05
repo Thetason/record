@@ -48,6 +48,8 @@ async function initializeVisionClient() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Feature flag: allow disabling OCR and always return mock
+    const ocrEnabled = process.env.ENABLE_OCR !== 'false';
     // 임시로 인증 우회 (테스트용)
     console.log('📸 OCR API 호출됨');
     
@@ -128,7 +130,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Vision API 클라이언트 초기화
-    const client = await initializeVisionClient();
+    const client = ocrEnabled ? await initializeVisionClient() : null;
     
     // Vision API가 초기화되지 않은 경우 Mock 데이터 반환
     if (!client) {
