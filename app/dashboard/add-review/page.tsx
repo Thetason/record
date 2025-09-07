@@ -58,8 +58,20 @@ export default function AddReviewPage() {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [batchFiles, setBatchFiles] = useState<File[]>([])
-  const [currentBatchIndex, setCurrentBatchIndex] = useState(0)
+  type BatchStatus = 'queued'|'processing'|'done'|'error'|'saved'
+  type BatchItem = {
+    id: string
+    file: File
+    previewUrl: string
+    status: BatchStatus
+    confidence?: number
+    mock?: boolean
+    error?: string
+    form: Partial<ReviewForm>
+  }
+  const [batchItems, setBatchItems] = useState<BatchItem[]>([])
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1)
+  const [concurrency] = useState(4)
   const [successMessage, setSuccessMessage] = useState("")
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null)
   const [isQuickMode, setIsQuickMode] = useState(false)
@@ -98,6 +110,9 @@ export default function AddReviewPage() {
     return s
   }
 
+  const DRAFT_KEY = 'review-draft-v2'
+  const LEGACY_DRAFT_KEY = 'review-draft'
+
   // Auto-save functionality
   useEffect(() => {
     if (!autoSaveEnabled) return
@@ -105,7 +120,10 @@ export default function AddReviewPage() {
     const saveTimer = setTimeout(() => {
       const values = getValues()
       if (values.businessName || values.content || values.customerName) {
-        localStorage.setItem('review-draft', JSON.stringify(values))
+        try {
+          const payload = { ...values, _savedAt: Date.now() }
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(payload))
+        } catch {}
         setLastSaved(new Date())
       }
     }, 2000)
@@ -113,20 +131,35 @@ export default function AddReviewPage() {
     return () => clearTimeout(saveTimer)
   }, [formValues, autoSaveEnabled, getValues])
 
-  // Load saved draft on mount
+  // Load saved draft on mount (with migration + option to discard)
   useEffect(() => {
-    const savedDraft = localStorage.getItem('review-draft')
-    if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft)
-        Object.keys(draft).forEach(key => {
-          setValue(key as keyof ReviewForm, draft[key])
-        })
-        setSuccessMessage("이전 작성 내용을 불러왔습니다")
-        setTimeout(() => setSuccessMessage(""), 3000)
-      } catch (e) {
-        console.error('Failed to load draft:', e)
+    try {
+      const current = localStorage.getItem(DRAFT_KEY)
+      const legacy = !current && localStorage.getItem(LEGACY_DRAFT_KEY)
+      const toUse = current || legacy
+      if (toUse) {
+        const draft = JSON.parse(toUse)
+        // Only auto-load if created within last 7 days
+        const fresh = !draft._savedAt || (Date.now() - draft._savedAt < 7*24*60*60*1000)
+        if (fresh) {
+          Object.keys(draft).forEach(key => {
+            if (key.startsWith('_')) return
+            setValue(key as keyof ReviewForm, draft[key])
+          })
+          setSuccessMessage("이전 자동저장을 불러왔습니다")
+          setTimeout(() => setSuccessMessage(""), 3000)
+          // Migrate legacy key to v2
+          if (!current) {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...draft, _savedAt: Date.now() }))
+            localStorage.removeItem(LEGACY_DRAFT_KEY)
+          }
+        } else {
+          localStorage.removeItem(DRAFT_KEY)
+          localStorage.removeItem(LEGACY_DRAFT_KEY)
+        }
       }
+    } catch (e) {
+      console.error('Failed to load draft:', e)
     }
   }, [setValue])
 
@@ -228,13 +261,11 @@ export default function AddReviewPage() {
   }
   
   const handleNextBatchFile = async () => {
-    if (currentBatchIndex < batchFiles.length - 1) {
-      const nextIndex = currentBatchIndex + 1
-      setCurrentBatchIndex(nextIndex)
-      await processImageFile(batchFiles[nextIndex], true)
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      }
+    // Legacy navigation support: select next processed/queued item
+    if (batchItems.length > 0) {
+      const next = Math.min(selectedIndex + 1, batchItems.length - 1)
+      setSelectedIndex(next)
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -310,13 +341,91 @@ export default function AddReviewPage() {
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     if (files.length === 0) return
-    if (files.length === 1) {
-      await processImageFile(files[0])
-    } else {
-      setBatchFiles(files)
-      setCurrentBatchIndex(0)
-      setSuccessMessage(`${files.length}개의 파일이 준비되었습니다. 하나씩 처리합니다.`)
-      await processImageFile(files[0], true)
+    await enqueueFiles(files)
+  }
+
+  const enqueueFiles = async (files: File[]) => {
+    // create batch items with previews
+    const items: BatchItem[] = []
+    for (const f of files) {
+      const url = URL.createObjectURL(f)
+      items.push({ id: `${f.name}-${f.size}-${f.lastModified}-${Math.random().toString(36).slice(2)}`, file: f, previewUrl: url, status: 'queued', form: {} })
+    }
+    setBatchItems(prev => {
+      const merged = [...prev, ...items]
+      if (merged.length > 0 && selectedIndex === -1) setSelectedIndex(0)
+      return merged
+    })
+    setSuccessMessage(`${files.length}개 이미지가 추가되었습니다.`)
+    scheduleOcr()
+  }
+
+  // Process queued items with limited concurrency
+  const scheduleOcr = () => {
+    setBatchItems(prev => {
+      const running = prev.filter(i => i.status === 'processing').length
+      if (running >= concurrency) return prev
+      const toStart = concurrency - running
+      const updated = [...prev]
+      for (let i = 0; i < updated.length && updated.filter(x=>x.status==='processing').length < concurrency; i++) {
+        const it = updated[i]
+        if (it.status === 'queued') {
+          it.status = 'processing'
+          // fire and forget
+          processBatchItem(it).catch(()=>{})
+        }
+      }
+      return updated
+    })
+  }
+
+  const processBatchItem = async (item: BatchItem) => {
+    try {
+      // Reuse existing validation from processImageFile
+      if (!item.file.type.startsWith('image/')) throw new Error('이미지 파일만 업로드할 수 있습니다')
+      if (item.file.size > 10 * 1024 * 1024) throw new Error('파일 크기는 10MB 이하여야 합니다')
+      // prepare formData
+      const fd = new FormData()
+      fd.append('image', item.file)
+      const res = await fetch('/api/ocr', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}))
+        throw new Error(err.error || '텍스트 추출 실패')
+      }
+      const data = await res.json()
+      const d = data.data || {}
+      // Map to form
+      const formUpd: Partial<ReviewForm> = {}
+      if (d.platform) {
+        const matched = platforms.find(p => p.value.includes(d.platform) || d.platform.includes(p.value))
+        formUpd.platform = matched ? matched.value : formValues.platform
+      }
+      if (d.business) formUpd.businessName = d.business
+      if (d.author) formUpd.customerName = d.author
+      if (d.date) formUpd.reviewDate = d.date
+      if (d.rating) formUpd.rating = d.rating
+      const base = useNormalized ? (d.reviewText || d.normalizedText || d.text) : (d.rawText || d.text)
+      formUpd.content = applyClientNormalization(base || '', normalizeLevel)
+
+      setBatchItems(prev => prev.map(it => it.id === item.id ? ({ ...it, status: 'done', confidence: d.confidence, mock: d.mock, form: { ...it.form, ...formUpd } }) : it))
+      // If this is the selected one, push into form UI
+      if (selectedIndex >= 0) {
+        const idx = batchItems.findIndex(it => it.id === item.id)
+        if (idx === selectedIndex) {
+          if (formUpd.platform) setValue('platform', formUpd.platform)
+          if (formUpd.businessName) setValue('businessName', formUpd.businessName)
+          if (formUpd.customerName) setValue('customerName', formUpd.customerName)
+          if (formUpd.reviewDate) setValue('reviewDate', formUpd.reviewDate)
+          if (formUpd.rating) setValue('rating', formUpd.rating.toString())
+          if (formUpd.content) setValue('content', formUpd.content)
+          if (d.confidence) setOcrConfidence(Math.round((d.confidence as number) * 100))
+        }
+      }
+    } catch (e:any) {
+      setBatchItems(prev => prev.map(it => it.id === item.id ? ({ ...it, status: 'error', error: e.message || '오류' }) : it))
+    } finally {
+      // schedule next if queue remains
+      scheduleOcr()
     }
   }
 
@@ -491,6 +600,20 @@ export default function AddReviewPage() {
                 자동 저장됨 ({new Date(lastSaved).toLocaleTimeString()})
               </div>
             )}
+            <button
+              onClick={() => {
+                try {
+                  localStorage.removeItem('review-draft-v2');
+                  localStorage.removeItem('review-draft');
+                  setSuccessMessage('자동저장을 비웠습니다');
+                  setTimeout(()=>setSuccessMessage(''), 3000)
+                } catch {}
+              }}
+              className="text-xs text-gray-500 hover:text-gray-800 underline"
+              title="이전 자동저장 데이터를 비웁니다"
+            >
+              자동저장 비우기
+            </button>
             
             {/* 빠른 모드 토글 */}
             <button
