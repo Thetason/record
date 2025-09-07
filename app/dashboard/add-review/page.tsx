@@ -247,17 +247,7 @@ export default function AddReviewPage() {
     setIsDragOver(false)
     
     const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
-      if (files.length === 1) {
-        await processImageFile(files[0])
-      } else {
-        // 배치 모드 활성화
-        setBatchFiles(files)
-        setCurrentBatchIndex(0)
-        setSuccessMessage(`${files.length}개의 파일이 준비되었습니다. 하나씩 처리할 수 있습니다.`)
-        await processImageFile(files[0], true)
-      }
-    }
+    if (files.length > 0) await enqueueFiles(files)
   }
   
   const handleNextBatchFile = async () => {
@@ -725,12 +715,12 @@ export default function AddReviewPage() {
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  {uploadedImage ? (
+                  {(uploadedImage || (selectedIndex>=0 && batchItems[selectedIndex])) ? (
                     <div className="space-y-4">
                       <div className="relative group">
                         <Dialog open={imagePreviewOpen} onOpenChange={(o)=>{ setImagePreviewOpen(o); if(!o) setZoom(1); }}>
                           <img 
-                            src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} 
+                            src={watermarkEnabled && watermarkedImage ? watermarkedImage : (uploadedImage || batchItems[selectedIndex]?.previewUrl || '')} 
                             alt="Uploaded review" 
                             className="w-full h-48 object-cover rounded-lg cursor-zoom-in"
                             onClick={() => { setImagePreviewOpen(true); setZoom(1); }}
@@ -761,7 +751,7 @@ export default function AddReviewPage() {
                             >
                               <div className="min-w-full min-h-full flex items-center justify-center">
                                 <img
-                                  src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage || ''}
+                                  src={watermarkEnabled && watermarkedImage ? watermarkedImage : (uploadedImage || batchItems[selectedIndex]?.previewUrl || '')}
                                   alt="Preview"
                                   style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
                                   className="select-none pointer-events-none max-w-none"
@@ -918,6 +908,52 @@ export default function AddReviewPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Batch Grid Section */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>업로드한 이미지</CardTitle>
+              <CardDescription>
+                처리 상태를 확인하고 카드를 클릭하여 세부 내용을 확인하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {batchItems.length === 0 ? (
+                <div className="text-sm text-gray-500">아직 업로드된 이미지가 없습니다.</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {batchItems.map((it, idx) => (
+                    <button
+                      key={it.id}
+                      onClick={() => {
+                        setSelectedIndex(idx)
+                        // 만약 이미 OCR 결과가 있다면 폼에 반영
+                        const f = it.form
+                        if (f.platform) setValue('platform', f.platform)
+                        if (f.businessName) setValue('businessName', f.businessName)
+                        if (f.customerName) setValue('customerName', f.customerName)
+                        if (f.reviewDate) setValue('reviewDate', f.reviewDate)
+                        if (f.rating) setValue('rating', f.rating.toString())
+                        if (f.content) setValue('content', f.content)
+                        setUploadedImage(it.previewUrl)
+                      }}
+                      className={`relative border rounded overflow-hidden text-left ${selectedIndex===idx?'border-[#FF6B35]':'border-gray-200'}`}
+                      title={it.status}
+                    >
+                      <img src={it.previewUrl} alt="preview" className="w-full h-24 object-cover" />
+                      <div className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 backdrop-blur border">
+                        {idx+1}/{batchItems.length}
+                      </div>
+                      <div className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full backdrop-blur border text-white"
+                        style={{backgroundColor: it.status==='done'?'#10b981': it.status==='processing'?'#f59e0b': it.status==='error'?'#ef4444':'#6b7280'}}>
+                        {it.status==='done'?'완료':it.status==='processing'?'처리중':it.status==='error'?'오류':'대기'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Manual Input Section */}
           <Card className="lg:col-span-2">
