@@ -287,6 +287,11 @@ export default function AddReviewPage() {
     setError("")
     
     try {
+      const currentItem = selectedIndex >= 0 ? batchItems[selectedIndex] : undefined
+      const imageSrc = watermarkEnabled && watermarkedImage
+        ? (watermarkedImage as string)
+        : (uploadedImage || currentItem?.previewUrl)
+
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -297,7 +302,7 @@ export default function AddReviewPage() {
           content: data.content,
           rating: parseInt(data.rating.toString()),
           reviewDate: data.reviewDate,
-          imageUrl: watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage,
+          imageUrl: imageSrc,
           originalUrl: data.originalUrl,
           verifiedBy: uploadedImage ? 'screenshot' : data.originalUrl ? 'manual' : null,
           ocrConfidence: ocrConfidence // OCR 신뢰도 저장
@@ -317,7 +322,24 @@ export default function AddReviewPage() {
       
       // 배치 모드 처리
       if (batchItems.length > 0 && selectedIndex < batchItems.length - 1) {
-        handleNextBatchFile()
+        // 현재 아이템을 저장됨 상태로 표시
+        setBatchItems(prev => prev.map((it, idx) => idx===selectedIndex ? { ...it, status: 'saved' } : it))
+        // 다음 아이템 자동 선택
+        const next = Math.min(selectedIndex + 1, batchItems.length - 1)
+        setSelectedIndex(next)
+        // 폼에 다음 아이템 내용 반영
+        const nextItem = batchItems[next]
+        if (nextItem) {
+          const f = nextItem.form
+          if (f.platform) setValue('platform', f.platform)
+          if (f.businessName) setValue('businessName', f.businessName)
+          if (f.customerName) setValue('customerName', f.customerName)
+          if (f.reviewDate) setValue('reviewDate', f.reviewDate)
+          if (f.rating) setValue('rating', f.rating.toString())
+          if (f.content) setValue('content', f.content)
+          setUploadedImage(nextItem.previewUrl)
+          if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
       } else {
         setTimeout(() => {
           router.push("/dashboard/reviews")
