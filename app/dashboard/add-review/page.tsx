@@ -232,7 +232,24 @@ export default function AddReviewPage() {
       const nextIndex = currentBatchIndex + 1
       setCurrentBatchIndex(nextIndex)
       await processImageFile(batchFiles[nextIndex], true)
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     }
+  }
+
+  const handleSkipCurrent = async () => {
+    // Clear OCR state and move to next without saving
+    setOcrResult(null)
+    setOcrConfidence(null)
+    setUploadedFile(null)
+    setUploadedImage(null)
+    setWatermarkedImage(null)
+    setValue('content', '')
+    setValue('customerName', '')
+    setValue('originalUrl', '')
+    // keep platform/business if 원하는 경우 유지, 여기서는 그대로 둠
+    await handleNextBatchFile()
   }
 
   const onSubmit = async (data: ReviewForm) => {
@@ -276,9 +293,7 @@ export default function AddReviewPage() {
       
       // 배치 모드 처리
       if (batchFiles.length > 0 && currentBatchIndex < batchFiles.length - 1) {
-        setTimeout(() => {
-          handleNextBatchFile()
-        }, 1500)
+        handleNextBatchFile()
       } else {
         setTimeout(() => {
           router.push("/dashboard/reviews")
@@ -1014,6 +1029,17 @@ export default function AddReviewPage() {
                         "리뷰 추가"
                       )}
                     </Button>
+                    {batchFiles.length > 0 && currentBatchIndex < batchFiles.length - 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleSkipCurrent}
+                        className="px-4"
+                        title="저장하지 않고 다음 이미지로 이동"
+                      >
+                        건너뛰기
+                      </Button>
+                    )}
                   </div>
                   
                   {/* 자동 저장 설정 */}
