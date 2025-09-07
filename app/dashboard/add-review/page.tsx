@@ -55,7 +55,8 @@ export default function AddReviewPage() {
   
   // 새로운 UX 개선 상태
   const [showPreview, setShowPreview] = useState(false)
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true)
+  // Disable auto‑save by default per request
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   type BatchStatus = 'queued'|'processing'|'done'|'error'|'saved'
@@ -116,6 +117,7 @@ export default function AddReviewPage() {
   // Auto-save functionality
   useEffect(() => {
     if (!autoSaveEnabled) return
+    if (!autoSaveEnabled) return
     
     const saveTimer = setTimeout(() => {
       const values = getValues()
@@ -131,8 +133,9 @@ export default function AddReviewPage() {
     return () => clearTimeout(saveTimer)
   }, [formValues, autoSaveEnabled, getValues])
 
-  // Load saved draft on mount (with migration + option to discard)
+  // Load saved draft on mount (only when auto‑save enabled)
   useEffect(() => {
+    if (!autoSaveEnabled) return
     try {
       const current = localStorage.getItem(DRAFT_KEY)
       const legacy = !current && localStorage.getItem(LEGACY_DRAFT_KEY)
@@ -161,7 +164,7 @@ export default function AddReviewPage() {
     } catch (e) {
       console.error('Failed to load draft:', e)
     }
-  }, [setValue])
+  }, [autoSaveEnabled, setValue])
 
   if (status === "unauthenticated") {
     router.push("/login")
@@ -584,12 +587,13 @@ export default function AddReviewPage() {
           
           {/* 자동 저장 인디케이터 */}
           <div className="flex items-center gap-4">
-            {lastSaved && (
+            {autoSaveEnabled && lastSaved && (
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <CheckIcon className="w-3 h-3 text-green-500" />
                 자동 저장됨 ({new Date(lastSaved).toLocaleTimeString()})
               </div>
             )}
+            {autoSaveEnabled && (
             <button
               onClick={() => {
                 try {
@@ -603,7 +607,7 @@ export default function AddReviewPage() {
               title="이전 자동저장 데이터를 비웁니다"
             >
               자동저장 비우기
-            </button>
+            </button>) }
             
             {/* 빠른 모드 토글 */}
             <button
@@ -1201,23 +1205,24 @@ export default function AddReviewPage() {
                     )}
                   </div>
                   
-                  {/* 자동 저장 설정 */}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={autoSaveEnabled}
-                        onChange={(e) => setAutoSaveEnabled(e.target.checked)}
-                        className="rounded"
-                      />
-                      <Save className="w-3 h-3" />
-                      자동 저장
-                    </label>
-                    
-                    {lastSaved && (
-                      <span>마지막 저장: {new Date(lastSaved).toLocaleTimeString()}</span>
-                    )}
-                  </div>
+                  {/* 자동 저장 설정 (비활성화됨) */}
+                  {false && (
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={autoSaveEnabled}
+                          onChange={(e) => setAutoSaveEnabled(e.target.checked)}
+                          className="rounded"
+                        />
+                        <Save className="w-3 h-3" />
+                        자동 저장
+                      </label>
+                      {lastSaved && (
+                        <span>마지막 저장: {new Date(lastSaved).toLocaleTimeString()}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </form>
             </CardContent>
