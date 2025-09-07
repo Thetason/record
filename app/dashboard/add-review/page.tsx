@@ -319,6 +319,20 @@ export default function AddReviewPage() {
       
       // 성공 메시지 표시
       setSuccessMessage("리뷰가 성공적으로 추가되었습니다!")
+      // Feed에 추가(시각적 확신)
+      setSavedFeed(prev => [
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          previewUrl: imageSrc || '',
+          platform: data.platform,
+          rating: parseInt(data.rating.toString()),
+          author: data.customerName,
+          reviewDate: data.reviewDate,
+          businessName: data.businessName,
+          content: data.content,
+        },
+        ...prev,
+      ])
       
       // 배치 모드 처리
       if (batchItems.length > 0 && selectedIndex < batchItems.length - 1) {
