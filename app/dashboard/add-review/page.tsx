@@ -323,7 +323,7 @@ export default function AddReviewPage() {
       setSuccessMessage("리뷰가 성공적으로 추가되었습니다!")
       
       // 배치 모드 처리
-      if (batchFiles.length > 0 && currentBatchIndex < batchFiles.length - 1) {
+      if (batchItems.length > 0 && selectedIndex < batchItems.length - 1) {
         handleNextBatchFile()
       } else {
         setTimeout(() => {
@@ -629,9 +629,9 @@ export default function AddReviewPage() {
             </button>
             
             {/* 배치 모드 인디케이터 */}
-            {batchFiles.length > 0 && (
+            {batchItems.length > 0 && selectedIndex >= 0 && (
               <Badge className="bg-purple-600">
-                배치: {currentBatchIndex + 1}/{batchFiles.length}
+                배치: {selectedIndex + 1}/{batchItems.length}
               </Badge>
             )}
           </div>
@@ -1146,13 +1146,13 @@ export default function AddReviewPage() {
                           <CloudUpload className="w-4 h-4 mr-2 animate-pulse" />
                           저장 중...
                         </>
-                      ) : batchFiles.length > 0 && currentBatchIndex < batchFiles.length - 1 ? (
-                        <>다음 리뷰 ({currentBatchIndex + 2}/{batchFiles.length})</>
+                      ) : batchItems.length > 0 && selectedIndex < batchItems.length - 1 ? (
+                        <>다음 리뷰 ({selectedIndex + 2}/{batchItems.length})</>
                       ) : (
                         "리뷰 추가"
                       )}
                     </Button>
-                    {batchFiles.length > 0 && currentBatchIndex < batchFiles.length - 1 && (
+                    {batchItems.length > 0 && selectedIndex < batchItems.length - 1 && (
                       <Button
                         type="button"
                         variant="ghost"
