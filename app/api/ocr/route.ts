@@ -508,6 +508,8 @@ function rebuildReadingOrder(result: any): string | null {
     return { x, y, h };
   };
 
+  // Estimate page height for y-based trimming
+  let pageMaxY = 0;
   for (const page of pages) {
     for (const block of page.blocks || []) {
       for (const para of block.paragraphs || []) {
@@ -515,6 +517,7 @@ function rebuildReadingOrder(result: any): string | null {
         const text = words.join(' ').trim();
         if (!text) continue;
         const { x, y } = getCenter(para.boundingBox?.vertices || []);
+        pageMaxY = Math.max(pageMaxY, ...(para.boundingBox?.vertices || []).map((v: any) => v.y || 0));
         lines.push({ x, y, text });
       }
     }
@@ -549,9 +552,14 @@ function rebuildReadingOrder(result: any): string | null {
   }
 
   // Simple multi-column handling: split by big x gaps if needed could be added later
+  // Optional: cut fixed header region (top 12% by default)
+  const cutRatio = Number(process.env.OCR_TOP_CUT_RATIO || 0.12);
+  const yCut = pageMaxY ? pageMaxY * cutRatio : 0;
+  const filtered = yCut ? lines.filter(l => l.y >= yCut) : lines;
+
   // Sort paragraph lines by y then x
-  lines.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
-  return lines.map(l => l.text).join('\n').trim() || null;
+  filtered.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+  return filtered.map(l => l.text).join('\n').trim() || null;
 }
 
 // Post-OCR spacing refinement for Korean-heavy lines

@@ -51,6 +51,7 @@ export default function AddReviewPage() {
   const [useNormalized, setUseNormalized] = useState(true)
   const [ocrRawText, setOcrRawText] = useState<string>("")
   const [ocrNormalizedText, setOcrNormalizedText] = useState<string>("")
+  const [normalizeLevel, setNormalizeLevel] = useState<'off'|'normal'|'strong'>('normal')
   
   // 새로운 UX 개선 상태
   const [showPreview, setShowPreview] = useState(false)
@@ -76,6 +77,26 @@ export default function AddReviewPage() {
 
   const selectedPlatform = watch("platform")
   const formValues = watch()
+
+  // Client-side lightweight normalization for quick UX
+  function applyClientNormalization(text: string, level: 'off'|'normal'|'strong'): string {
+    if (!text) return text
+    if (level === 'off') return text
+    let s = text
+      .replace(/\r\n?/g, '\n')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    // collapse Hangul-Hangul spaces
+    s = s.replace(/(?<=[\uAC00-\uD7AF])\s+(?=[\uAC00-\uD7AF])/g, '')
+      .replace(/\s+([,\.\!\?%\)\]\}])/g, '$1')
+      .replace(/([\(\[\{])\s+/g, '$1')
+    if (level === 'strong') {
+      // Remove single-symbol lines and stray bullets
+      s = s.split('\n')
+        .filter(l => !/^(\?|x|X|☆|★|\*|\-|=|—|·|ㆍ)$/.test(l.trim()))
+        .join('\n')
+    }
+    return s
+  }
 
   // Auto-save functionality
   useEffect(() => {
@@ -387,7 +408,8 @@ export default function AddReviewPage() {
         // 내용
         setOcrRawText(d.rawText || d.text || "")
         setOcrNormalizedText(d.reviewText || d.normalizedText || d.text || "")
-        const body = (useNormalized ? (d.reviewText || d.normalizedText) : (d.rawText || d.text)) || d.text
+        const base = (useNormalized ? (d.reviewText || d.normalizedText) : (d.rawText || d.text)) || d.text
+        const body = applyClientNormalization(base, normalizeLevel)
         if (body && body.trim().length >= 5) { setValue("content", body.trim()); fieldsUpdated++ }
       } else if (data.text && data.text.trim() && data.text.length >= 10) {
         // 파싱된 데이터가 없으면 전체 텍스트를 내용에 입력
@@ -863,7 +885,23 @@ export default function AddReviewPage() {
                           className={`px-2 py-1 rounded ${!useNormalized ? 'bg-white text-gray-900 shadow' : ''}`}
                         >원문</button>
                       </div>
-                      <span>{useNormalized ? '띄어쓰기 보정 적용' : '원문 보기'}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="hidden md:inline">보정 강도</span>
+                        <select
+                          className="border border-gray-300 rounded px-2 py-1 bg-white"
+                          value={normalizeLevel}
+                          onChange={(e)=>{
+                            const v = e.target.value as 'off'|'normal'|'strong'
+                            setNormalizeLevel(v)
+                            const current = useNormalized ? (ocrNormalizedText || ocrRawText) : ocrRawText
+                            if (current) setValue('content', applyClientNormalization(current, v))
+                          }}
+                        >
+                          <option value="off">끔</option>
+                          <option value="normal">기본</option>
+                          <option value="strong">강함</option>
+                        </select>
+                      </div>
                     </div>
                   )}
                   <textarea
