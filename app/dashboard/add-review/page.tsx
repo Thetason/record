@@ -93,7 +93,8 @@ export default function AddReviewPage() {
   const [isQuickMode, setIsQuickMode] = useState(false)
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
-  const [step, setStep] = useState<'upload'|'review'|'confirm'>("upload")
+  // Simple 3-step wizard state: upload -> recognize -> confirm
+  const [step, setStep] = useState<'upload'|'recognize'|'confirm'>("upload")
 
   const {
     register,
@@ -183,7 +184,7 @@ export default function AddReviewPage() {
 
   // Step progression helpers
   useEffect(() => {
-    if (uploadedImage && step === 'upload') setStep('review')
+    if (uploadedImage && step === 'upload') setStep('recognize')
   }, [uploadedImage, step])
 
   const minimalValid = () => {
@@ -636,7 +637,144 @@ export default function AddReviewPage() {
       setError(errorMessage)
     } finally {
       setIsExtracting(false)
+      // Move to confirm step after recognition finishes
+      setStep(prev => (prev === 'recognize' ? 'confirm' : prev))
     }
+  }
+
+  // --- Single panel wizard early-return UI ---
+  // Keeps legacy layout below for reference but not used
+  if (true) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <SoftCard>
+            {/* Stepper */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">새 리뷰 추가</h2>
+              <div className="flex items-center gap-2 text-xs">
+                <span className={`px-2 py-1 rounded-full ${step==='upload'?'bg-orange-100 text-orange-700':'bg-gray-100 text-gray-600'}`}>1 업로드</span>
+                <span className={`px-2 py-1 rounded-full ${step==='recognize'?'bg-orange-100 text-orange-700':'bg-gray-100 text-gray-600'}`}>2 인식</span>
+                <span className={`px-2 py-1 rounded-full ${step==='confirm'?'bg-orange-100 text-orange-700':'bg-gray-100 text-gray-600'}`}>3 확인·저장</span>
+              </div>
+            </div>
+
+            {/* Panel content */}
+            {step === 'upload' && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">이미지를 업로드하면 자동으로 텍스트를 채워드려요.</p>
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-xl p-10 text-center ${isDragOver? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-gray-50'}`}
+                >
+                  {!uploadedImage ? (
+                    <>
+                      <p className="text-sm text-gray-600 mb-2">이미지를 끌어다 놓거나 클릭하여 선택하세요</p>
+                      <p className="text-xs text-gray-500">JPG, PNG, WebP / 최대 10MB</p>
+                      <div className="mt-4">
+                        <label className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-white bg-gradient-to-r from-orange-500 to-orange-400 cursor-pointer">
+                          <input type="file" accept="image/*" className="hidden" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) processImageFile(f,false)}} />
+                          <UploadIcon /> 이미지 선택
+                        </label>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="relative">
+                      <img src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} className="max-h-[420px] w-full object-contain rounded-lg border" alt="preview" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {step === 'recognize' && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">이미지에서 텍스트를 인식하는 중입니다. 잠시만 기다려주세요.</p>
+                <div className="rounded-lg border bg-white p-4">
+                  <div className="h-2 w-full rounded-full bg-orange-50 overflow-hidden">
+                    <div className={`h-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 ${isExtracting? 'animate-pulse w-2/3' : 'w-full'}`}></div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600">
+                    {isExtracting ? 'OCR 인식 중...' : '인식이 완료되었습니다. 다음 단계로 진행하세요.'}
+                  </div>
+                </div>
+                {uploadedImage && (
+                  <img src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} className="max-h-[320px] w-full object-contain rounded-lg border" alt="preview" />
+                )}
+              </div>
+            )}
+
+            {step === 'confirm' && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <p className="text-sm text-gray-600">자동 채움 결과를 확인하고 필요한 부분만 수정하세요.</p>
+                {/* 필수 최소 필드 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <FormLabel>플랫폼</FormLabel>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      {['네이버','카카오맵','구글','크몽','인스타그램','기타'].map(p => (
+                        <label key={p} className={`px-2 py-1 text-xs rounded-full border cursor-pointer ${selectedPlatform===p? 'border-orange-400 bg-orange-50 text-orange-700':'border-gray-200 text-gray-700'}`}>
+                          <input type="radio" className="sr-only" value={p} {...register('platform', { required: '플랫폼을 선택해주세요' })} />
+                          {p}
+                        </label>
+                      ))}
+                    </div>
+                    {errors.platform && <FormMessage>{errors.platform.message}</FormMessage>}
+                  </div>
+                  <div>
+                    <FormLabel>평점</FormLabel>
+                    <select className="mt-1 w-full border rounded-md p-2" {...register('rating', { required: '평점을 선택하세요' })}>
+                      {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} 점</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <FormLabel>업체명</FormLabel>
+                    <Input {...register('businessName', { required: '업체명을 입력하세요' })} placeholder="업체명을 입력" />
+                  </div>
+                  <div>
+                    <FormLabel>작성자</FormLabel>
+                    <Input {...register('customerName', { required: '작성자를 입력하세요' })} placeholder="예: 김**" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <FormLabel>작성일</FormLabel>
+                    <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
+                  </div>
+                  <div>
+                    <FormLabel>원본 링크(선택)</FormLabel>
+                    <Input {...register('originalUrl')} placeholder="https://" />
+                  </div>
+                </div>
+                <div>
+                  <FormLabel>리뷰 내용</FormLabel>
+                  <textarea className="mt-1 w-full border rounded-md p-3 min-h-36" {...register('content', { required: '리뷰 내용을 입력하세요', minLength: { value: 10, message: '최소 10자 이상' } })} placeholder="리뷰 내용을 입력해주세요..." />
+                  {errors.content && <FormMessage>{errors.content.message}</FormMessage>}
+                </div>
+                <div className="flex justify-end">
+                  <Button type="submit" className="bg-[#FF6B35] hover:bg-[#E55A2B]">저장</Button>
+                </div>
+              </form>
+            )}
+          </SoftCard>
+
+          <div className="mt-4">
+            <ActionsDock
+              step={step as any}
+              onBack={() => setStep(step === 'confirm' ? 'recognize' : 'upload')}
+              onNext={() => setStep(step === 'upload' ? 'recognize' : 'confirm')}
+              onSave={handleSubmit(onSubmit)}
+              nextDisabled={(step==='upload' && !uploadedImage) || (step==='recognize' && isExtracting)}
+              saveDisabled={!minimalValid() || isLoading}
+            />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
