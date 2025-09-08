@@ -108,6 +108,25 @@ export default function AddReviewPage() {
   const selectedPlatform = watch("platform")
   const formValues = watch()
 
+  // Sync currently selected batch item's recognized form into the visible form
+  const syncFormFromSelected = () => {
+    const sel = selectedIndex >= 0 ? batchItems[selectedIndex] : undefined
+    if (!sel || !sel.form) return
+    const f = sel.form
+    if (f.platform) setValue('platform', f.platform)
+    if (f.businessName) setValue('businessName', f.businessName)
+    if (f.customerName) setValue('customerName', f.customerName)
+    if (f.reviewDate) setValue('reviewDate', f.reviewDate)
+    if (typeof f.rating !== 'undefined') setValue('rating', String(f.rating))
+    if (f.content) setValue('content', f.content)
+    if (sel.confidence) setOcrConfidence(Math.round((sel.confidence as number) * 100))
+  }
+
+  useEffect(() => {
+    syncFormFromSelected()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIndex, JSON.stringify(batchItems.map(b => ({ id: b.id, form: b.form, status: b.status })))])
+
   // Client-side lightweight normalization for quick UX
   function applyClientNormalization(text: string, level: 'off'|'normal'|'strong'): string {
     if (!text) return text
@@ -203,6 +222,12 @@ export default function AddReviewPage() {
   const minimalValid = () => {
     const v = getValues()
     return Boolean(v.platform && v.reviewDate && v.rating && (v.content && v.content.trim().length >= 10))
+  }
+
+  const selectedHasParsed = () => {
+    const sel = selectedIndex >= 0 ? batchItems[selectedIndex] : undefined
+    const f: any = sel?.form || {}
+    return Boolean((f.content && f.content.trim().length >= 5) || f.platform || f.businessName || f.customerName || f.rating)
   }
 
   if (status === "unauthenticated") {
@@ -806,9 +831,12 @@ export default function AddReviewPage() {
             <ActionsDock
               step={step as any}
               onBack={() => setStep(step === 'confirm' ? 'recognize' : 'upload')}
-              onNext={() => setStep(step === 'upload' ? 'recognize' : 'confirm')}
+              onNext={() => {
+                if (step === 'upload') setStep('recognize')
+                else if (step === 'recognize') { syncFormFromSelected(); setStep('confirm') }
+              }}
               onSave={handleSubmit(onSubmit)}
-              nextDisabled={(step==='upload' && !uploadedImage) || (step==='recognize' && isExtracting)}
+              nextDisabled={(step==='upload' && !uploadedImage) || (step==='recognize' && (isExtracting || !selectedHasParsed()))}
               saveDisabled={!minimalValid() || isLoading}
             />
           </div>
