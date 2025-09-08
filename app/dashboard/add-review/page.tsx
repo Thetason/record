@@ -16,6 +16,10 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { addWatermark, addSimpleWatermark } from "@/lib/watermark"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import SoftCard from "@/components/ui/soft-card"
+import BenefitMeter from "@/components/ui/benefit-meter"
+import SavedFeed from "@/components/ui/saved-feed"
+import ActionsDock from "@/components/ui/actions-dock"
 
 interface ReviewForm {
   platform: string
@@ -89,6 +93,7 @@ export default function AddReviewPage() {
   const [isQuickMode, setIsQuickMode] = useState(false)
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
+  const [step, setStep] = useState<'upload'|'review'|'confirm'>("upload")
 
   const {
     register,
@@ -176,6 +181,16 @@ export default function AddReviewPage() {
     }
   }, [autoSaveEnabled, setValue])
 
+  // Step progression helpers
+  useEffect(() => {
+    if (uploadedImage && step === 'upload') setStep('review')
+  }, [uploadedImage, step])
+
+  const minimalValid = () => {
+    const v = getValues()
+    return Boolean(v.platform && v.reviewDate && v.rating && (v.content && v.content.trim().length >= 10))
+  }
+
   if (status === "unauthenticated") {
     router.push("/login")
     return null
@@ -240,6 +255,9 @@ export default function AddReviewPage() {
       // 배치 모드에서 자동 OCR 실행
       if (isBatch && isQuickMode) {
         setTimeout(() => handleOCRExtract(), 500)
+      }
+      if (!isBatch) {
+        setTimeout(() => handleOCRExtract(), 300)
       }
     }
     reader.readAsDataURL(file)
@@ -697,7 +715,51 @@ export default function AddReviewPage() {
           <p className="text-gray-600">
             받으신 리뷰를 직접 입력하거나 이미지로 업로드하여 추가하세요
           </p>
-          
+
+          {/* New compact top section: Upload/Preview + Benefits */}
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <SoftCard title="이미지 업로드" description="이미지를 업로드하면 자동으로 채워드려요">
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-xl p-6 text-center ${isDragOver? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-gray-50'}`}
+                >
+                  {!uploadedImage ? (
+                    <>
+                      <p className="text-sm text-gray-600 mb-2">이미지를 끌어다 놓거나 클릭하여 선택하세요</p>
+                      <p className="text-xs text-gray-500">JPG, PNG, WebP / 최대 10MB</p>
+                      <div className="mt-4">
+                        <label className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-white bg-gradient-to-r from-orange-500 to-orange-400 cursor-pointer">
+                          <input type="file" accept="image/*" className="hidden" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) processImageFile(f,false)}} />
+                          <UploadIcon /> 이미지 선택
+                        </label>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="relative">
+                      <img src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} className="max-h-[420px] w-full object-contain rounded-lg border" alt="preview" />
+                    </div>
+                  )}
+                </div>
+              </SoftCard>
+            </div>
+            <div className="lg:col-span-1">
+              <SoftCard title="나의 이득" description="저장할수록 신뢰가 쌓여요">
+                <BenefitMeter
+                  totalReviews={savedFeed.length}
+                  trustScore={Math.min(100, (ocrConfidence ?? 60))}
+                  completeness={Math.min(100, 40 + Math.min(savedFeed.length * 6, 60))}
+                />
+                <div className="mt-6">
+                  <p className="text-xs text-gray-500 mb-2">방금 추가된 리뷰</p>
+                  <SavedFeed items={savedFeed} />
+                </div>
+              </SoftCard>
+            </div>
+          </div>
+        
           {/* 빠른 통계 */}
           {isQuickMode && (
             <div className="flex gap-2 mt-3">
@@ -1278,6 +1340,15 @@ export default function AddReviewPage() {
           </Card>
         </div>
       </div>
+      {/* Action Dock (simplified flow helper) */}
+      <ActionsDock
+        step={step}
+        onBack={() => setStep(step === 'confirm' ? 'review' : 'upload')}
+        onNext={() => setStep(step === 'upload' ? 'review' : 'confirm')}
+        onSave={handleSubmit(onSubmit)}
+        nextDisabled={step === 'review' && !minimalValid()}
+        saveDisabled={!minimalValid() || isLoading}
+      />
     </div>
   )
 }
