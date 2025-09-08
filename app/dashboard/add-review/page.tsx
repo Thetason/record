@@ -187,6 +187,19 @@ export default function AddReviewPage() {
     if (uploadedImage && step === 'upload') setStep('recognize')
   }, [uploadedImage, step])
 
+  // Move to recognize when batch queued; bind preview to selection; kick OCR
+  useEffect(() => {
+    if (batchItems.length > 0) {
+      if (selectedIndex === -1) setSelectedIndex(0)
+      const sel = batchItems[selectedIndex] || batchItems[0]
+      if (sel && !uploadedImage) setUploadedImage(sel.previewUrl)
+      if (step === 'upload') setStep('recognize')
+      // start OCR if any queued
+      scheduleOcr()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchItems.length])
+
   const minimalValid = () => {
     const v = getValues()
     return Boolean(v.platform && v.reviewDate && v.rating && (v.content && v.content.trim().length >= 10))
@@ -679,7 +692,7 @@ export default function AddReviewPage() {
                       <p className="text-xs text-gray-500">JPG, PNG, WebP / 최대 10MB</p>
                       <div className="mt-4">
                         <label className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-white bg-gradient-to-r from-orange-500 to-orange-400 cursor-pointer">
-                          <input type="file" accept="image/*" className="hidden" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) processImageFile(f,false)}} />
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={(e)=>{ const files = Array.from(e.target.files || []); if (files.length) enqueueFiles(files) }} />
                           <UploadIcon /> 이미지 선택
                         </label>
                       </div>
@@ -696,16 +709,39 @@ export default function AddReviewPage() {
             {step === 'recognize' && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">이미지에서 텍스트를 인식하는 중입니다. 잠시만 기다려주세요.</p>
+                {/* Overall progress */}
                 <div className="rounded-lg border bg-white p-4">
-                  <div className="h-2 w-full rounded-full bg-orange-50 overflow-hidden">
-                    <div className={`h-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 ${isExtracting? 'animate-pulse w-2/3' : 'w-full'}`}></div>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-600">
-                    {isExtracting ? 'OCR 인식 중...' : '인식이 완료되었습니다. 다음 단계로 진행하세요.'}
-                  </div>
+                  {(() => {
+                    const done = batchItems.filter(b => b.status==='done' || b.status==='error').length
+                    const total = Math.max(1, batchItems.length)
+                    const pct = Math.round((done/total)*100)
+                    return (
+                      <>
+                        <div className="h-2 w-full rounded-full bg-orange-50 overflow-hidden">
+                          <div className="h-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400" style={{width: `${pct}%`}}></div>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-600">{done}/{total} 인식 완료</div>
+                      </>
+                    )
+                  })()}
                 </div>
-                {uploadedImage && (
-                  <img src={watermarkEnabled && watermarkedImage ? watermarkedImage : uploadedImage} className="max-h-[320px] w-full object-contain rounded-lg border" alt="preview" />
+                {/* Thumbnail strip */}
+                {batchItems.length>0 && (
+                  <div className="flex gap-2 overflow-x-auto py-1">
+                    {batchItems.map((it, idx) => (
+                      <button key={it.id} onClick={()=>{setSelectedIndex(idx); setUploadedImage(it.previewUrl)}} className={`min-w-20 h-20 rounded-md border overflow-hidden relative ${selectedIndex===idx?'ring-2 ring-orange-400':''}`} title={it.status}>
+                        <img src={it.previewUrl} alt="thumb" className="w-full h-full object-cover" />
+                        <span className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">{idx+1}</span>
+                        <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">
+                          {it.status==='done'?'완료':it.status==='processing'?'인식중':it.status==='error'?'오류':'대기'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Large preview of selected */}
+                {selectedIndex>=0 && batchItems[selectedIndex] && (
+                  <img src={batchItems[selectedIndex].previewUrl} className="max-h-[320px] w-full object-contain rounded-lg border" alt="selected" />
                 )}
               </div>
             )}
