@@ -74,6 +74,17 @@ export default function AddReviewPage() {
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const [concurrency] = useState(4)
   const [successMessage, setSuccessMessage] = useState("")
+  // Recently-saved feed for visual confirmation after save
+  const [savedFeed, setSavedFeed] = useState<Array<{
+    id: string
+    previewUrl: string
+    platform: string
+    rating: number
+    author: string
+    reviewDate: string
+    businessName: string
+    content: string
+  }>>([])
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null)
   const [isQuickMode, setIsQuickMode] = useState(false)
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
@@ -116,7 +127,6 @@ export default function AddReviewPage() {
 
   // Auto-save functionality
   useEffect(() => {
-    if (!autoSaveEnabled) return
     if (!autoSaveEnabled) return
     
     const saveTimer = setTimeout(() => {
@@ -314,8 +324,11 @@ export default function AddReviewPage() {
         throw new Error(errorData.message || errorData.error || "리뷰 추가에 실패했습니다.")
       }
 
-      // 성공 시 로컬 스토리지 초기화
-      localStorage.removeItem('review-draft')
+      // 성공 시 로컬 스토리지 초기화 (v1/v2 모두 제거)
+      try {
+        localStorage.removeItem('review-draft')
+        localStorage.removeItem('review-draft-v2')
+      } catch {}
       
       // 성공 메시지 표시
       setSuccessMessage("리뷰가 성공적으로 추가되었습니다!")
