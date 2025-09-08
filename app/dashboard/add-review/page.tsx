@@ -620,6 +620,8 @@ export default function AddReviewPage() {
         
         setSuccessMessage(message)
         setTimeout(() => setSuccessMessage(""), 5000)
+        // mark recognized when we have updates
+        try { (window as any).__recognized__ = true } catch {}
       }
 
     } catch (error: any) {
@@ -637,8 +639,10 @@ export default function AddReviewPage() {
       setError(errorMessage)
     } finally {
       setIsExtracting(false)
-      // Move to confirm step after recognition finishes
-      setStep(prev => (prev === 'recognize' ? 'confirm' : prev))
+      // Move to confirm step only if recognized succeeded
+      const ok = (typeof window !== 'undefined') ? Boolean((window as any).__recognized__) : true
+      if (typeof window !== 'undefined') { try { delete (window as any).__recognized__ } catch {} }
+      setStep(prev => ((ok && prev === 'recognize') ? 'confirm' : prev))
     }
   }
 
