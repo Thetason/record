@@ -55,7 +55,7 @@ export default function AddReviewPage() {
   const [useNormalized, setUseNormalized] = useState(true)
   const [ocrRawText, setOcrRawText] = useState<string>("")
   const [ocrNormalizedText, setOcrNormalizedText] = useState<string>("")
-  const [normalizeLevel, setNormalizeLevel] = useState<'off'|'normal'|'strong'>('strong')
+  const [normalizeLevel, setNormalizeLevel] = useState<'off'|'normal'|'strong'>('normal')
   
   // 새로운 UX 개선 상태
   const [showPreview, setShowPreview] = useState(false)
@@ -127,19 +127,35 @@ export default function AddReviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIndex, JSON.stringify(batchItems.map(b => ({ id: b.id, form: b.form, status: b.status })))])
 
-  // Client-side lightweight normalization for quick UX
+  // Client-side normalization (safe for Korean):
+  // - Keep natural word spaces
+  // - Only collapse spaces between Hangul letters when the line mostly consists of single-letter tokens (OCR artifact)
   function applyClientNormalization(text: string, level: 'off'|'normal'|'strong'): string {
     if (!text) return text
     if (level === 'off') return text
-    let s = text
-      .replace(/\r\n?/g, '\n')
-      .replace(/[\u200B-\u200D\uFEFF]/g, '')
-    // collapse Hangul-Hangul spaces
-    s = s.replace(/(?<=[\uAC00-\uD7AF])\s+(?=[\uAC00-\uD7AF])/g, '')
-      .replace(/\s+([,\.\!\?%\)\]\}])/g, '$1')
-      .replace(/([\(\[\{])\s+/g, '$1')
+    const lines = text.replace(/\r\n?/g, '\n').replace(/[\u200B-\u200D\uFEFF]/g, '').split('\n')
+    const hangul = /[\uAC00-\uD7AF]/
+    const out: string[] = []
+    for (const line of lines) {
+      const tokens = line.split(/\s+/).filter(t => t.length>0)
+      const singleHangul = tokens.filter(t => t.length === 1 && hangul.test(t)).length
+      const ratio = tokens.length ? singleHangul / tokens.length : 0
+      let cleaned = line
+      // punctuation spacing
+      cleaned = cleaned
+        .replace(/\s+([,\.\!\?%\)\]\}])/g, '$1')
+        .replace(/([\(\[\{])\s+/g, '$1')
+      if (ratio >= 0.6) {
+        // Likely "자 유 로 처 럼" 케이스: collapse all spaces between Hangul letters only
+        cleaned = cleaned.replace(/(?<=[\uAC00-\uD7AF])\s+(?=[\uAC00-\uD7AF])/g, '')
+      } else {
+        // Preserve word boundaries; just normalize multi-spaces
+        cleaned = cleaned.replace(/ {2,}/g, ' ')
+      }
+      out.push(cleaned)
+    }
+    let s = out.join('\n')
     if (level === 'strong') {
-      // Remove single-symbol lines and stray bullets
       s = s.split('\n')
         .filter(l => !/^(\?|x|X|☆|★|\*|\-|=|—|·|ㆍ)$/.test(l.trim()))
         .join('\n')
