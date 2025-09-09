@@ -95,6 +95,10 @@ export default function AddReviewPage() {
   const [zoom, setZoom] = useState(1)
   // Simple 3-step wizard state: upload -> recognize -> confirm
   const [step, setStep] = useState<'upload'|'recognize'|'confirm'>("upload")
+  const [ocrEngine, setOcrEngine] = useState<string | null>(null)
+  const [autoFilled, setAutoFilled] = useState<{platform:boolean;business:boolean;author:boolean;date:boolean;rating:boolean;content:boolean}>({
+    platform:false, business:false, author:false, date:false, rating:false, content:false
+  })
 
   const {
     register,
@@ -575,6 +579,7 @@ export default function AddReviewPage() {
 
       const data = await res.json()
       console.log('OCR 결과:', data)
+      try { setOcrEngine(data?.data?.engine || data?.engine || null) } catch {}
       
       // 추출 결과 처리
       let fieldsUpdated = 0
