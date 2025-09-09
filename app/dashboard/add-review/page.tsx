@@ -245,9 +245,16 @@ export default function AddReviewPage() {
   }
 
   const selectedHasParsed = () => {
+    // Prefer batch parsed flags
     const sel = selectedIndex >= 0 ? batchItems[selectedIndex] : undefined
     const f: any = sel?.form || {}
-    return Boolean((f.content && f.content.trim().length >= 5) || f.platform || f.businessName || f.customerName || f.rating)
+    if ((f.content && f.content.trim().length >= 5) || f.platform || f.businessName || f.customerName || f.rating) return true
+    // Fallback: if current form already has meaningful values, allow next
+    const v = getValues()
+    if ((v.content && v.content.trim().length >= 5) || v.platform || v.businessName || v.customerName || v.rating) return true
+    // Or if OCR recognized flag set (from handleOCRExtract), allow progression
+    try { if (typeof window !== 'undefined' && (window as any).__recognized__) return true } catch {}
+    return false
   }
 
   if (status === "unauthenticated") {
@@ -956,7 +963,7 @@ export default function AddReviewPage() {
                 else if (step === 'recognize') { syncFormFromSelected(); setStep('confirm') }
               }}
               onSave={handleSubmit(onSubmit)}
-              nextDisabled={(step==='upload' && !uploadedImage) || (step==='recognize' && (isExtracting || !selectedHasParsed()))}
+              nextDisabled={(step==='upload' && !uploadedImage) || (step==='recognize' && isExtracting)}
               saveDisabled={!minimalValid() || isLoading}
             />
           </div>
