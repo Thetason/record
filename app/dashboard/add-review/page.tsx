@@ -773,7 +773,27 @@ export default function AddReviewPage() {
 
             {step === 'confirm' && (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <p className="text-sm text-gray-600">자동 채움 결과를 확인하고 필요한 부분만 수정하세요.</p>
+                <p className="text-sm text-gray-600">자동 채움 결과를 확인하고 필요한 부분만 수정하세요. 위의 카드에서 이미지를 바꾸면 해당 결과가 즉시 반영됩니다.</p>
+
+                {/* Thumbnail strip in confirm step */}
+                {batchItems.length>0 && (
+                  <div className="flex gap-2 overflow-x-auto py-1">
+                    {batchItems.map((it, idx) => (
+                      <button key={it.id} onClick={(e)=>{e.preventDefault(); setSelectedIndex(idx); setUploadedImage(it.previewUrl); syncFormFromSelected(); }} className={`min-w-20 h-20 rounded-md border overflow-hidden relative ${selectedIndex===idx?'ring-2 ring-orange-400':''}`} title={it.status}>
+                        <img src={it.previewUrl} alt="thumb" className="w-full h-full object-cover" />
+                        <span className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">{idx+1}</span>
+                        <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">
+                          {it.status==='done'?'완료':it.status==='processing'?'인식중':it.status==='error'?'오류':'대기'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Selected image preview (small) */}
+                {selectedIndex>=0 && batchItems[selectedIndex] && (
+                  <img src={batchItems[selectedIndex].previewUrl} className="max-h-[220px] w-full object-contain rounded-lg border" alt="selected" />
+                )}
                 {/* 필수 최소 필드 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -820,6 +840,27 @@ export default function AddReviewPage() {
                   <textarea className="mt-1 w-full border rounded-md p-3 min-h-36" {...register('content', { required: '리뷰 내용을 입력하세요', minLength: { value: 10, message: '최소 10자 이상' } })} placeholder="리뷰 내용을 입력해주세요..." />
                   {errors.content && <FormMessage>{errors.content.message}</FormMessage>}
                 </div>
+                {/* Summary of what will be saved */}
+                <SoftCard className="border-orange-100" title="저장될 내용 미리보기">
+                  {(() => {
+                    const v = getValues()
+                    return (
+                      <div className="text-sm text-gray-700 space-y-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><span className="text-gray-500">플랫폼</span><div className="font-medium">{v.platform || '-'}</div></div>
+                          <div><span className="text-gray-500">평점</span><div className="font-medium">{v.rating || '-'}</div></div>
+                          <div><span className="text-gray-500">업체명</span><div className="font-medium">{v.businessName || '-'}</div></div>
+                          <div><span className="text-gray-500">작성자</span><div className="font-medium">{v.customerName || '-'}</div></div>
+                          <div><span className="text-gray-500">작성일</span><div className="font-medium">{v.reviewDate || '-'}</div></div>
+                        </div>
+                        <div className="mt-2">
+                          <div className="text-gray-500 mb-1">리뷰 내용</div>
+                          <div className="p-3 border rounded-md bg-gray-50 whitespace-pre-wrap text-gray-800 min-h-[96px]">{(v.content && v.content.trim()) || '내용 없음'}</div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </SoftCard>
                 <div className="flex justify-end">
                   <Button type="submit" className="bg-[#FF6B35] hover:bg-[#E55A2B]">저장</Button>
                 </div>
