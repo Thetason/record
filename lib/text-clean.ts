@@ -45,8 +45,16 @@ export function stripCommonNoiseLines(text: string): string {
     '팔로우','팔로잉','프로필','번역','공유','신고','접기','더보기','지도보기','길찾기','전화',
     '좋아요','댓글','메뉴','사장님','사장님 댓글','답글','관심'
   ]
+  const isCaption = (s: string) => /리뷰\s*\d+(?:개)?\s*[·\.\-]\s*사진\s*\d+(?:장)?/.test(s)
+    || /^리뷰\s*\d+(?:개)?$/.test(s) || /^사진\s*\d+(?:장)?$/.test(s)
   const isSymbolOnly = (s: string) => s.length <= 3 && /^[^\w가-힣]+$/.test(s)
-  const filtered = rawLines.filter(l => l && !uiWords.some(w => l === w || l.includes(w)) && !isSymbolOnly(l))
+  const filtered = rawLines.filter((l, idx) => {
+    if (!l) return false
+    if (uiWords.some(w => l === w || l.includes(w))) return false
+    if (isSymbolOnly(l)) return false
+    if (idx <= 5 && isCaption(l)) return false
+    return true
+  })
   // cut off first noisy header lines (up to 10%)
   const startIdx = Math.min(3, Math.floor(filtered.length * 0.1))
   return filtered.slice(startIdx).join('\n').trim()
@@ -72,6 +80,7 @@ export function cleanKoreanReview(text: string, opts: CleanOptions = {}): string
   s = normalizeWhitespacePunct(s)
   s = stripCommonNoiseLines(s)
   s = s.split('\n').map(l => collapseSpuriousHangulSpaces(l)).join('\n')
+  s = fixParticlesAndUnits(s)
   if (opts.removeUrls !== false) s = removeUrlsHashtags(s, opts.removeHashtags !== false)
   if (opts.maskPII) s = maskSensitive(s)
   // strong cleanup: drop very short symbol lines
@@ -83,5 +92,21 @@ export function cleanKoreanReview(text: string, opts: CleanOptions = {}): string
   return s
 }
 
-export default cleanKoreanReview
+// Collapse spaces in common Korean particles and numeral units while preserving natural word spaces
+export function fixParticlesAndUnits(text: string): string {
+  const PARTICLES = [
+    '은','는','이','가','을','를','과','와','로','으로','에','에서','에게','한테','께','께서','의',
+    '까지','부터','만','뿐','도','처럼','같이','마다','대로','밖에','조차','마저','이라도','라도','이나','나','이나마','라면','라서','이며'
+  ]
+  const particleRe = new RegExp(`(?<=[\\p{Script=Hangul}])\\s+(?:${PARTICLES.join('|')})(?=\\b)`, 'gu')
+  const unitRe = /(\d+|[A-Za-z])\s+(차|번|명|개|년|월|일|시|분|초|회|장|건|단계|차수)\b/g
+  const quoteRe1 = /\s+([’”\)\]\}])/g; // space before closing quotes/brackets
+  const quoteRe2 = /([‘“\(\[\{])\s+/g; // space after opening quotes/brackets
+  return text
+    .replace(particleRe, (m) => m.replace(/\s+/g, ''))
+    .replace(unitRe, '$1$2')
+    .replace(quoteRe1, '$1')
+    .replace(quoteRe2, '$1')
+}
 
+export default cleanKoreanReview
