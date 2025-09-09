@@ -48,11 +48,24 @@ export function stripCommonNoiseLines(text: string): string {
   const isCaption = (s: string) => /리뷰\s*\d+(?:개)?\s*[·\.\-]\s*사진\s*\d+(?:장)?/.test(s)
     || /^리뷰\s*\d+(?:개)?$/.test(s) || /^사진\s*\d+(?:장)?$/.test(s)
   const isSymbolOnly = (s: string) => s.length <= 3 && /^[^\w가-힣]+$/.test(s)
+  const chipKeywords = [
+    '열정적','소통','맞춤','지도','체계적','실력','친절','전문','정성','세심','깔끔','깨끗','가성비','분위기','추천','재방문','설명','응대','서비스'
+  ]
+  const isEmojiStart = (s: string) => /^(\p{Extended_Pictographic}|[🔥✅📈👨‍🏫👩‍🏫✨😀🙂👍👉➡️📌])\s?/u.test(s)
+  const isNaverChip = (s: string) => {
+    if (s.length === 0) return false
+    if (s.length > 24) return false
+    if (/[.,!?…]/.test(s)) return false
+    const tail = /(에요|예요|좋아요|잘해요|좋습니다|괜찮아요|만족해요)$/.test(s)
+    if (!tail) return false
+    return isEmojiStart(s) || chipKeywords.some(k => s.includes(k))
+  }
   const filtered = rawLines.filter((l, idx) => {
     if (!l) return false
     if (uiWords.some(w => l === w || l.includes(w))) return false
     if (isSymbolOnly(l)) return false
     if (idx <= 5 && isCaption(l)) return false
+    if (isNaverChip(l)) return false
     return true
   })
   // cut off first noisy header lines (up to 10%)
