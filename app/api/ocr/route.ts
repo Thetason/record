@@ -4,10 +4,15 @@ export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
+import sharp from 'sharp';
+import { LRUCache } from 'lru-cache';
+import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal, normalizeWhitespacePunct as normPunct } from '@/lib/text-clean';
 const vision = require('@google-cloud/vision');
 
 // Google Vision API 클라이언트 초기화
 let visionClient: any = null;
+const cache = new LRUCache<string, any>({ max: 500, ttl: 1000 * 60 * 60 * 24 * 7 });
 
 // 초기화 함수
 async function initializeVisionClient() {
@@ -131,6 +136,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Build cache key from image hash
+    const bufRaw = Buffer.from(await image.arrayBuffer());
+    const hash = crypto.createHash('sha256').update(bufRaw).digest('hex');
+    const cached = cache.get(hash);
+    if (cached) {
+      return NextResponse.json({ success: true, data: cached, cache: true });
+    }
+
+    // Preprocess image to improve OCR
+    let processed = bufRaw;
+    try {
+      const img = sharp(bufRaw).resize({ width: 1600, withoutEnlargement: true }).grayscale().normalize();
+      // optional threshold to reduce UI noise; avoid over-binarization for photos
+      processed = await img.toBuffer();
+    } catch {}
+
     // Vision API 클라이언트 초기화
     const client = ocrEnabled ? await initializeVisionClient() : null;
     
@@ -156,7 +177,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 이미지를 Buffer로 변환
-    const buffer = Buffer.from(await image.arrayBuffer());
+    const buffer = processed;
 
     // Google Vision API 호출
     console.log('🔍 Vision API 호출 시작...');
@@ -181,9 +202,27 @@ export async function POST(req: NextRequest) {
     // Rebuild text in reading order when Google's assembled text is noisy
     const rebuilt = rebuildReadingOrder(result);
     const rawFullText = (rebuilt || full || detections?.[0]?.description || '').trim();
-    // 1) spacing 정리 → 2) 공통 UI 노이즈 제거 → 3) 플랫폼 전용 파싱
+    // Local cleaning
     const normalizedFullText = refineSpacing(rawFullText);
-    const denoised = stripCommonNoiseLines(normalizedFullText);
+    const denoised = stripNoiseLocal(normalizedFullText);
+    // External cleaner (optional)
+    let cleaned = denoised;
+    const svc = process.env.TEXT_CLEAN_SERVICE_URL;
+    if (svc) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2000);
+        const resp = await fetch(svc, { method: 'POST', body: JSON.stringify({ text: denoised }), headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal });
+        clearTimeout(t);
+        if (resp.ok) {
+          const j: any = await resp.json();
+          cleaned = (j.cleaned || j.text || cleaned).toString();
+        }
+      } catch {}
+    }
+
+    // Final safety normalization
+    cleaned = cleanKoreanReview(cleaned, { maskPII: true, strong: true });
     
     // 텍스트 분석 및 데이터 추출(항상 denoised 기준으로 진행)
     const extractedData = analyzeReviewText(denoised);
@@ -204,17 +243,17 @@ export async function POST(req: NextRequest) {
     });
     */
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...extractedData,
-        // 원문/정리본 모두 반환하여 클라이언트가 선택 적용 가능
-        text: denoised,
-        rawText: rawFullText,
-        normalizedText: denoised,
-        confidence: (Array.isArray(detections) && detections[0] && (detections[0] as any).confidence) ? (detections[0] as any).confidence : 0.9
-      }
-    });
+    const payload = {
+      ...extractedData,
+      text: cleaned,
+      rawText: rawFullText,
+      normalizedText: cleaned,
+      confidence: (Array.isArray(detections) && detections[0] && (detections[0] as any).confidence) ? (detections[0] as any).confidence : 0.9,
+      engine: 'google',
+      postprocess: svc ? 'service+local' : 'local'
+    }
+    cache.set(hash, payload);
+    return NextResponse.json({ success: true, data: payload });
 
   } catch (error) {
     console.error('OCR 처리 에러:', error);
