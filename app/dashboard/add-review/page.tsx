@@ -593,6 +593,7 @@ export default function AddReviewPage() {
           if (matchedPlatform) {
             setValue("platform", matchedPlatform.value)
             fieldsUpdated++
+            setAutoFilled(prev=>({...prev, platform:true}))
           }
         }
         
@@ -600,30 +601,35 @@ export default function AddReviewPage() {
         if (business && business.trim()) {
           setValue("businessName", business.trim())
           fieldsUpdated++
+          setAutoFilled(prev=>({...prev, business:true}))
         }
         
         // 평점 설정
         if (rating && rating >= 1 && rating <= 5) {
           setValue("rating", rating.toString())
           fieldsUpdated++
+          setAutoFilled(prev=>({...prev, rating:true}))
         }
         
         // 작성자명 설정
         if (author && author.trim()) {
           setValue("customerName", author.trim())
           fieldsUpdated++
+          setAutoFilled(prev=>({...prev, author:true}))
         }
         
         // 날짜 설정
         if (reviewDate && reviewDate.trim()) {
           setValue("reviewDate", reviewDate)
           fieldsUpdated++
+          setAutoFilled(prev=>({...prev, date:true}))
         }
         
         // 리뷰 내용 설정
         if (content && content.trim() && content.length >= 5) {
           setValue("content", content.trim())
           fieldsUpdated++
+          setAutoFilled(prev=>({...prev, content:true}))
         }
       } else if (data.success && data.data) {
         const d = data.data
@@ -634,22 +640,23 @@ export default function AddReviewPage() {
                 : d.platform === 'kakao' ? platforms.find(p => p.value === '카카오맵')
                 : d.platform === 'google' ? platforms.find(p => p.value === '구글')
                 : undefined)
-          if (matched) { setValue("platform", matched.value); fieldsUpdated++ }
+          if (matched) { setValue("platform", matched.value); fieldsUpdated++; setAutoFilled(prev=>({...prev, platform:true})) }
         }
         // 작성자
-        if (d.author) { setValue("customerName", d.author); fieldsUpdated++ }
+        if (d.author) { setValue("customerName", d.author); fieldsUpdated++; setAutoFilled(prev=>({...prev, author:true})) }
         // 업체명(가능한 경우)
-        if (d.business) { setValue("businessName", d.business); fieldsUpdated++ }
+        if (d.business) { setValue("businessName", d.business); fieldsUpdated++; setAutoFilled(prev=>({...prev, business:true})) }
         // 날짜
-        if (d.date) { setValue("reviewDate", d.date); fieldsUpdated++ }
+        if (d.date) { setValue("reviewDate", d.date); fieldsUpdated++; setAutoFilled(prev=>({...prev, date:true})) }
         // 평점
-        if (d.rating && d.rating >= 1 && d.rating <= 5) { setValue("rating", d.rating.toString()); fieldsUpdated++ }
+        if (d.rating && d.rating >= 1 && d.rating <= 5) { setValue("rating", d.rating.toString()); fieldsUpdated++; setAutoFilled(prev=>({...prev, rating:true})) }
         // 내용
         setOcrRawText(d.rawText || d.text || "")
         setOcrNormalizedText(d.reviewText || d.normalizedText || d.text || "")
         const base = (useNormalized ? (d.reviewText || d.normalizedText) : (d.rawText || d.text)) || d.text
         const body = applyClientNormalization(base, normalizeLevel)
-        if (body && body.trim().length >= 5) { setValue("content", body.trim()); fieldsUpdated++ }
+        if (body && body.trim().length >= 5) { setValue("content", body.trim()); fieldsUpdated++; setAutoFilled(prev=>({...prev, content:true})) }
+        if (d.engine) setOcrEngine(d.engine)
       } else if (data.text && data.text.trim() && data.text.length >= 10) {
         // 파싱된 데이터가 없으면 전체 텍스트를 내용에 입력
         setValue("content", data.text.trim())
@@ -766,6 +773,25 @@ export default function AddReviewPage() {
                     )
                   })()}
                 </div>
+                {/* Engine and autofill chips */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {ocrEngine && (
+                    <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">엔진: {ocrEngine}</span>
+                  )}
+                  {ocrConfidence !== null && (
+                    <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">신뢰도: {ocrConfidence}%</span>
+                  )}
+                  {(autoFilled.platform||autoFilled.date||autoFilled.rating||autoFilled.business||autoFilled.author||autoFilled.content) && (
+                    <>
+                      {autoFilled.platform && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">플랫폼✓</span>}
+                      {autoFilled.date && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">날짜✓</span>}
+                      {autoFilled.rating && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">평점✓</span>}
+                      {autoFilled.business && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">업체명✓</span>}
+                      {autoFilled.author && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">작성자✓</span>}
+                      {autoFilled.content && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">내용✓</span>}
+                    </>
+                  )}
+                </div>
                 {/* Thumbnail strip */}
                 {batchItems.length>0 && (
                   <div className="flex gap-2 overflow-x-auto py-1">
@@ -787,9 +813,28 @@ export default function AddReviewPage() {
               </div>
             )}
 
-            {step === 'confirm' && (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {step === 'confirm' && (
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <p className="text-sm text-gray-600">자동 채움 결과를 확인하고 필요한 부분만 수정하세요. 위의 카드에서 이미지를 바꾸면 해당 결과가 즉시 반영됩니다.</p>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {ocrEngine && (
+                    <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">엔진: {ocrEngine}</span>
+                  )}
+                  {ocrConfidence !== null && (
+                    <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">신뢰도: {ocrConfidence}%</span>
+                  )}
+                  {(autoFilled.platform||autoFilled.date||autoFilled.rating||autoFilled.business||autoFilled.author||autoFilled.content) && (
+                    <>
+                      <span className="text-gray-500 mr-1">자동 채움됨:</span>
+                      {autoFilled.platform && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">플랫폼</span>}
+                      {autoFilled.date && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">날짜</span>}
+                      {autoFilled.rating && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">평점</span>}
+                      {autoFilled.business && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">업체명</span>}
+                      {autoFilled.author && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">작성자</span>}
+                      {autoFilled.content && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">내용</span>}
+                    </>
+                  )}
+                </div>
 
                 {/* Thumbnail strip in confirm step */}
                 {batchItems.length>0 && (
