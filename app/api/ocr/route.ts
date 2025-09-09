@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import sharp from 'sharp';
 import { LRUCache } from 'lru-cache';
 import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal, normalizeWhitespacePunct as normPunct } from '@/lib/text-clean';
+import Tesseract from 'tesseract.js';
 const vision = require('@google-cloud/vision');
 
 // Google Vision API 클라이언트 초기화
@@ -193,10 +194,27 @@ export async function POST(req: NextRequest) {
     const detections = result.textAnnotations;
     
     if (!full && (!detections || detections.length === 0)) {
-      return NextResponse.json(
-        { error: '텍스트를 찾을 수 없습니다.' },
-        { status: 400 }
-      );
+      // Try Tesseract fallback before giving up
+      try {
+        const tess = await Tesseract.recognize(buffer, 'kor+eng');
+        const tText = (tess?.data?.text || '').trim();
+        if (tText) {
+          const cleanedT = cleanKoreanReview(stripNoiseLocal(refineSpacing(tText)), { maskPII: true, strong: true });
+          const tExtract = analyzeReviewText(cleanedT);
+          const payload = {
+            ...tExtract,
+            text: cleanedT,
+            rawText: tText,
+            normalizedText: cleanedT,
+            confidence: 0.7,
+            engine: 'tesseract',
+            postprocess: 'local'
+          }
+          cache.set(hash, payload);
+          return NextResponse.json({ success: true, data: payload });
+        }
+      } catch {}
+      return NextResponse.json({ success: false, error: '텍스트를 찾을 수 없습니다.' });
     }
     
     // Rebuild text in reading order when Google's assembled text is noisy
@@ -257,15 +275,31 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('OCR 처리 에러:', error);
-    
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'OCR 처리 중 오류가 발생했습니다.',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
-      },
-      { status: 500 }
-    );
+    // Last resort: Tesseract fallback
+    try {
+      const formData = await req.formData();
+      const image = formData.get('image') as File;
+      if (image) {
+        const buf = Buffer.from(await image.arrayBuffer());
+        const tess = await Tesseract.recognize(buf, 'kor+eng');
+        const tText = (tess?.data?.text || '').trim();
+        if (tText) {
+          const cleanedT = cleanKoreanReview(stripNoiseLocal(refineSpacing(tText)), { maskPII: true, strong: true });
+          const tExtract = analyzeReviewText(cleanedT);
+          const payload = {
+            ...tExtract,
+            text: cleanedT,
+            rawText: tText,
+            normalizedText: cleanedT,
+            confidence: 0.7,
+            engine: 'tesseract',
+            postprocess: 'local'
+          }
+          return NextResponse.json({ success: true, data: payload });
+        }
+      }
+    } catch {}
+    return NextResponse.json({ success: false, error: 'OCR 처리 중 오류가 발생했습니다.' });
   }
 }
 
