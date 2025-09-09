@@ -181,10 +181,12 @@ export async function POST(req: NextRequest) {
     // Rebuild text in reading order when Google's assembled text is noisy
     const rebuilt = rebuildReadingOrder(result);
     const rawFullText = (rebuilt || full || detections?.[0]?.description || '').trim();
+    // 1) spacing 정리 → 2) 공통 UI 노이즈 제거 → 3) 플랫폼 전용 파싱
     const normalizedFullText = refineSpacing(rawFullText);
+    const denoised = stripCommonNoiseLines(normalizedFullText);
     
-    // 텍스트 분석 및 데이터 추출
-    const extractedData = analyzeReviewText(normalizedFullText);
+    // 텍스트 분석 및 데이터 추출(항상 denoised 기준으로 진행)
+    const extractedData = analyzeReviewText(denoised);
 
     // OCR 사용 기록 저장 (임시 비활성화)
     /*
@@ -206,10 +208,11 @@ export async function POST(req: NextRequest) {
       success: true,
       data: {
         ...extractedData,
-        text: normalizedFullText,
+        // 원문/정리본 모두 반환하여 클라이언트가 선택 적용 가능
+        text: denoised,
         rawText: rawFullText,
-        normalizedText: normalizedFullText,
-        confidence: detections[0].confidence || 0.9
+        normalizedText: denoised,
+        confidence: (Array.isArray(detections) && detections[0] && (detections[0] as any).confidence) ? (detections[0] as any).confidence : 0.9
       }
     });
 
@@ -344,6 +347,21 @@ function normalizeText(s: string): string {
     .replace(/ +/g, ' ')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .trim();
+}
+
+// 공통 UI 노이즈 라인 제거(플랫폼 공통 요소들)
+function stripCommonNoiseLines(text: string): string {
+  const rawLines = text.split('\n').map(l => l.trim());
+  const uiWords = [
+    '팔로우','팔로잉','프로필','번역','공유','신고','접기','더보기','지도보기','길찾기','전화',
+    '좋아요','댓글','메뉴','사장님','사장님 댓글','답글','관심',
+  ];
+  const isSymbolOnly = (s: string) => s.length <= 3 && /^[^\w가-힣]+$/.test(s);
+  const filtered = rawLines.filter(l => l && !uiWords.some(w => l === w || l.includes(w)) && !isSymbolOnly(l));
+  // 상단 고정 헤더 영역 컷(텍스트 상단 10% 가정)
+  // 텍스트 기반 컷이므로 첫 2~3줄에 노이즈가 몰릴 때 제거
+  const startIdx = Math.min(3, Math.floor(filtered.length * 0.1));
+  return filtered.slice(startIdx).join('\n').trim();
 }
 
 function parseNaver(text: string): { author: string; body: string; date: string; business: string } {

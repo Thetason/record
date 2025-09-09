@@ -55,7 +55,7 @@ export default function AddReviewPage() {
   const [useNormalized, setUseNormalized] = useState(true)
   const [ocrRawText, setOcrRawText] = useState<string>("")
   const [ocrNormalizedText, setOcrNormalizedText] = useState<string>("")
-  const [normalizeLevel, setNormalizeLevel] = useState<'off'|'normal'|'strong'>('normal')
+  const [normalizeLevel, setNormalizeLevel] = useState<'off'|'normal'|'strong'>('strong')
   
   // 새로운 UX 개선 상태
   const [showPreview, setShowPreview] = useState(false)
@@ -794,7 +794,20 @@ export default function AddReviewPage() {
                 {selectedIndex>=0 && batchItems[selectedIndex] && (
                   <img src={batchItems[selectedIndex].previewUrl} className="max-h-[220px] w-full object-contain rounded-lg border" alt="selected" />
                 )}
-                {/* 필수 최소 필드 */}
+              {/* 원문/정리본 + 보정 강도 */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-lg border overflow-hidden">
+                  <button type="button" onClick={() => { setUseNormalized(true); if (ocrNormalizedText) setValue('content', applyClientNormalization(ocrNormalizedText, normalizeLevel)) }} className={`px-3 py-1 text-sm ${useNormalized?'bg-orange-50 text-orange-700':'text-gray-600'}`}>정리본</button>
+                  <button type="button" onClick={() => { setUseNormalized(false); if (ocrRawText) setValue('content', applyClientNormalization(ocrRawText, normalizeLevel)) }} className={`px-3 py-1 text-sm ${!useNormalized?'bg-orange-50 text-orange-700':'text-gray-600'}`}>원문</button>
+                </div>
+                <div className="inline-flex rounded-lg border overflow-hidden">
+                  {(['off','normal','strong'] as const).map(lvl => (
+                    <button key={lvl} type="button" onClick={() => { setNormalizeLevel(lvl); const base = useNormalized ? (ocrNormalizedText || ocrRawText) : ocrRawText; if (base) setValue('content', applyClientNormalization(base, lvl)) }} className={`px-3 py-1 text-sm ${normalizeLevel===lvl?'bg-gray-100 text-gray-800':'text-gray-600'}`}>{lvl==='off'?'보정 끔':lvl==='normal'?'보정 기본':'보정 강함'}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 필수 최소 필드 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <FormLabel>플랫폼</FormLabel>
