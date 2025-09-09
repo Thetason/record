@@ -111,15 +111,21 @@ export function fixParticlesAndUnits(text: string): string {
     '은','는','이','가','을','를','과','와','로','으로','에','에서','에게','한테','께','께서','의',
     '까지','부터','만','뿐','도','처럼','같이','마다','대로','밖에','조차','마저','이라도','라도','이나','나','이나마','라면','라서','이며'
   ]
-  const particleRe = new RegExp(`(?<=[\\p{Script=Hangul}])\\s+(?:${PARTICLES.join('|')})(?=\\b)`, 'gu')
-  const unitRe = /(\d+|[A-Za-z])\s+(차|번|명|개|년|월|일|시|분|초|회|장|건|단계|차수)\b/g
-  const quoteRe1 = /\s+([’”\)\]\}])/g; // space before closing quotes/brackets
-  const quoteRe2 = /([‘“\(\[\{])\s+/g; // space after opening quotes/brackets
+  // Hangul + space + particle + (end|space|punct) => collapse space
+  const particleRe = new RegExp(`(?<=\\p{Script=Hangul})\\s+(?:${PARTICLES.join('|')})(?=(?:[\\s,\.!\?…:;\)\]\}”’\"]|$))`, 'gu')
+  // Number/alpha + unit
+  const unitRe = /(\d+|[A-Za-z])\s+(차|번|명|개|년|월|일|시|분|초|회|장|건|단계|차수)(?=\b)/g
+  // quotes/brackets
+  const quoteRe1 = /\s+([’”"\)\]\}])/g; // before closing quotes/brackets
+  const quoteRe2 = /([‘“"\(\[\{])\s+/g; // after opening quotes/brackets
+  // collapse spaces around middle dots/bullets frequently coming from OCR
+  const midDot = /\s*[·•]\s*/g
   return text
     .replace(particleRe, (m) => m.replace(/\s+/g, ''))
     .replace(unitRe, '$1$2')
     .replace(quoteRe1, '$1')
     .replace(quoteRe2, '$1')
+    .replace(midDot, ' · ')
 }
 
 export default cleanKoreanReview
