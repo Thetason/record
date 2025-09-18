@@ -2,13 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
+import { validateAndNormalizeUsername } from '@/lib/validators/username';
 
 export async function POST(req: NextRequest) {
   try {
     const { username, email, password, name } = await req.json();
 
+    const usernameValidation = validateAndNormalizeUsername(username);
+
+    if (!usernameValidation.ok) {
+      return NextResponse.json(
+        { error: usernameValidation.message },
+        { status: usernameValidation.status }
+      );
+    }
+
+    const normalizedUsername = usernameValidation.value;
+
     // 입력값 검증
-    if (!username || !email || !password) {
+    if (!normalizedUsername || !email || !password) {
       return NextResponse.json(
         { error: '필수 정보를 모두 입력해주세요.' },
         { status: 400 }
@@ -36,14 +48,14 @@ export async function POST(req: NextRequest) {
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
-          { username },
+          { username: normalizedUsername },
           { email }
         ]
       }
     });
 
     if (existingUser) {
-      if (existingUser.username === username) {
+      if (existingUser.username === normalizedUsername) {
         return NextResponse.json(
           { error: '이미 사용 중인 아이디입니다.' },
           { status: 400 }
@@ -61,18 +73,19 @@ export async function POST(req: NextRequest) {
     // 사용자 생성
     const user = await prisma.user.create({
       data: {
-        username,
+        username: normalizedUsername,
         email,
         password: hashedPassword,
-        name: name || username,
-        avatar: name?.charAt(0).toUpperCase() || username.charAt(0).toUpperCase(),
+        name: name || normalizedUsername,
+        avatar:
+          name?.charAt(0).toUpperCase() || normalizedUsername.charAt(0).toUpperCase(),
         plan: 'free',
         reviewLimit: 50
       }
     });
 
     // 환영 이메일 발송 (비동기로 처리)
-    sendEmail(email, 'welcome', { name: name || username }).catch(err => {
+    sendEmail(email, 'welcome', { name: name || normalizedUsername }).catch(err => {
       console.error('환영 이메일 발송 실패:', err);
     });
 
@@ -88,7 +101,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: '회원가입이 완료되었습니다.'
+      message: '회원가입이 완료되었습니다.',
+      username: normalizedUsername,
+      truncated: usernameValidation.truncated
     });
 
   } catch (error) {

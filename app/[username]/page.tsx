@@ -1,6 +1,8 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { cache } from "react"
 import ProfileClient from "./ProfileClient"
+import { fetchPublicProfile } from "@/lib/profile"
 
 interface Props {
   params: { username: string }
@@ -8,7 +10,7 @@ interface Props {
 
 // SEO를 위한 서버사이드 메타데이터
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const profile = await getProfile(params.username)
+  const profile = await getProfile(params.username, false)
   
   if (!profile) {
     return {
@@ -41,26 +43,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-async function getProfile(username: string) {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3004'}/api/profile/${username}`,
-      { 
-        cache: 'no-store',
-        next: { revalidate: 60 } // 60초마다 재검증
-      }
-    )
-    
-    if (!res.ok) return null
-    return res.json()
-  } catch (error) {
-    console.error("Failed to fetch profile:", error)
+const getProfile = cache(async (username: string, incrementView: boolean) => {
+  const result = await fetchPublicProfile(username, {
+    incrementView,
+    includeDemoFallback: true
+  })
+
+  if (!result.ok) {
     return null
   }
-}
+
+  return result.profile
+})
 
 export default async function ProfilePage({ params }: Props) {
-  const profile = await getProfile(params.username)
+  const profile = await getProfile(params.username, true)
   
   if (!profile) {
     notFound()
