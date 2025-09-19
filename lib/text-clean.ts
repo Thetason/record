@@ -34,7 +34,7 @@ export function collapseSpuriousHangulSpaces(line: string): string {
   const ratio = tokens.length ? singleHangul / tokens.length : 0
   if (ratio >= 0.6) {
     // Likely "자 유 로 운" style artifacts: remove spaces between Hangul letters only
-    return line.replace(/(?<=\p{Script=Hangul})\s+(?=\p{Script=Hangul})/gu, '')
+    return line.replace(/(?<=[\uAC00-\uD7AF])\s+(?=[\uAC00-\uD7AF])/g, '')
   }
   return line
 }
@@ -51,7 +51,7 @@ export function stripCommonNoiseLines(text: string): string {
   const chipKeywords = [
     '열정적','소통','맞춤','지도','체계적','실력','친절','전문','정성','세심','깔끔','깨끗','가성비','분위기','추천','재방문','설명','응대','서비스'
   ]
-  const isEmojiStart = (s: string) => /^(\p{Extended_Pictographic}|[🔥✅📈👨‍🏫👩‍🏫✨😀🙂👍👉➡️📌])\s?/u.test(s)
+  const isEmojiStart = (s: string) => /^[\u{1F300}-\u{1FAFF}\u{1F900}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{2600}-\u{27BF}]\s?/u.test(s) || /^[🔥✅📈👨‍🏫👩‍🏫✨😀🙂👍👉➡️📌]/.test(s)
   const isNaverChip = (s: string) => {
     if (s.length === 0) return false
     if (s.length > 24) return false
@@ -98,7 +98,7 @@ export function cleanKoreanReview(text: string, opts: CleanOptions = {}): string
   if (opts.maskPII) s = maskSensitive(s)
   // strong cleanup: drop very short symbol lines
   if (opts.strong) {
-    s = s.split('\n').filter(l => /[\p{Script=Hangul}A-Za-z0-9]/u.test(l) && l.length >= 2).join('\n')
+    s = s.split('\n').filter(l => /[\uAC00-\uD7AFA-Za-z0-9]/.test(l) && l.length >= 2).join('\n')
   }
   // trim excessive blank lines
   s = s.split('\n').filter((l, i, arr) => !(l === '' && arr[i-1] === '')).join('\n').trim()
@@ -112,7 +112,7 @@ export function fixParticlesAndUnits(text: string): string {
     '까지','부터','만','뿐','도','처럼','같이','마다','대로','밖에','조차','마저','이라도','라도','이나','나','이나마','라면','라서','이며'
   ]
   // Hangul + space + particle + (end|space|punct) => collapse space
-  const particleRe = new RegExp(`(?<=\\p{Script=Hangul})\\s+(?:${PARTICLES.join('|')})(?=(?:[\\s,\.!\?…:;\)\]\}”’\"]|$))`, 'gu')
+  const particleRe = new RegExp(`(?<=[\\uAC00-\\uD7AF])\\s+(?:${PARTICLES.join('|')})(?=(?:[\\s,\.!\?…:;\)\]\}”’\"]|$))`, 'g')
   // Number/alpha + unit
   const unitRe = /(\d+|[A-Za-z])\s+(차|번|명|개|년|월|일|시|분|초|회|장|건|단계|차수)(?=\b)/g
   // quotes/brackets
