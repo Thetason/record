@@ -59,7 +59,7 @@ const nextConfig: NextConfig = {
   },
   
   // 서버 외부 패키지 (서버 전용 런타임에서만 사용)
-  serverExternalPackages: ['@prisma/client', 'bcryptjs', '@google-cloud/vision', 'tesseract.js', 'open-korean-text-node'],
+  serverExternalPackages: ['@prisma/client', 'bcryptjs', '@google-cloud/vision'],
   
   // Headers for security and performance
   async headers() {
