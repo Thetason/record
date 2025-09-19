@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import sharp from 'sharp';
 import { LRUCache } from 'lru-cache';
 import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal, normalizeWhitespacePunct as normPunct } from '@/lib/text-clean';
+import { improveSpacingViaService } from '@/lib/spacing-service';
 const vision = require('@google-cloud/vision');
 
 // Google Vision API 클라이언트 초기화
@@ -256,20 +257,25 @@ export async function POST(req: NextRequest) {
     const rebuilt = rebuildReadingOrder(result);
     const rawFullText = (rebuilt || full || detections?.[0]?.description || '').trim();
     // Local cleaning
-    const normalizedFullText = refineSpacing(rawFullText);
-    const denoised = stripNoiseLocal(normalizedFullText);
+    const normalization = await normalizeForAnalysis(rawFullText);
+    let baseForCleaner = normalization.baseText;
     // External cleaner (optional)
-    let cleaned = denoised;
+    let cleaned = baseForCleaner;
+    let externalApplied = false;
     const svc = process.env.TEXT_CLEAN_SERVICE_URL;
     if (svc) {
       try {
         const ctrl = new AbortController();
         const t = setTimeout(() => ctrl.abort(), 2000);
-        const resp = await fetch(svc, { method: 'POST', body: JSON.stringify({ text: denoised }), headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal });
+        const resp = await fetch(svc, { method: 'POST', body: JSON.stringify({ text: baseForCleaner }), headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal });
         clearTimeout(t);
         if (resp.ok) {
           const j: any = await resp.json();
-          cleaned = (j.cleaned || j.text || cleaned).toString();
+          const external = (j.cleaned || j.text);
+          if (external && typeof external === 'string') {
+            cleaned = external;
+            externalApplied = true;
+          }
         }
       } catch {}
     }
@@ -277,8 +283,8 @@ export async function POST(req: NextRequest) {
     // Final safety normalization
     cleaned = cleanKoreanReview(cleaned, { maskPII: true, strong: true });
     
-    // 텍스트 분석 및 데이터 추출(항상 denoised 기준으로 진행)
-    const extractedData = analyzeReviewText(denoised);
+    // 텍스트 분석 및 데이터 추출(Spacing 서비스 적용 결과 기준)
+    const extractedData = analyzeReviewText(baseForCleaner);
 
     // OCR 사용 기록 저장 (임시 비활성화)
     /*
@@ -296,6 +302,11 @@ export async function POST(req: NextRequest) {
     });
     */
 
+    const postSteps: string[] = [];
+    if (normalization.spacingApplied) postSteps.push('spacing-service');
+    if (externalApplied) postSteps.push('external');
+    postSteps.push('local');
+
     const payload = {
       ...extractedData,
       text: cleaned,
@@ -303,7 +314,11 @@ export async function POST(req: NextRequest) {
       normalizedText: cleaned,
       confidence: (Array.isArray(detections) && detections[0] && (detections[0] as any).confidence) ? (detections[0] as any).confidence : 0.9,
       engine: 'google',
-      postprocess: svc ? 'service+local' : 'local'
+      postprocess: postSteps.join('+'),
+      intermediateText: {
+        denoised: normalization.denoised,
+        base: baseForCleaner
+      }
     }
     cache.set(hash, payload);
     return NextResponse.json({ success: true, data: payload });
@@ -319,8 +334,39 @@ export async function POST(req: NextRequest) {
         const tess = await Tesseract.recognize(lastUploadedBuffer, 'kor+eng');
         const tText = (tess?.data?.text || '').trim();
         if (tText) {
-          const cleanedT = cleanKoreanReview(stripNoiseLocal(refineSpacing(tText)), { maskPII: true, strong: true });
-          const tExtract = analyzeReviewText(cleanedT);
+          const normalization = await normalizeForAnalysis(tText);
+          let baseForCleaner = normalization.baseText;
+          let cleanedT = baseForCleaner;
+          let externalApplied = false;
+
+          if (process.env.TEXT_CLEAN_SERVICE_URL) {
+            try {
+              const ctrl = new AbortController();
+              const t = setTimeout(() => ctrl.abort(), 2000);
+              const resp = await fetch(process.env.TEXT_CLEAN_SERVICE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: baseForCleaner }),
+                signal: ctrl.signal
+              });
+              clearTimeout(t);
+              if (resp.ok) {
+                const j: any = await resp.json();
+                const external = (j.cleaned || j.text);
+                if (external && typeof external === 'string') {
+                  cleanedT = external;
+                  externalApplied = true;
+                }
+              }
+            } catch {}
+          }
+
+          cleanedT = cleanKoreanReview(cleanedT, { maskPII: true, strong: true });
+          const tExtract = analyzeReviewText(baseForCleaner);
+          const postSteps = [] as string[];
+          if (normalization.spacingApplied) postSteps.push('spacing-service');
+          if (externalApplied) postSteps.push('external');
+          postSteps.push('local');
           const payload = {
             ...tExtract,
             text: cleanedT,
@@ -328,7 +374,11 @@ export async function POST(req: NextRequest) {
             normalizedText: cleanedT,
             confidence: 0.7,
             engine: 'tesseract',
-            postprocess: 'local'
+            postprocess: postSteps.join('+'),
+            intermediateText: {
+              denoised: normalization.denoised,
+              base: baseForCleaner
+            }
           }
           return NextResponse.json({ success: true, data: payload });
         }
@@ -706,4 +756,17 @@ function refineSpacing(text: string): string {
     }
     return line;
   }).join('\n');
+}
+
+async function normalizeForAnalysis(raw: string) {
+  const refined = refineSpacing(raw);
+  const denoised = stripNoiseLocal(refined);
+  const spaced = await improveSpacingViaService(denoised);
+  const baseText = spaced ?? denoised;
+  return {
+    refined,
+    denoised,
+    baseText,
+    spacingApplied: Boolean(spaced)
+  };
 }

@@ -50,6 +50,23 @@ Google Vision API 키가 설정되지 않은 경우:
 - 데모 텍스트가 자동으로 입력됨
 - 실제 OCR 기능 테스트를 위해서는 API 키 설정 필요
 
+## 띄어쓰기 보정 서비스 (선택 사항)
+보다 자연스러운 텍스트 출력을 위해 Python 기반 띄어쓰기 보정(`soyspacing`)을 별도 서버리스 함수로 배포하고, 다음 환경 변수를 추가로 설정할 수 있습니다.
+
+```
+SPACING_SERVICE_URL=https://<your-cloud-run-app>/spacing
+# 필요 시 인증 토큰을 Authorization 헤더로 전달
+SPACING_SERVICE_API_KEY=<optional-token>
+# 기본 타임아웃(2초) 조정
+SPACING_SERVICE_TIMEOUT_MS=2000
+```
+
+### 배포 예시 (Cloud Run)
+1. `python:3.11-slim` 이미지를 사용하여 `soyspacing` 모델을 로드하는 Flask/FastAPI 앱 작성
+2. `gcloud run deploy`로 배포 (리전: `asia-northeast1` 권장)
+3. 요청 형식은 JSON `{ "text": "교정할 문장" }` → 응답 `{ "spaced": "띄어쓰기 교정 결과" }`
+4. 위 URL과 토큰을 Vercel 환경 변수로 등록하면 `/api/ocr`에서 자동으로 호출합니다. 서비스가 응답하지 않으면 기존 규칙 기반 로직으로 자동 fallback 됩니다.
+
 ## 요금 정보
 - Google Vision API: 월 1,000건 무료
 - 이후 1,000건당 $1.50
