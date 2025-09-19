@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import sharp from 'sharp';
 import { LRUCache } from 'lru-cache';
 import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal, normalizeWhitespacePunct as normPunct } from '@/lib/text-clean';
+import { improveKoreanSpacing } from '@/lib/korean-spacing';
 const vision = require('@google-cloud/vision');
 
 // Google Vision API 클라이언트 초기화
@@ -229,8 +230,9 @@ export async function POST(req: NextRequest) {
           const tess = await Tesseract.recognize(buffer, 'kor+eng');
           const tText = (tess?.data?.text || '').trim();
           if (tText) {
-            const cleanedT = cleanKoreanReview(stripNoiseLocal(refineSpacing(tText)), { maskPII: true, strong: true });
-            const tExtract = analyzeReviewText(cleanedT);
+            const { spaced, denoised } = runNormalizationPipeline(tText);
+            const cleanedT = cleanKoreanReview(spaced, { maskPII: true, strong: true });
+            const tExtract = analyzeReviewText(spaced);
             const payload = {
               ...tExtract,
               text: cleanedT,
@@ -238,7 +240,11 @@ export async function POST(req: NextRequest) {
               normalizedText: cleanedT,
               confidence: 0.7,
               engine: 'tesseract',
-              postprocess: 'local'
+              postprocess: 'local',
+              intermediateText: {
+                denoised,
+                spaced
+              }
             }
             cache.set(hash, payload);
             return NextResponse.json({ success: true, data: payload });
@@ -256,29 +262,28 @@ export async function POST(req: NextRequest) {
     const rebuilt = rebuildReadingOrder(result);
     const rawFullText = (rebuilt || full || detections?.[0]?.description || '').trim();
     // Local cleaning
-    const normalizedFullText = refineSpacing(rawFullText);
-    const denoised = stripNoiseLocal(normalizedFullText);
+    const { refined: normalizedFullText, denoised, spaced } = runNormalizationPipeline(rawFullText);
     // External cleaner (optional)
-    let cleaned = denoised;
+    let cleanedBase = spaced;
     const svc = process.env.TEXT_CLEAN_SERVICE_URL;
     if (svc) {
       try {
         const ctrl = new AbortController();
         const t = setTimeout(() => ctrl.abort(), 2000);
-        const resp = await fetch(svc, { method: 'POST', body: JSON.stringify({ text: denoised }), headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal });
+        const resp = await fetch(svc, { method: 'POST', body: JSON.stringify({ text: spaced }), headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal });
         clearTimeout(t);
         if (resp.ok) {
           const j: any = await resp.json();
-          cleaned = (j.cleaned || j.text || cleaned).toString();
+          cleanedBase = (j.cleaned || j.text || cleanedBase).toString();
         }
       } catch {}
     }
 
     // Final safety normalization
-    cleaned = cleanKoreanReview(cleaned, { maskPII: true, strong: true });
-    
+    const cleaned = cleanKoreanReview(cleanedBase, { maskPII: true, strong: true });
+
     // 텍스트 분석 및 데이터 추출(항상 denoised 기준으로 진행)
-    const extractedData = analyzeReviewText(denoised);
+    const extractedData = analyzeReviewText(cleanedBase);
 
     // OCR 사용 기록 저장 (임시 비활성화)
     /*
@@ -290,7 +295,7 @@ export async function POST(req: NextRequest) {
         details: {
           platform: extractedData.platform,
           rating: extractedData.rating,
-          textLength: fullText.length
+          textLength: rawFullText.length
         }
       }
     });
@@ -303,7 +308,11 @@ export async function POST(req: NextRequest) {
       normalizedText: cleaned,
       confidence: (Array.isArray(detections) && detections[0] && (detections[0] as any).confidence) ? (detections[0] as any).confidence : 0.9,
       engine: 'google',
-      postprocess: svc ? 'service+local' : 'local'
+      postprocess: svc ? 'service+local' : 'local',
+      intermediateText: {
+        denoised,
+        spaced
+      }
     }
     cache.set(hash, payload);
     return NextResponse.json({ success: true, data: payload });
@@ -319,8 +328,9 @@ export async function POST(req: NextRequest) {
         const tess = await Tesseract.recognize(lastUploadedBuffer, 'kor+eng');
         const tText = (tess?.data?.text || '').trim();
         if (tText) {
-          const cleanedT = cleanKoreanReview(stripNoiseLocal(refineSpacing(tText)), { maskPII: true, strong: true });
-          const tExtract = analyzeReviewText(cleanedT);
+          const { spaced, denoised } = runNormalizationPipeline(tText);
+          const cleanedT = cleanKoreanReview(spaced, { maskPII: true, strong: true });
+          const tExtract = analyzeReviewText(spaced);
           const payload = {
             ...tExtract,
             text: cleanedT,
@@ -328,7 +338,11 @@ export async function POST(req: NextRequest) {
             normalizedText: cleanedT,
             confidence: 0.7,
             engine: 'tesseract',
-            postprocess: 'local'
+            postprocess: 'local',
+            intermediateText: {
+              denoised,
+              spaced
+            }
           }
           return NextResponse.json({ success: true, data: payload });
         }
@@ -706,4 +720,11 @@ function refineSpacing(text: string): string {
     }
     return line;
   }).join('\n');
+}
+
+function runNormalizationPipeline(rawText: string) {
+  const refined = refineSpacing(rawText);
+  const denoised = stripNoiseLocal(refined);
+  const spaced = improveKoreanSpacing(denoised);
+  return { refined, denoised, spaced };
 }

@@ -51,6 +51,7 @@
     "next": "15.4.6",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
+    "open-korean-text-node": "^4.4.4",
     "prisma": "^6.13.0",
     "qrcode": "^1.5.4",
     "react": "19.0.0",
