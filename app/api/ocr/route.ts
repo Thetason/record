@@ -9,6 +9,7 @@ import sharp from 'sharp';
 import { LRUCache } from 'lru-cache';
 import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal, normalizeWhitespacePunct as normPunct } from '@/lib/text-clean';
 import { improveSpacingViaService } from '@/lib/spacing-service';
+import { rateLimit, getIP, rateLimitResponse, apiLimits } from '@/lib/rate-limit';
 const vision = require('@google-cloud/vision');
 
 // Google Vision API 클라이언트 초기화
@@ -16,6 +17,7 @@ let visionClient: any = null;
 const cache = new LRUCache<string, any>({ max: 500, ttl: 1000 * 60 * 60 * 24 * 7 });
 const enableTesseractFallback = process.env.ENABLE_TESSERACT_FALLBACK === 'true';
 const visionTimeoutMs = Number(process.env.OCR_VISION_TIMEOUT_MS || 18000);
+const limiter = rateLimit({ interval: 60 * 1000, uniqueTokenPerInterval: 500 });
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   if (!ms || Number.isNaN(ms) || ms <= 0) {
@@ -82,46 +84,53 @@ export async function POST(req: NextRequest) {
   try {
     // Feature flag: allow disabling OCR and always return mock
     const ocrEnabled = process.env.ENABLE_OCR !== 'false';
-    // 임시로 인증 우회 (테스트용)
     console.log('📸 OCR API 호출됨');
-    
-    // 인증 확인 (임시 비활성화)
-    /*
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+
+    if (!ocrEnabled) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '로그인이 필요합니다.' 
+          error: 'OCR 기능이 현재 비활성화되어 있습니다.'
+        },
+        { status: 503 }
+      );
+    }
+
+    // Rate limiting (per IP)
+    const clientIp = getIP(req) || 'unknown';
+    try {
+      await limiter.check(req, apiLimits.ocr, `ocr_${clientIp}`);
+    } catch {
+      return rateLimitResponse(60);
+    }
+
+    // 인증 확인
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '로그인이 필요합니다.'
         },
         { status: 401 }
       );
     }
-    */
 
-    // 임시 사용자 정보 (테스트용)
-    const user = { 
-      id: 'test-user', 
-      plan: 'FREE' 
-    };
-    
-    /*
     // 사용자 정보 조회
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true, plan: true }
+      where: { id: session.user.id },
+      select: { id: true, plan: true, reviewLimit: true }
     });
 
     if (!user) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '사용자를 찾을 수 없습니다.' 
+          error: '사용자를 찾을 수 없습니다.'
         },
         { status: 404 }
       );
     }
-    */
 
     // 요청 데이터 파싱
     let formData;

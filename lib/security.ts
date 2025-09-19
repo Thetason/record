@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from './rate-limit'
 
 // CORS 설정
-const allowedOrigins = [
+const envOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+  : [];
+
+const allowedOrigins = Array.from(new Set([
   'https://record-rho.vercel.app',
   'https://re-cord.co.kr',
-  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:3001'] : [])
-]
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:3001'] : []),
+  ...envOrigins,
+]));
 
 export function corsHeaders(origin?: string) {
   const isAllowedOrigin = origin && allowedOrigins.includes(origin)

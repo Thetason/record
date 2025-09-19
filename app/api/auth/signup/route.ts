@@ -3,9 +3,22 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
+import { rateLimit, getIP, rateLimitResponse, apiLimits } from '@/lib/rate-limit';
+
+const limiter = rateLimit({
+  interval: 60 * 1000,
+  uniqueTokenPerInterval: 300,
+});
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getIP(req) || 'unknown';
+    try {
+      await limiter.check(req, apiLimits.signup, `signup_${clientIp}`);
+    } catch {
+      return rateLimitResponse();
+    }
+
     const { username, email, password, name } = await req.json();
 
     const usernameValidation = validateAndNormalizeUsername(username);
