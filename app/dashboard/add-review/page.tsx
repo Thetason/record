@@ -21,7 +21,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import SoftCard from "@/components/ui/soft-card"
 import BenefitMeter from "@/components/ui/benefit-meter"
 import SavedFeed from "@/components/ui/saved-feed"
-import ActionsDock from "@/components/ui/actions-dock"
 
 interface ReviewForm {
   platform: string
@@ -1701,15 +1700,6 @@ export default function AddReviewPage() {
           </Card>
         </div>
       </div>
-      {/* Action Dock (simplified flow helper) */}
-      <ActionsDock
-        step={step}
-        onBack={() => setStep(step === 'confirm' ? 'review' : 'upload')}
-        onNext={() => setStep(step === 'upload' ? 'review' : 'confirm')}
-        onSave={handleSubmit(onSubmit)}
-        nextDisabled={step === 'review' && !minimalValid()}
-        saveDisabled={!minimalValid() || isLoading}
-      />
     </div>
   )
 }
