@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import rapidPayment from '@/lib/rapid-payment';
 import { withRateLimit, corsHeaders, securityHeaders } from '@/lib/security';
+import { verifyLatpeedWebhook, LatpeedWebhookEvent } from '@/lib/latpeed';
 
 export async function POST(req: NextRequest) {
   // Rate limiting 적용
@@ -10,63 +10,37 @@ export async function POST(req: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    const signature = req.headers.get('x-rapid-signature');
     const rawBody = await req.text();
-    let payload;
+    let event: LatpeedWebhookEvent;
 
     try {
-      payload = JSON.parse(rawBody);
-    } catch (parseError) {
-      console.error('Webhook payload parse error:', parseError);
-      return NextResponse.json(
-        { error: 'Invalid JSON payload' }, 
-        { status: 400 }
-      );
-    }
-
-    // 필수 헤더 검증
-    if (!signature) {
-      console.error('Webhook signature missing');
-      return NextResponse.json(
-        { error: 'Missing signature' }, 
-        { status: 401 }
-      );
-    }
-
-    // 서명 검증 강화
-    if (!rapidPayment.verifyWebhook(signature, payload)) {
-      console.error('Webhook signature verification failed:', { 
-        receivedSignature: signature,
-        clientIp
+      event = verifyLatpeedWebhook({
+        rawBody,
+        signature: req.headers.get('x-latpeed-signature') || '',
+        eventNameHeader: req.headers.get('x-latpeed-event') || '',
+        timestampHeader: req.headers.get('x-latpeed-timestamp') || '',
       });
-      return NextResponse.json(
-        { error: 'Invalid signature' }, 
-        { status: 401 }
-      );
+    } catch (error) {
+      console.error('Latpeed webhook verification failed:', error);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    // 페이로드 검증
-    if (!payload.event_type) {
-      console.error('Webhook missing event_type');
-      return NextResponse.json(
-        { error: 'Missing event_type' }, 
-        { status: 400 }
-      );
-    }
+    console.log('Latpeed webhook received:', {
+      event: event.type,
+      subscriptionId: event.data.subscriptionId,
+      paymentId: event.data.paymentId,
+      status: event.data.status,
+    });
 
-    const { event_type, subscription_id, payment_id, status, customer_email } = payload;
-
-    console.log('Webhook received:', { event_type, subscription_id, status });
-
-    switch (event_type) {
+    switch (event.type) {
       case 'subscription.created':
       case 'payment.succeeded':
         // 결제 성공 처리
         await handlePaymentSuccess({
-          subscriptionId: subscription_id || payment_id,
-          customerEmail: customer_email,
-          amount: payload.amount,
-          plan: payload.metadata?.plan || 'premium',
+          subscriptionId: event.data.subscriptionId || event.data.paymentId,
+          customerEmail: event.data.customerEmail,
+          amount: event.data.amount,
+          plan: event.data.metadata?.plan || 'premium',
         });
         break;
 
@@ -74,22 +48,22 @@ export async function POST(req: NextRequest) {
       case 'payment.failed':
         // 결제 실패 또는 구독 취소 처리
         await handlePaymentFailure({
-          subscriptionId: subscription_id || payment_id,
-          customerEmail: customer_email,
+          subscriptionId: event.data.subscriptionId || event.data.paymentId,
+          customerEmail: event.data.customerEmail,
         });
         break;
 
       case 'subscription.renewed':
         // 구독 갱신 처리
         await handleSubscriptionRenewal({
-          subscriptionId: subscription_id,
-          customerEmail: customer_email,
-          nextBillingDate: payload.next_billing_date,
+          subscriptionId: event.data.subscriptionId,
+          customerEmail: event.data.customerEmail,
+          nextBillingDate: event.data.nextBillingDate,
         });
         break;
 
       default:
-        console.log('Unhandled webhook event:', event_type);
+        console.log('Unhandled Latpeed webhook event:', event.type);
     }
 
     return NextResponse.json({ received: true });
