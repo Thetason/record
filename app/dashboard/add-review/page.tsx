@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { ArrowLeftIcon, UploadIcon, CameraIcon, CheckIcon } from "@radix-ui/react-icons"
-import { Shield, Droplets, Save, Eye, CloudUpload, Sparkles, Clock, AlertCircle, FileText, Image as ImageIcon, Zap } from "lucide-react"
+import { Shield, Droplets, Save, Eye, CloudUpload, Sparkles, Clock, AlertCircle, FileText, Image as ImageIcon, Zap, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FormItem, FormLabel, FormMessage } from "@/components/ui/form-simple"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Progress } from "@/components/ui/progress"
+import { Textarea } from "@/components/ui/textarea"
 import { addWatermark, addSimpleWatermark } from "@/lib/watermark"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import SoftCard from "@/components/ui/soft-card"
@@ -110,7 +112,18 @@ export default function AddReviewPage() {
   } = useForm<ReviewForm>()
 
   const selectedPlatform = watch("platform")
+  const selectedRating = watch("rating")
   const formValues = watch()
+
+  const steps = [
+    { key: 'upload' as const, title: '이미지 업로드', description: '스크린샷을 추가하세요' },
+    { key: 'recognize' as const, title: '자동 인식', description: 'AI가 내용을 추출합니다' },
+    { key: 'confirm' as const, title: '확인 · 저장', description: '필드를 검토하고 저장하세요' },
+  ]
+  const currentStepIndex = Math.max(0, steps.findIndex((s) => s.key === step))
+  const totalItems = batchItems.length
+  const processedItems = batchItems.filter((b) => ['done', 'error', 'saved'].includes(b.status)).length
+  const progressPercent = totalItems === 0 ? 0 : Math.round((processedItems / totalItems) * 100)
 
   // Sync currently selected batch item's recognized form into the visible form
   const syncFormFromSelected = () => {
@@ -720,20 +733,40 @@ export default function AddReviewPage() {
   }
 
   // --- Single panel wizard early-return UI ---
-  // Keeps legacy layout below for reference but not used
-  if (true) {
-    return (
-      <div className="min-h-screen bg-gray-50">
+  // Redesigned single-panel workflow
+  return (
+    <div className="min-h-screen bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <SoftCard>
             {/* Stepper */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">새 리뷰 추가</h2>
-              <div className="flex items-center gap-2 text-xs">
-                <span className={`px-2 py-1 rounded-full ${step==='upload'?'bg-orange-100 text-orange-700':'bg-gray-100 text-gray-600'}`}>1 업로드</span>
-                <span className={`px-2 py-1 rounded-full ${step==='recognize'?'bg-orange-100 text-orange-700':'bg-gray-100 text-gray-600'}`}>2 인식</span>
-                <span className={`px-2 py-1 rounded-full ${step==='confirm'?'bg-orange-100 text-orange-700':'bg-gray-100 text-gray-600'}`}>3 확인·저장</span>
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">새 리뷰 추가</h2>
+                <span className="text-xs text-gray-500">
+                  {batchItems.length > 0 ? `${Math.max(selectedIndex, 0) + 1}/${batchItems.length} 이미지` : '이미지를 업로드하세요'}
+                </span>
               </div>
+              <ol className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center">
+                {steps.map((item, index) => {
+                  const isCompleted = index < currentStepIndex
+                  const isActive = item.key === step
+                  return (
+                    <li key={item.key} className="flex flex-1 items-start gap-3">
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                          isCompleted ? 'border-emerald-500 bg-emerald-500 text-white' : isActive ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-200 bg-white text-gray-400'
+                        }`}
+                      >
+                        {isCompleted ? <CheckIcon className="h-4 w-4" /> : index + 1}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{item.title}</span>
+                        <span className="text-xs text-gray-400">{item.description}</span>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
             </div>
 
             {/* Panel content */}
@@ -768,24 +801,16 @@ export default function AddReviewPage() {
 
             {step === 'recognize' && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">이미지에서 텍스트를 인식하는 중입니다. 잠시만 기다려주세요.</p>
-                {/* Overall progress */}
-                <div className="rounded-lg border bg-white p-4">
-                  {(() => {
-                    const done = batchItems.filter(b => b.status==='done' || b.status==='error').length
-                    const total = Math.max(1, batchItems.length)
-                    const pct = Math.round((done/total)*100)
-                    return (
-                      <>
-                        <div className="h-2 w-full rounded-full bg-orange-50 overflow-hidden">
-                          <div className="h-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400" style={{width: `${pct}%`}}></div>
-                        </div>
-                        <div className="mt-2 text-xs text-gray-600">{done}/{total} 인식 완료</div>
-                      </>
-                    )
-                  })()}
+                <div className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{processedItems}/{totalItems || 1} 인식 완료</span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                  <Progress value={progressPercent} className="mt-3 h-2" />
+                  <p className="mt-4 rounded-lg bg-gray-50 p-3 text-xs leading-5 text-gray-500">
+                    인식이 완료되면 자동으로 다음 단계로 이동합니다. 이미지가 선명할수록 정확도가 높아집니다.
+                  </p>
                 </div>
-                {/* Engine and autofill chips */}
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   {ocrEngine && (
                     <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">엔진: {ocrEngine}</span>
@@ -825,148 +850,151 @@ export default function AddReviewPage() {
               </div>
             )}
 
-              {step === 'confirm' && (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <p className="text-sm text-gray-600">자동 채움 결과를 확인하고 필요한 부분만 수정하세요. 위의 카드에서 이미지를 바꾸면 해당 결과가 즉시 반영됩니다.</p>
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {ocrEngine && (
-                    <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">엔진: {ocrEngine}</span>
-                  )}
-                  {ocrConfidence !== null && (
-                    <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">신뢰도: {ocrConfidence}%</span>
-                  )}
-                  {(autoFilled.platform||autoFilled.date||autoFilled.rating||autoFilled.business||autoFilled.author||autoFilled.content) && (
-                    <>
-                      <span className="text-gray-500 mr-1">자동 채움됨:</span>
-                      {autoFilled.platform && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">플랫폼</span>}
-                      {autoFilled.date && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">날짜</span>}
-                      {autoFilled.rating && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">평점</span>}
-                      {autoFilled.business && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">업체명</span>}
-                      {autoFilled.author && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">작성자</span>}
-                      {autoFilled.content && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">내용</span>}
-                    </>
-                  )}
-                </div>
-
-                {/* Thumbnail strip in confirm step */}
-                {batchItems.length>0 && (
-                  <div className="flex gap-2 overflow-x-auto py-1">
-                    {batchItems.map((it, idx) => (
-                      <button key={it.id} onClick={(e)=>{e.preventDefault(); setSelectedIndex(idx); setUploadedImage(it.previewUrl); syncFormFromSelected(); }} className={`min-w-20 h-20 rounded-md border overflow-hidden relative ${selectedIndex===idx?'ring-2 ring-orange-400':''}`} title={it.status}>
-                        <img src={it.previewUrl} alt="thumb" className="w-full h-full object-cover" />
-                        <span className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">{idx+1}</span>
-                        <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">
-                          {it.status==='done'?'완료':it.status==='processing'?'인식중':it.status==='error'?'오류':'대기'}
-                        </span>
-                      </button>
-                    ))}
+            {step === 'confirm' && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-gray-600">
+                    자동으로 채워진 내용을 확인하고 필요한 부분만 수정하세요. 이미지 미리보기에서 다른 이미지를 선택하면 즉시 반영됩니다.
+                  </p>
+                  <div className="flex gap-2 text-xs">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setStep('upload')}>
+                      다시 업로드
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setStep('recognize')}>
+                      다시 인식
+                    </Button>
                   </div>
-                )}
-
-                {/* Selected image preview (small) */}
-                {selectedIndex>=0 && batchItems[selectedIndex] && (
-                  <img src={batchItems[selectedIndex].previewUrl} className="max-h-[220px] w-full object-contain rounded-lg border" alt="selected" />
-                )}
-              {/* 원문/정리본 + 보정 강도 */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex rounded-lg border overflow-hidden">
-                  <button type="button" onClick={() => { setUseNormalized(true); if (ocrNormalizedText) setValue('content', applyClientNormalization(ocrNormalizedText, normalizeLevel)) }} className={`px-3 py-1 text-sm ${useNormalized?'bg-orange-50 text-orange-700':'text-gray-600'}`}>정리본</button>
-                  <button type="button" onClick={() => { setUseNormalized(false); if (ocrRawText) setValue('content', applyClientNormalization(ocrRawText, normalizeLevel)) }} className={`px-3 py-1 text-sm ${!useNormalized?'bg-orange-50 text-orange-700':'text-gray-600'}`}>원문</button>
                 </div>
-                <div className="inline-flex rounded-lg border overflow-hidden">
-                  {(['off','normal','strong'] as const).map(lvl => (
-                    <button key={lvl} type="button" onClick={() => { setNormalizeLevel(lvl); const base = useNormalized ? (ocrNormalizedText || ocrRawText) : ocrRawText; if (base) setValue('content', applyClientNormalization(base, lvl)) }} className={`px-3 py-1 text-sm ${normalizeLevel===lvl?'bg-gray-100 text-gray-800':'text-gray-600'}`}>{lvl==='off'?'보정 끔':lvl==='normal'?'보정 기본':'보정 강함'}</button>
-                  ))}
-                </div>
-              </div>
 
-              {/* 필수 최소 필드 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  {ocrEngine && <span className="rounded-full border px-2 py-1">엔진: {ocrEngine}</span>}
+                  {ocrConfidence !== null && <span className="rounded-full border px-2 py-1">신뢰도: {ocrConfidence}%</span>}
+                  {(['platform','business','author','date','rating','content'] as const).map((key) =>
+                    (autoFilled as any)[key] ? (
+                      <span key={key} className="rounded-full border border-green-200 bg-green-50 px-2 py-1 text-green-700">
+                        {key === 'platform' ? '플랫폼' : key === 'business' ? '업체명' : key === 'author' ? '작성자' : key === 'date' ? '작성일' : key === 'rating' ? '평점' : '내용'} 자동 입력
+                      </span>
+                    ) : null
+                  )}
+                </div>
+
+                <input type="hidden" {...register('platform', { required: '플랫폼을 선택해주세요' })} />
+                <input type="hidden" {...register('rating', { required: '평점을 선택하세요' })} />
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
                     <FormLabel>플랫폼</FormLabel>
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                      {['네이버','카카오맵','구글','크몽','인스타그램','기타'].map(p => (
-                        <label key={p} className={`px-2 py-1 text-xs rounded-full border cursor-pointer ${selectedPlatform===p? 'border-orange-400 bg-orange-50 text-orange-700':'border-gray-200 text-gray-700'}`}>
-                          <input type="radio" className="sr-only" value={p} {...register('platform', { required: '플랫폼을 선택해주세요' })} />
-                          {p}
-                        </label>
+                    <div className="flex flex-wrap gap-2">
+                      {platforms.map(({ value }) => (
+                        <Button
+                          key={value}
+                          type="button"
+                          size="sm"
+                          variant={selectedPlatform === value ? 'default' : 'outline'}
+                          className={selectedPlatform === value ? 'bg-orange-500 hover:bg-orange-500/90 text-white' : 'text-gray-600'}
+                          onClick={() => setValue('platform', value, { shouldValidate: true })}
+                        >
+                          {value}
+                        </Button>
                       ))}
                     </div>
                     {errors.platform && <FormMessage>{errors.platform.message}</FormMessage>}
                   </div>
-                  <div>
+
+                  <div className="space-y-2">
                     <FormLabel>평점</FormLabel>
-                    <select className="mt-1 w-full border rounded-md p-2" {...register('rating', { required: '평점을 선택하세요' })}>
-                      {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} 점</option>)}
-                    </select>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Button
+                          key={n}
+                          type="button"
+                          size="sm"
+                          variant={Number(selectedRating) === n ? 'default' : 'outline'}
+                          className={Number(selectedRating) === n ? 'bg-orange-500 hover:bg-orange-500/90 text-white' : 'text-gray-600'}
+                          onClick={() => setValue('rating', String(n), { shouldValidate: true })}
+                        >
+                          {n} 점
+                        </Button>
+                      ))}
+                    </div>
+                    {errors.rating && <FormMessage>{errors.rating.message}</FormMessage>}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <FormLabel>업체명</FormLabel>
+                      <Input placeholder="업체명을 입력" {...register('businessName', { required: '업체명을 입력하세요' })} />
+                      {errors.businessName && <FormMessage>{errors.businessName.message}</FormMessage>}
+                    </div>
+                    <div>
+                      <FormLabel>작성자</FormLabel>
+                      <Input placeholder="예: 김**" {...register('customerName', { required: '작성자를 입력하세요' })} />
+                      {errors.customerName && <FormMessage>{errors.customerName.message}</FormMessage>}
+                    </div>
+                    <div>
+                      <FormLabel>작성일</FormLabel>
+                      <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
+                      {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
+                    </div>
+                    <div>
+                      <FormLabel>원본 링크 (선택)</FormLabel>
+                      <Input placeholder="https://" {...register('originalUrl')} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <FormLabel>리뷰 내용</FormLabel>
+                    <Textarea
+                      className="mt-1 min-h-36"
+                      placeholder="리뷰 내용을 입력해주세요..."
+                      {...register('content', {
+                        required: '리뷰 내용을 입력하세요',
+                        minLength: { value: 10, message: '최소 10자 이상 입력해주세요' },
+                      })}
+                    />
+                    {errors.content && <FormMessage>{errors.content.message}</FormMessage>}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <FormLabel>업체명</FormLabel>
-                    <Input {...register('businessName', { required: '업체명을 입력하세요' })} placeholder="업체명을 입력" />
-                  </div>
-                  <div>
-                    <FormLabel>작성자</FormLabel>
-                    <Input {...register('customerName', { required: '작성자를 입력하세요' })} placeholder="예: 김**" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <FormLabel>작성일</FormLabel>
-                    <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
-                  </div>
-                  <div>
-                    <FormLabel>원본 링크(선택)</FormLabel>
-                    <Input {...register('originalUrl')} placeholder="https://" />
-                  </div>
-                </div>
-                <div>
-                  <FormLabel>리뷰 내용</FormLabel>
-                  <textarea className="mt-1 w-full border rounded-md p-3 min-h-36" {...register('content', { required: '리뷰 내용을 입력하세요', minLength: { value: 10, message: '최소 10자 이상' } })} placeholder="리뷰 내용을 입력해주세요..." />
-                  {errors.content && <FormMessage>{errors.content.message}</FormMessage>}
-                </div>
-                {/* Summary of what will be saved */}
-                <SoftCard className="border-orange-100" title="저장될 내용 미리보기">
+
+                <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
                   {(() => {
                     const v = getValues()
                     return (
-                      <div className="text-sm text-gray-700 space-y-2">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><span className="text-gray-500">플랫폼</span><div className="font-medium">{v.platform || '-'}</div></div>
-                          <div><span className="text-gray-500">평점</span><div className="font-medium">{v.rating || '-'}</div></div>
-                          <div><span className="text-gray-500">업체명</span><div className="font-medium">{v.businessName || '-'}</div></div>
-                          <div><span className="text-gray-500">작성자</span><div className="font-medium">{v.customerName || '-'}</div></div>
-                          <div><span className="text-gray-500">작성일</span><div className="font-medium">{v.reviewDate || '-'}</div></div>
+                      <div className="space-y-2">
+                        <div className="grid gap-2 text-xs text-gray-500 md:grid-cols-2">
+                          <span>플랫폼: <strong className="text-gray-800">{v.platform || '-'}</strong></span>
+                          <span>평점: <strong className="text-gray-800">{v.rating || '-'}</strong></span>
+                          <span>업체명: <strong className="text-gray-800">{v.businessName || '-'}</strong></span>
+                          <span>작성자: <strong className="text-gray-800">{v.customerName || '-'}</strong></span>
+                          <span>작성일: <strong className="text-gray-800">{v.reviewDate || '-'}</strong></span>
                         </div>
-                        <div className="mt-2">
-                          <div className="text-gray-500 mb-1">리뷰 내용</div>
-                          <div className="p-3 border rounded-md bg-gray-50 whitespace-pre-wrap text-gray-800 min-h-[96px]">{(v.content && v.content.trim()) || '내용 없음'}</div>
+                        <div>
+                          <p className="mb-1 text-xs text-gray-500">리뷰 내용</p>
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                            {(v.content && v.content.trim()) || '리뷰 내용을 입력하면 미리보기가 표시됩니다.'}
+                          </div>
                         </div>
                       </div>
                     )
                   })()}
-                </SoftCard>
-                <div className="flex justify-end">
-                  <Button type="submit" className="bg-[#FF6B35] hover:bg-[#E55A2B]">저장</Button>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={handleSkipCurrent}>
+                    건너뛰기
+                  </Button>
+                  <Button type="submit" disabled={isLoading || !minimalValid()} className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    {isLoading ? (
+                      <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> 저장 중...</span>
+                    ) : (
+                      '저장'
+                    )}
+                  </Button>
                 </div>
               </form>
             )}
           </SoftCard>
 
-          <div className="mt-4">
-            <ActionsDock
-              step={step as any}
-              onBack={() => setStep(step === 'confirm' ? 'recognize' : 'upload')}
-              onNext={() => {
-                if (step === 'upload') setStep('recognize')
-                else if (step === 'recognize') { syncFormFromSelected(); setStep('confirm') }
-              }}
-              onSave={handleSubmit(onSubmit)}
-              nextDisabled={(step==='upload' && !uploadedImage) || (step==='recognize' && isExtracting)}
-              saveDisabled={!minimalValid() || isLoading}
-            />
-          </div>
         </div>
       </div>
     )
