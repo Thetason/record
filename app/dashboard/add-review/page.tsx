@@ -258,6 +258,13 @@ export default function AddReviewPage() {
     return false
   }
 
+  useEffect(() => {
+    if (step === 'recognize' && selectedHasParsed()) {
+      setStep('confirm')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, selectedIndex, batchItems, formValues])
+
   if (status === "unauthenticated") {
     router.push("/login")
     return null
