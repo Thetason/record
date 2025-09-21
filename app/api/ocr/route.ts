@@ -227,10 +227,30 @@ export async function POST(req: NextRequest) {
     );
 
     // Try Google's assembled text first
-    const full = result.fullTextAnnotation?.text?.trim();
+    let full = result.fullTextAnnotation?.text?.trim();
     // Fallback to annotations array
-    const detections = result.textAnnotations;
-    
+    let detections = result.textAnnotations;
+
+    // Some UI-heavy 이미지에서는 DocumentTextDetection이 텍스트 일부만 반환할 수 있음. 보조 API 호출로 보충
+    if (!full || full.length < 100) {
+      try {
+        const [alt] = await withTimeout(
+          client.textDetection({ image: { content: buffer.toString('base64') }, imageContext: { languageHints: ['ko', 'en'] } }),
+          visionTimeoutMs,
+          'VISION_TEXT_FALLBACK'
+        );
+        const altFull = alt?.fullTextAnnotation?.text?.trim();
+        const altDesc = alt?.textAnnotations?.[0]?.description?.trim();
+        const candidate = [altFull, altDesc].filter(Boolean).sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0))[0];
+        if (candidate && (!full || candidate.length > full.length)) {
+          full = candidate;
+          detections = alt?.textAnnotations ?? detections;
+        }
+      } catch (fallbackError) {
+        console.warn('문서 OCR 보조 호출 실패:', fallbackError);
+      }
+    }
+
     if (!full && (!detections || detections.length === 0)) {
       // Try Tesseract fallback before giving up (load lazily to avoid worker bundling issues)
       if (enableTesseractFallback) {
