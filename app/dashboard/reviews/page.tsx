@@ -445,16 +445,16 @@ export default function ReviewsPage() {
                           </div>
                           
                           {review.imageUrl && (
-                            <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 group relative">
+                            <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 group relative max-w-sm">
                               <img
                                 src={review.imageUrl}
                                 alt="리뷰 첨부 이미지"
-                                className="w-full h-60 object-cover transition-transform duration-300 group-hover:scale-105"
+                                className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                               />
                               <button
                                 type="button"
                                 onClick={() => setPreviewImage(review.imageUrl as string)}
-                                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white text-sm font-medium"
+                                className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-medium"
                                 aria-label="리뷰 이미지 크게 보기"
                               >
                                 확대 보기

@@ -407,11 +407,11 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
 
                     {/* Content */}
                     {review.imageUrl && (
-                      <div className="mb-4 overflow-hidden rounded-xl border border-gray-200 group/image relative">
+                      <div className="mb-4 overflow-hidden rounded-xl border border-gray-200 group/image relative max-w-sm mx-auto md:mx-0">
                         <img
                           src={review.imageUrl}
                           alt={`${review.author} 리뷰 이미지`}
-                          className="w-full h-56 object-cover transition-transform duration-300 group-hover/image:scale-105"
+                          className="w-full h-40 object-cover transition-transform duration-300 group-hover/image:scale-105"
                         />
                         <button
                           type="button"
@@ -419,7 +419,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                             setActiveImage(review.imageUrl as string)
                             setActiveReview(review)
                           }}
-                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/image:opacity-100 transition-opacity text-white text-sm font-medium"
+                          className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 group-hover/image:opacity-100 transition-opacity text-white text-xs font-medium"
                           aria-label="리뷰 이미지 크게 보기"
                         >
                           이미지 확대 보기
