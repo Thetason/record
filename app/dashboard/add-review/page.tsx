@@ -528,11 +528,20 @@ export default function AddReviewPage() {
       const base = useNormalized ? (d.reviewText || d.normalizedText || d.text) : (d.rawText || d.text)
       formUpd.content = applyClientNormalization(base || '', normalizeLevel)
 
+      const hasUpdates = Boolean(
+        formUpd.platform ||
+        formUpd.businessName ||
+        formUpd.customerName ||
+        formUpd.reviewDate ||
+        formUpd.content ||
+        typeof formUpd.rating !== 'undefined'
+      )
+
       setBatchItems(prev => prev.map(it => it.id === item.id ? ({ ...it, status: 'done', confidence: d.confidence, mock: d.mock, form: { ...it.form, ...formUpd } }) : it))
       // If this is the selected one, push into form UI
       if (selectedIndex >= 0) {
         const idx = batchItems.findIndex(it => it.id === item.id)
-        if (idx === selectedIndex) {
+        if (idx === selectedIndex && hasUpdates) {
           if (formUpd.platform) setValue('platform', formUpd.platform)
           if (formUpd.businessName) setValue('businessName', formUpd.businessName)
           if (formUpd.customerName) setValue('customerName', formUpd.customerName)
@@ -540,6 +549,8 @@ export default function AddReviewPage() {
           if (formUpd.rating) setValue('rating', formUpd.rating.toString())
           if (formUpd.content) setValue('content', formUpd.content)
           if (d.confidence) setOcrConfidence(Math.round((d.confidence as number) * 100))
+          try { (window as any).__recognized__ = true } catch {}
+          setStep(prev => (prev === 'recognize' ? 'confirm' : prev))
         }
       }
     } catch (e:any) {
