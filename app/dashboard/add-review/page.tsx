@@ -23,6 +23,7 @@ interface ReviewForm {
   rating: number
   reviewDate: string
   originalUrl?: string
+  imageUrl?: string
 }
 
 const platforms = [
@@ -60,6 +61,7 @@ export default function AddReviewPage() {
     id: string
     file: File
     previewUrl: string
+    dataUrl?: string
     status: BatchStatus
     confidence?: number
     mock?: boolean
@@ -386,7 +388,7 @@ export default function AddReviewPage() {
       const currentItem = selectedIndex >= 0 ? batchItems[selectedIndex] : undefined
       const imageSrc = watermarkEnabled && watermarkedImage
         ? (watermarkedImage as string)
-        : (uploadedImage || currentItem?.previewUrl)
+        : (uploadedImage || currentItem?.dataUrl || currentItem?.form?.imageUrl || currentItem?.previewUrl || '')
 
       const res = await fetch("/api/reviews", {
         method: "POST",
@@ -398,7 +400,7 @@ export default function AddReviewPage() {
           content: data.content,
           rating: parseInt(data.rating.toString()),
           reviewDate: data.reviewDate,
-          imageUrl: imageSrc,
+          imageUrl: imageSrc || null,
           originalUrl: data.originalUrl,
           verifiedBy: uploadedImage ? 'screenshot' : data.originalUrl ? 'manual' : null,
           ocrConfidence: ocrConfidence // OCR 신뢰도 저장
@@ -473,12 +475,22 @@ export default function AddReviewPage() {
   }
 
   const enqueueFiles = async (files: File[]) => {
-    // create batch items with previews
-    const items: BatchItem[] = []
-    for (const f of files) {
-      const url = URL.createObjectURL(f)
-      items.push({ id: `${f.name}-${f.size}-${f.lastModified}-${Math.random().toString(36).slice(2)}`, file: f, previewUrl: url, status: 'queued', form: {} })
-    }
+    if (files.length === 0) return
+
+    const items: BatchItem[] = await Promise.all(
+      files.map(async (f) => {
+        const dataUrl = await fileToDataUrl(f)
+        return {
+          id: `${f.name}-${f.size}-${f.lastModified}-${Math.random().toString(36).slice(2)}`,
+          file: f,
+          previewUrl: dataUrl,
+          dataUrl,
+          status: 'queued',
+          form: { imageUrl: dataUrl }
+        }
+      })
+    )
+
     setBatchItems(prev => {
       const merged = [...prev, ...items]
       if (merged.length > 0 && selectedIndex === -1) setSelectedIndex(0)
@@ -535,16 +547,20 @@ export default function AddReviewPage() {
       const base = useNormalized ? (d.reviewText || d.normalizedText || d.text) : (d.rawText || d.text)
       formUpd.content = applyClientNormalization(base || '', normalizeLevel)
 
+      const dataUrl = item.dataUrl || await fileToDataUrl(item.file)
+      formUpd.imageUrl = dataUrl
+
       const hasUpdates = Boolean(
         formUpd.platform ||
         formUpd.businessName ||
         formUpd.customerName ||
         formUpd.reviewDate ||
         formUpd.content ||
-        typeof formUpd.rating !== 'undefined'
+        typeof formUpd.rating !== 'undefined' ||
+        formUpd.imageUrl
       )
 
-      setBatchItems(prev => prev.map(it => it.id === item.id ? ({ ...it, status: 'done', confidence: d.confidence, mock: d.mock, form: { ...it.form, ...formUpd } }) : it))
+      setBatchItems(prev => prev.map(it => it.id === item.id ? ({ ...it, status: 'done', confidence: d.confidence, mock: d.mock, dataUrl, form: { ...it.form, ...formUpd } }) : it))
       // If this is the selected one, push into form UI
       if (selectedIndex >= 0) {
         const idx = batchItems.findIndex(it => it.id === item.id)
@@ -555,6 +571,10 @@ export default function AddReviewPage() {
           if (formUpd.reviewDate) setValue('reviewDate', formUpd.reviewDate)
           if (formUpd.rating) setValue('rating', formUpd.rating.toString())
           if (formUpd.content) setValue('content', formUpd.content)
+          if (formUpd.imageUrl) {
+            setUploadedImage(formUpd.imageUrl)
+            setWatermarkedImage(formUpd.imageUrl)
+          }
           if (d.confidence) setOcrConfidence(Math.round((d.confidence as number) * 100))
           try { (window as any).__recognized__ = true } catch {}
           setStep(prev => (prev === 'recognize' ? 'confirm' : prev))
@@ -999,3 +1019,10 @@ export default function AddReviewPage() {
       </div>
     )
   }
+const fileToDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error ?? new Error('이미지를 불러오지 못했습니다.'))
+    reader.readAsDataURL(file)
+  })

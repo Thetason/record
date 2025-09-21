@@ -16,6 +16,7 @@ import {
 } from "@radix-ui/react-icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { motion } from "framer-motion"
 import { VerificationBadge } from "@/components/ui/verification-badge"
 import { ReportDialog } from "@/components/report-dialog"
@@ -32,6 +33,7 @@ interface Review {
   verifiedAt?: string | null
   verifiedBy?: string | null
   originalUrl?: string | null
+  imageUrl?: string | null
 }
 
 interface ProfileData {
@@ -68,6 +70,9 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all")
   const [copied, setCopied] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [showAllReviews, setShowAllReviews] = useState(false)
+  const [activeImage, setActiveImage] = useState<string | null>(null)
+  const [activeReview, setActiveReview] = useState<Review | null>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -101,6 +106,8 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
     ? profile.reviews 
     : profile.reviews.filter(r => r.platform === selectedPlatform)
 
+  const displayedReviews = showAllReviews ? filteredReviews : filteredReviews.slice(0, 9)
+
   const platformColors: { [key: string]: string } = {
     "네이버": "from-green-500 to-green-600",
     "카카오": "from-yellow-400 to-yellow-500",
@@ -116,7 +123,8 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50">
+    <>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50">
       {/* Floating Header */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled ? "bg-white/80 backdrop-blur-xl shadow-lg" : "bg-transparent"
@@ -349,7 +357,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
 
           {/* Reviews Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredReviews.map((review, index) => (
+            {displayedReviews.map((review, index) => (
               <motion.div
                 key={review.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -394,6 +402,24 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                     </div>
 
                     {/* Content */}
+                    {review.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveImage(review.imageUrl as string)
+                          setActiveReview(review)
+                        }}
+                        className="mb-4 overflow-hidden rounded-xl border border-gray-200 hover:border-[#FF6B35] transition-colors"
+                        aria-label="리뷰 이미지 크게 보기"
+                      >
+                        <img
+                          src={review.imageUrl}
+                          alt={`${review.author} 리뷰 이미지`}
+                          className="w-full max-h-60 object-cover"
+                        />
+                      </button>
+                    )}
+
                     <div className="relative mb-4">
                       <QuoteIcon className="absolute -top-2 -left-2 w-8 h-8 text-gray-100" />
                       <p className="text-gray-700 line-clamp-4 relative z-10 pl-4">
@@ -421,9 +447,10 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
               <Button
                 variant="outline"
                 size="lg"
+                onClick={() => setShowAllReviews(prev => !prev)}
                 className="border-2 border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35] hover:text-white transition-all"
               >
-                더 많은 리뷰 보기
+                {showAllReviews ? '리뷰 접기' : '더 많은 리뷰 보기'}
               </Button>
             </div>
           )}
@@ -467,6 +494,22 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+
+      <Dialog open={Boolean(activeImage)} onOpenChange={(open) => !open && (setActiveImage(null), setActiveReview(null))}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {activeReview ? `${activeReview.platform} · ${activeReview.business}` : '리뷰 첨부 이미지'}
+            </DialogTitle>
+          </DialogHeader>
+          {activeImage && (
+            <div className="w-full overflow-hidden rounded-xl border">
+              <img src={activeImage} alt="리뷰 첨부 이미지 확대" className="w-full h-auto" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Review {
   id: string
@@ -29,6 +30,7 @@ interface Review {
   author: string
   reviewDate: string
   createdAt: string
+  imageUrl?: string | null
 }
 
 export default function ReviewsPage() {
@@ -50,6 +52,7 @@ export default function ReviewsPage() {
     fiveStars: 0
   })
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -241,7 +244,8 @@ export default function ReviewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200">
         <div className="flex flex-col h-full">
@@ -439,6 +443,21 @@ export default function ReviewsPage() {
                             </div>
                           </div>
                           
+                          {review.imageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewImage(review.imageUrl as string)}
+                              className="mb-4 overflow-hidden rounded-lg border border-gray-200 hover:border-[#FF6B35] transition-colors"
+                              aria-label="리뷰 이미지 크게 보기"
+                            >
+                              <img
+                                src={review.imageUrl}
+                                alt="리뷰 첨부 이미지"
+                                className="w-full max-h-64 object-cover"
+                              />
+                            </button>
+                          )}
+
                           <p className="text-gray-700 leading-relaxed">
                             {review.content}
                           </p>
@@ -537,7 +556,21 @@ export default function ReviewsPage() {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+
+      <Dialog open={Boolean(previewImage)} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>리뷰 첨부 이미지</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="w-full overflow-hidden rounded-lg border">
+              <img src={previewImage} alt="리뷰 첨부 이미지 확대" className="w-full h-auto" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

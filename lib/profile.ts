@@ -1,6 +1,35 @@
 import prisma from '@/lib/prisma';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
 
+const POSSIBLE_ID_LENGTH = 16;
+
+async function buildSuccessResult(
+  user: UserWithReviews,
+  options: FetchPublicProfileOptions,
+  incrementView: boolean,
+  fallbackUsername?: string
+): Promise<FetchPublicProfileSuccess> {
+  if (incrementView) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        profileViews: {
+          increment: 1
+        }
+      }
+    });
+  }
+
+  const profile = buildProfilePayload(user, options.includeDemoFallback);
+
+  return {
+    ok: true,
+    profile,
+    normalizedUsername: profile.username || fallbackUsername || user.username || user.id,
+    truncated: false
+  };
+}
+
 export type PublicReview = {
   id: string;
   platform: string;
@@ -13,6 +42,7 @@ export type PublicReview = {
   verifiedAt: Date | null;
   verifiedBy: string | null;
   originalUrl: string | null;
+  imageUrl?: string | null;
 };
 
 export type PublicProfile = {
@@ -223,7 +253,8 @@ function buildProfilePayload(
       verified: Boolean(review.verifiedAt),
       verifiedAt: review.verifiedAt,
       verifiedBy: review.verifiedBy,
-      originalUrl: review.originalUrl
+      originalUrl: review.originalUrl,
+      imageUrl: review.imageUrl
     }))
   };
 
@@ -245,7 +276,37 @@ export async function fetchPublicProfile(
 ): Promise<FetchPublicProfileResult> {
   const { incrementView = false, includeDemoFallback = true } = options;
 
-  const validation = validateAndNormalizeUsername(username, {
+  const input = typeof username === 'string' ? username.trim() : '';
+
+  if (!input) {
+    return {
+      ok: false,
+      status: 400,
+      message: '프로필 주소가 올바르지 않습니다'
+    };
+  }
+
+  const include = {
+    reviews: {
+      orderBy: { reviewDate: 'desc' },
+      take: 50
+    }
+  } as const;
+
+  // 1) 사용자 ID 기반 조회 (username이 아직 설정되지 않은 계정 공유 대비)
+  if (input.length >= POSSIBLE_ID_LENGTH) {
+    const userById = await prisma.user.findUnique({
+      where: { id: input },
+      include
+    });
+
+    if (userById) {
+      return buildSuccessResult(userById, { includeDemoFallback }, incrementView, input);
+    }
+  }
+
+  // 2) username 규칙에 맞게 검증 후 조회
+  const validation = validateAndNormalizeUsername(input, {
     hardMaxLength: 4096
   });
 
@@ -259,12 +320,7 @@ export async function fetchPublicProfile(
 
   const user = await prisma.user.findUnique({
     where: { username: validation.value },
-    include: {
-      reviews: {
-        orderBy: { reviewDate: 'desc' },
-        take: 50
-      }
-    }
+    include
   });
 
   if (!user) {
@@ -275,23 +331,9 @@ export async function fetchPublicProfile(
     };
   }
 
-  if (incrementView) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        profileViews: {
-          increment: 1
-        }
-      }
-    });
-  }
-
-  const profile = buildProfilePayload(user, includeDemoFallback);
-
+  const result = await buildSuccessResult(user, { includeDemoFallback }, incrementView, validation.value);
   return {
-    ok: true,
-    profile,
-    normalizedUsername: validation.value,
+    ...result,
     truncated: validation.truncated
   };
 }
