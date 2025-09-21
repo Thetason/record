@@ -91,6 +91,7 @@ export default function AddReviewPage() {
   const [autoFilled, setAutoFilled] = useState<{platform:boolean;business:boolean;author:boolean;date:boolean;rating:boolean;content:boolean}>({
     platform:false, business:false, author:false, date:false, rating:false, content:false
   })
+  const [futureDateWarning, setFutureDateWarning] = useState("")
 
   const {
     register,
@@ -104,6 +105,7 @@ export default function AddReviewPage() {
   const selectedPlatform = watch("platform")
   const selectedRating = watch("rating")
   const formValues = watch()
+  const reviewDateValue = watch("reviewDate")
 
   const steps = [
     { key: 'upload' as const, title: '이미지 업로드', description: '스크린샷을 추가하세요' },
@@ -114,6 +116,16 @@ export default function AddReviewPage() {
   const totalItems = batchItems.length
   const processedItems = batchItems.filter((b) => ['done', 'error', 'saved'].includes(b.status)).length
   const progressPercent = totalItems === 0 ? 0 : Math.round((processedItems / totalItems) * 100)
+  const processingCount = batchItems.filter(b => b.status === 'processing').length
+  const errorCount = batchItems.filter(b => b.status === 'error').length
+
+  const statusLabels: Record<BatchStatus, { label: string; tone: string }> = {
+    queued: { label: '대기 중', tone: 'text-gray-500' },
+    processing: { label: '인식 중', tone: 'text-orange-600' },
+    done: { label: '완료', tone: 'text-emerald-600' },
+    saved: { label: '저장됨', tone: 'text-blue-600' },
+    error: { label: '오류', tone: 'text-red-600' }
+  }
 
   // Sync currently selected batch item's recognized form into the visible form
   const syncFormFromSelected = () => {
@@ -133,6 +145,28 @@ export default function AddReviewPage() {
     syncFormFromSelected()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIndex, JSON.stringify(batchItems.map(b => ({ id: b.id, form: b.form, status: b.status })))])
+
+  // Watch review date and surface warning if OCR picked a future date
+  useEffect(() => {
+    if (!reviewDateValue) {
+      setFutureDateWarning("")
+      return
+    }
+    const parsed = new Date(reviewDateValue)
+    if (Number.isNaN(parsed.getTime())) {
+      setFutureDateWarning("")
+      return
+    }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const normalized = new Date(parsed)
+    normalized.setHours(0, 0, 0, 0)
+    if (normalized > today) {
+      setFutureDateWarning('인식된 날짜가 미래로 감지되었습니다. 실제 리뷰 작성일로 수정해 주세요.')
+    } else {
+      setFutureDateWarning("")
+    }
+  }, [reviewDateValue])
 
   // Client-side normalization (safe for Korean):
   // - Keep natural word spaces
@@ -823,13 +857,23 @@ export default function AddReviewPage() {
               <div className="space-y-4">
                 <div className="rounded-xl border border-gray-200 bg-white p-4">
                   <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{processedItems}/{totalItems || 1} 인식 완료</span>
+                    <span>
+                      {processedItems}/{totalItems || 1} 인식 완료
+                      {processingCount > 0 && ` · ${processingCount}개 처리 중`}
+                    </span>
                     <span>{progressPercent}%</span>
                   </div>
                   <Progress value={progressPercent} className="mt-3 h-2" />
                   <p className="mt-4 rounded-lg bg-gray-50 p-3 text-xs leading-5 text-gray-500">
-                    인식이 완료되면 자동으로 다음 단계로 이동합니다. 이미지가 선명할수록 정확도가 높아집니다.
+                    {progressPercent === 100
+                      ? '모든 이미지 인식이 완료되었습니다. 결과를 한 번 확인하고 필요한 필드만 손봐 주세요.'
+                      : '인식이 완료되면 자동으로 다음 단계로 이동합니다. 나머지 이미지도 기다리는 동안 계속 처리되고 있어요.'}
                   </p>
+                  {errorCount > 0 && (
+                    <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+                      {errorCount}개의 이미지에서 오류가 발생했습니다. 썸네일을 눌러 다시 업로드하거나 건너뛰기를 눌러 주세요.
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   {ocrEngine && (
@@ -856,10 +900,24 @@ export default function AddReviewPage() {
                       <button key={it.id} onClick={()=>{setSelectedIndex(idx); setUploadedImage(it.previewUrl)}} className={`min-w-20 h-20 rounded-md border overflow-hidden relative ${selectedIndex===idx?'ring-2 ring-orange-400':''}`} title={it.status}>
                         <img src={it.previewUrl} alt="thumb" className="w-full h-full object-cover" />
                         <span className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">{idx+1}</span>
-                        <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">
-                          {it.status==='done'?'완료':it.status==='processing'?'인식중':it.status==='error'?'오류':'대기'}
+                        <span className={`absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border ${statusLabels[it.status].tone}`}>
+                          {statusLabels[it.status].label}
                         </span>
                       </button>
+                    ))}
+                  </div>
+                )}
+                {batchItems.length > 0 && (
+                  <div className="space-y-1 rounded-lg bg-white/70 p-3 text-xs text-gray-600">
+                    {batchItems.map((item, index) => (
+                      <div key={`${item.id}-status`} className="flex items-center justify-between">
+                        <span className="truncate max-w-[65%]">
+                          {index + 1}. {item.file.name}
+                        </span>
+                        <span className={`font-medium ${statusLabels[item.status].tone}`}>
+                          {statusLabels[item.status].label}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -955,6 +1013,11 @@ export default function AddReviewPage() {
                       <FormLabel>작성일</FormLabel>
                       <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
                       {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
+                      {futureDateWarning && (
+                        <div className="mt-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+                          {futureDateWarning}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <FormLabel>원본 링크 (선택)</FormLabel>
