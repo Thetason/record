@@ -203,37 +203,39 @@ function buildProfilePayload(
     : 0;
   const platforms = Array.from(new Set(reviews.map(review => review.platform)));
 
+  const fallbackCover = '/images/default-cover.jpg';
+  const professionFromBio = user.bio?.split('\n')?.[0]?.trim();
+  const profession = professionFromBio || `${user.name} 전문가`;
+  const bio = user.bio ?? '';
+
+  const yearsExperience = (() => {
+    if (!reviews.length) return '';
+    const earliest = reviews.reduce((acc, review) =>
+      review.reviewDate < acc ? review.reviewDate : acc,
+      reviews[0].reviewDate
+    );
+    const diff = new Date().getFullYear() - new Date(earliest).getFullYear() + 1;
+    return diff > 0 ? `${diff}년차` : '';
+  })();
+
   const baseProfile: PublicProfile = {
     id: user.id,
     username: user.username,
-    name: user.name || '김서연',
-    profession: '필라테스 강사',
-    bio: user.bio ||
-      '10년 경력의 필라테스 전문가입니다. 재활과 체형교정을 전문으로 하며, 개인의 신체 특성에 맞춘 맞춤형 운동을 제공합니다.',
+    name: user.name,
+    profession,
+    bio,
     avatar: user.avatar ?? '',
-    coverImage:
-      user.bgImage ||
-      'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&h=600&fit=crop',
+    coverImage: user.bgImage || fallbackCover,
     totalReviews,
     averageRating,
     platforms,
-    experience: '10년차',
-    location: user.location || '서울 강남구',
-    specialties: [
-      '재활 필라테스',
-      '체형 교정',
-      '산전/산후 관리',
-      '다이어트',
-      '근력 강화'
-    ],
-    certifications: [
-      'KPEE 필라테스 지도자',
-      '재활 트레이닝 전문가',
-      '스포츠 마사지 1급'
-    ],
+    experience: yearsExperience,
+    location: user.location ?? '',
+    specialties: [],
+    certifications: [],
     socialLinks: {
-      instagram: 'https://instagram.com/pilates_kim',
-      website: 'https://pilates-kim.com'
+      instagram: undefined,
+      website: user.website ?? undefined
     },
     theme: user.theme || 'default',
     layout: user.layout || 'grid',
@@ -245,7 +247,7 @@ function buildProfilePayload(
     reviews: reviews.map(review => ({
       id: review.id,
       platform: review.platform,
-      business: review.business || '비너스필라테스',
+      business: review.business || '',
       rating: review.rating,
       content: review.content,
       author: review.author,

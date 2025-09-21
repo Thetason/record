@@ -212,9 +212,13 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
                   {profile.name}
                 </h1>
-                <p className="text-lg md:text-xl text-white/90 mb-3">
-                  {profile.profession} · {profile.experience}
-                </p>
+                {(profile.profession || profile.experience) && (
+                  <p className="text-lg md:text-xl text-white/90 mb-3 flex items-center gap-2 justify-center md:justify-start">
+                    {profile.profession && <span>{profile.profession}</span>}
+                    {profile.profession && profile.experience && <span>·</span>}
+                    {profile.experience && <span>{profile.experience}</span>}
+                  </p>
+                )}
                 <p className="text-white/80 max-w-2xl mb-4">
                   {profile.bio}
                 </p>
