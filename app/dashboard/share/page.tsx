@@ -38,15 +38,27 @@ export default function SharePage() {
     }
   }, [status, router]);
 
-  useEffect(() => {
-    if (session?.user) {
-      // 프로필 URL 생성
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://record-rho.vercel.app';
-      const url = `${baseUrl}/${session.user.username || session.user.id}`;
-      setProfileUrl(url);
+  const resolveBaseUrl = () => {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return window.location.origin.replace(/\/$/, '')
+    }
+    if (process.env.NEXT_PUBLIC_BASE_URL) {
+      return process.env.NEXT_PUBLIC_BASE_URL.replace(/\/$/, '')
+    }
+    return ''
+  }
 
-      // QR 코드 생성
-      QRCode.toDataURL(url, {
+  useEffect(() => {
+    if (!session?.user) return
+
+    const baseUrl = resolveBaseUrl()
+    if (!baseUrl) return
+
+    const slug = session.user.username || session.user.id
+    const url = `${baseUrl}/${slug}`
+    setProfileUrl(url)
+
+    QRCode.toDataURL(url, {
         width: 300,
         margin: 2,
         color: {
@@ -54,8 +66,7 @@ export default function SharePage() {
           light: '#FFFFFF',
         },
       }).then(setQrCodeUrl);
-    }
-  }, [session]);
+  }, [session, status]);
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(profileUrl);

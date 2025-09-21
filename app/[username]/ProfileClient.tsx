@@ -403,21 +403,24 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
 
                     {/* Content */}
                     {review.imageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveImage(review.imageUrl as string)
-                          setActiveReview(review)
-                        }}
-                        className="mb-4 overflow-hidden rounded-xl border border-gray-200 hover:border-[#FF6B35] transition-colors"
-                        aria-label="리뷰 이미지 크게 보기"
-                      >
+                      <div className="mb-4 overflow-hidden rounded-xl border border-gray-200 group/image relative">
                         <img
                           src={review.imageUrl}
                           alt={`${review.author} 리뷰 이미지`}
-                          className="w-full max-h-60 object-cover"
+                          className="w-full h-56 object-cover transition-transform duration-300 group-hover/image:scale-105"
                         />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveImage(review.imageUrl as string)
+                            setActiveReview(review)
+                          }}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/image:opacity-100 transition-opacity text-white text-sm font-medium"
+                          aria-label="리뷰 이미지 크게 보기"
+                        >
+                          이미지 확대 보기
+                        </button>
+                      </div>
                     )}
 
                     <div className="relative mb-4">
@@ -435,6 +438,19 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                         {new Date(review.reviewDate).toLocaleDateString()}
                       </span>
                     </div>
+
+                    {review.originalUrl && (
+                      <div className="mt-3">
+                        <a
+                          href={review.originalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 text-xs text-[#FF6B35] hover:text-[#E55A2B] font-medium"
+                        >
+                          <Link2Icon className="w-4 h-4" /> 원본 리뷰 보기
+                        </a>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
