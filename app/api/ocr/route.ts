@@ -232,7 +232,8 @@ export async function POST(req: NextRequest) {
     let detections = result.textAnnotations;
 
     // Some UI-heavy 이미지에서는 DocumentTextDetection이 텍스트 일부만 반환할 수 있음. 보조 API 호출로 보충
-    if (!full || full.length < 100) {
+    const needsTextFallback = !full || full.length < Number(process.env.OCR_TEXT_FALLBACK_LENGTH ?? 400);
+    if (needsTextFallback) {
       try {
         const [alt] = await withTimeout(
           client.textDetection({ image: { content: buffer.toString('base64') }, imageContext: { languageHints: ['ko', 'en'] } }),
