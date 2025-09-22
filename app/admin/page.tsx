@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [adminRole, setAdminRole] = useState<'admin' | 'super_admin' | null>(null)
 
   useEffect(() => {
     // 관리자 권한 체크
@@ -39,6 +40,9 @@ export default function AdminDashboard() {
         return
       }
       setIsAdmin(true)
+      if (data.role === 'admin' || data.role === 'super_admin') {
+        setAdminRole(data.role)
+      }
     } catch (error) {
       console.error('Auth check failed:', error)
       router.push('/login')
@@ -185,7 +189,9 @@ export default function AdminDashboard() {
         <div className="mt-8 p-6 bg-white rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">빠른 작업</h2>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm">공지사항 작성</Button>
+            <Button variant="outline" size="sm" onClick={() => router.push('/admin/announcements')}>
+              공지사항 작성
+            </Button>
             <Button variant="outline" size="sm">이메일 발송</Button>
             <Button variant="outline" size="sm">백업 실행</Button>
             <Button variant="outline" size="sm">캐시 정리</Button>
@@ -194,6 +200,38 @@ export default function AdminDashboard() {
             </Button>
           </div>
         </div>
+
+        {adminRole === 'super_admin' && (
+          <div className="mt-6 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-lg shadow-sm">
+            <h2 className="text-lg font-semibold mb-3 text-purple-700">슈퍼 관리자 도구</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              최고 관리자 전용으로 중요한 관리 기능에 빠르게 접근할 수 있습니다.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                className="border-purple-200 text-purple-700 hover:border-purple-300"
+                onClick={() => router.push('/admin/users')}
+              >
+                사용자 권한 관리
+              </Button>
+              <Button
+                variant="outline"
+                className="border-purple-200 text-purple-700 hover:border-purple-300"
+                onClick={() => router.push('/admin/reviews')}
+              >
+                리뷰 검토 바로가기
+              </Button>
+              <Button
+                variant="outline"
+                className="border-purple-200 text-purple-700 hover:border-purple-300"
+                onClick={() => router.push('/admin/announcements')}
+              >
+                공지사항 관리
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
