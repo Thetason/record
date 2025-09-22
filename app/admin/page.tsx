@@ -29,7 +29,7 @@ export default function AdminDashboard() {
 
   const checkAdminAuth = async () => {
     try {
-      const res = await fetch('/api/admin/check-auth')
+      const res = await fetch('/api/admin/check-auth', { cache: 'no-store' })
       if (!res.ok) {
         router.push('/login')
         return
