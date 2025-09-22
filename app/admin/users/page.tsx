@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,17 +43,49 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+  const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all') // all, suspicious, blocked, premium
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [currentAdmin, setCurrentAdmin] = useState<{ id: string; role: 'admin' | 'super_admin' } | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   useEffect(() => {
-    fetchUsers()
-  }, [filter])
+    fetchAdminInfo()
+  }, [])
+
+  useEffect(() => {
+    if (currentAdmin) {
+      fetchUsers()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, currentAdmin])
+
+  const fetchAdminInfo = async () => {
+    try {
+      const res = await fetch('/api/admin/check-auth')
+      if (!res.ok) {
+        router.push('/login')
+        return
+      }
+      const data = await res.json()
+      if (data.role !== 'admin' && data.role !== 'super_admin') {
+        router.push('/dashboard')
+        return
+      }
+      setCurrentAdmin({ id: data.id, role: data.role })
+    } catch (error) {
+      console.error('Failed to fetch admin info:', error)
+      router.push('/login')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
 
   const fetchUsers = async () => {
+    if (!currentAdmin) return
     try {
       setLoading(true)
       const res = await fetch(`/api/admin/users?filter=${filter}`)
@@ -104,13 +137,24 @@ export default function AdminUsersPage() {
     }
   }
 
-  const updateUserStatus = async (userId: string, action: string) => {
+  const updateUserStatus = async (userId: string, action: string, payload: Record<string, unknown> = {}) => {
+    if (!currentAdmin) return
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
+        body: JSON.stringify({ action, ...payload })
       })
+
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || '요청 처리 중 오류가 발생했습니다.')
+        return
+      }
+
+      if (data?.message) {
+        alert(data.message)
+      }
 
       if (res.ok) {
         fetchUsers()
@@ -176,13 +220,19 @@ export default function AdminUsersPage() {
     }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">사용자 데이터 로딩 중...</div>
       </div>
     )
   }
+
+  if (!currentAdmin) {
+    return null
+  }
+
+  const isSuperAdmin = currentAdmin.role === 'super_admin'
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -361,8 +411,16 @@ export default function AdminUsersPage() {
                       size="sm"
                       variant="outline"
                       className="text-red-600 hover:text-red-700"
-                      onClick={() => updateUserStatus(user.id, 'block')}
-                    >
+                      onClick={() => {
+                        if (user.role === 'super_admin') {
+                          alert('Super admin 계정은 차단할 수 없습니다.')
+                          return
+                        }
+                        if (confirm('정말로 이 계정을 차단하시겠어요? 로그인 세션이 모두 종료됩니다.')) {
+                          updateUserStatus(user.id, 'block')
+                        }
+                      }}
+                      >
                       <Lock className="w-4 h-4 mr-1" />
                       차단
                     </Button>
@@ -373,9 +431,45 @@ export default function AdminUsersPage() {
                       className="text-green-600 hover:text-green-700"
                       onClick={() => updateUserStatus(user.id, 'unblock')}
                     >
-                      <Unlock className="w-4 h-4 mr-1" />
-                      차단 해제
-                    </Button>
+                    <Unlock className="w-4 h-4 mr-1" />
+                    차단 해제
+                  </Button>
+                  )}
+
+                  {isSuperAdmin && (
+                    <div className="flex flex-col gap-2">
+                      {user.role !== 'admin' && user.role !== 'super_admin' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateUserStatus(user.id, 'change-role', { role: 'admin' })}
+                        >
+                          <Shield className="w-4 h-4 mr-1" />
+                          관리자 승격
+                        </Button>
+                      )}
+                      {user.role !== 'user' && (!isSuperAdmin || currentAdmin.id !== user.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateUserStatus(user.id, 'change-role', { role: 'user' })}
+                        >
+                          <UserX className="w-4 h-4 mr-1" />
+                          일반 전환
+                        </Button>
+                      )}
+                      {user.role !== 'super_admin' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-purple-600 hover:text-purple-700"
+                          onClick={() => updateUserStatus(user.id, 'change-role', { role: 'super_admin' })}
+                        >
+                          <Shield className="w-4 h-4 mr-1" />
+                          최고 관리자 승격
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -456,13 +550,21 @@ export default function AdminUsersPage() {
                 </div>
               )}
               
-              <div className="pt-4 border-t flex gap-2">
+              <div className="pt-4 border-t flex flex-col gap-3">
                 {!selectedUser.isBlocked ? (
                   <>
                     <Button
                       variant="destructive"
                       className="flex-1"
-                      onClick={() => updateUserStatus(selectedUser.id, 'block')}
+                      onClick={() => {
+                        if (selectedUser.role === 'super_admin') {
+                          alert('Super admin 계정은 차단할 수 없습니다.')
+                          return
+                        }
+                        if (confirm('정말로 이 계정을 차단하시겠어요?')) {
+                          updateUserStatus(selectedUser.id, 'block')
+                        }
+                      }}
                     >
                       <Ban className="w-4 h-4 mr-1" />
                       계정 차단
@@ -483,6 +585,39 @@ export default function AdminUsersPage() {
                     <Unlock className="w-4 h-4 mr-1" />
                     차단 해제
                   </Button>
+                )}
+
+                {isSuperAdmin && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedUser.role !== 'admin' && selectedUser.role !== 'super_admin' && (
+                      <Button
+                        variant="outline"
+                        onClick={() => updateUserStatus(selectedUser.id, 'change-role', { role: 'admin' })}
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        관리자 승격
+                      </Button>
+                    )}
+                    {selectedUser.role !== 'user' && (currentAdmin.id !== selectedUser.id) && (
+                      <Button
+                        variant="outline"
+                        onClick={() => updateUserStatus(selectedUser.id, 'change-role', { role: 'user' })}
+                      >
+                        <UserX className="w-4 h-4 mr-2" />
+                        일반 사용자로 전환
+                      </Button>
+                    )}
+                    {selectedUser.role !== 'super_admin' && (
+                      <Button
+                        variant="outline"
+                        className="text-purple-600 hover:text-purple-700"
+                        onClick={() => updateUserStatus(selectedUser.id, 'change-role', { role: 'super_admin' })}
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        최고 관리자 승격
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

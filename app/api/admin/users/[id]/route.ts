@@ -27,8 +27,22 @@ export async function PATCH(
     const body = await req.json()
     const { action } = body
 
+    const targetUser = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: { id: true, role: true }
+    })
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const isSelfAction = admin.id === targetUser.id
+
     switch (action) {
       case 'block':
+        if (targetUser.role === 'super_admin') {
+          return NextResponse.json({ error: 'Super admin 계정은 차단할 수 없습니다' }, { status: 400 })
+        }
         // 사용자 차단 (role을 'blocked'로 변경)
         await prisma.user.update({
           where: { id: params.id },
@@ -98,6 +112,12 @@ export async function PATCH(
         return NextResponse.json({ success: true, message: '플랜이 변경되었습니다' })
 
       case 'promote-admin':
+        if (admin.role !== 'super_admin') {
+          return NextResponse.json({ error: 'Only super admin can promote admins' }, { status: 403 })
+        }
+        if (targetUser.role === 'super_admin') {
+          return NextResponse.json({ error: '이미 최고 관리자입니다' }, { status: 400 })
+        }
         // 관리자 권한 부여
         await prisma.user.update({
           where: { id: params.id },
@@ -106,6 +126,43 @@ export async function PATCH(
         
         console.log(`Admin ${admin.id} promoted user ${params.id} to admin`)
         return NextResponse.json({ success: true, message: '관리자 권한이 부여되었습니다' })
+
+      case 'change-role': {
+        if (admin.role !== 'super_admin') {
+          return NextResponse.json({ error: 'Only super admin can change roles' }, { status: 403 })
+        }
+
+        const { role: desiredRole } = body
+        const allowedRoles = ['user', 'admin', 'super_admin']
+        if (!allowedRoles.includes(desiredRole)) {
+          return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+        }
+
+        if (isSelfAction && desiredRole !== 'super_admin') {
+          return NextResponse.json({ error: '본인 계정의 super admin 권한은 해제할 수 없습니다' }, { status: 400 })
+        }
+
+        if (targetUser.role === 'super_admin' && desiredRole !== 'super_admin') {
+          const remainingSupers = await prisma.user.count({
+            where: {
+              role: 'super_admin',
+              NOT: { id: params.id }
+            }
+          })
+
+          if (remainingSupers === 0) {
+            return NextResponse.json({ error: '마지막 super admin은 다른 역할로 변경할 수 없습니다' }, { status: 400 })
+          }
+        }
+
+        await prisma.user.update({
+          where: { id: params.id },
+          data: { role: desiredRole }
+        })
+
+        console.log(`Super admin ${admin.id} changed role for user ${params.id} to ${desiredRole}`)
+        return NextResponse.json({ success: true, message: `역할이 ${desiredRole} 로 변경되었습니다` })
+      }
 
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
