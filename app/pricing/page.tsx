@@ -1,310 +1,367 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Check, X, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { Check, X, Loader2, ArrowRight } from 'lucide-react'
 
-const plans = [
-  {
-    name: '무료',
-    price: '0',
-    period: '',
-    description: '개인 사용자를 위한 기본 플랜',
-    features: [
-      { text: '리뷰 50개까지 등록', included: true },
-      { text: '기본 프로필 페이지', included: true },
-      { text: '플랫폼별 리뷰 관리', included: true },
-      { text: '기본 통계', included: true },
-      { text: '무제한 리뷰 등록', included: false },
-      { text: '고급 통계 및 분석', included: false },
-      { text: '커스텀 도메인', included: false },
-      { text: 'API 접근', included: false },
-      { text: '우선 고객 지원', included: false },
-    ],
-    buttonText: '시작하기',
-    buttonVariant: 'outline' as const,
-    badge: null,
-  },
-  {
-    name: '프리미엄',
-    price: '9,900',
-    period: '/월',
-    description: '전문가와 인플루언서를 위한 플랜',
-    features: [
-      { text: '무제한 리뷰 등록', included: true },
-      { text: '고급 프로필 커스터마이징', included: true },
-      { text: '상세 통계 및 분석', included: true },
-      { text: '리뷰 검증 배지', included: true },
-      { text: 'QR 코드 생성', included: true },
-      { text: '이메일 서명 위젯', included: true },
-      { text: 'SNS 공유 최적화', included: true },
-      { text: '커스텀 도메인', included: false },
-      { text: 'API 접근', included: false },
-    ],
-    buttonText: '프리미엄 시작하기',
-    buttonVariant: 'default' as const,
-    badge: '인기',
-  },
-  {
-    name: '프로',
-    price: '29,900',
-    period: '/월',
-    description: '비즈니스와 팀을 위한 플랜',
-    features: [
-      { text: '프리미엄의 모든 기능', included: true },
-      { text: '커스텀 도메인 연결', included: true },
-      { text: 'API 접근', included: true },
-      { text: '팀 멤버 초대 (5명)', included: true },
-      { text: '브랜드 커스터마이징', included: true },
-      { text: '우선 고객 지원', included: true },
-      { text: '데이터 내보내기', included: true },
-      { text: 'Webhook 지원', included: true },
-      { text: '전담 매니저', included: true },
-    ],
-    buttonText: '프로 시작하기',
-    buttonVariant: 'default' as const,
-    badge: null,
-  },
-];
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  PLAN_ORDER,
+  PLANS,
+  PRICING_FEATURE_MATRIX,
+  PlanType,
+  formatCurrency,
+  getFeatureValue,
+  getPlanPrice,
+  getYearlySavings,
+  hasFeature,
+} from '@/lib/plan-limits'
+import type { ProductId } from '@/lib/tosspayments'
+
+type BillingPeriod = 'monthly' | 'yearly'
+
+type FeatureItem = {
+  label: string
+  included: boolean
+  description?: string
+}
+
+const BILLING_LABELS: Record<BillingPeriod, string> = {
+  monthly: '월간 결제',
+  yearly: '연간 결제',
+}
 
 export default function PricingPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
-  const [loading, setLoading] = useState(false);
+  const router = useRouter()
+  const { data: session } = useSession()
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly')
+  const [loadingPlan, setLoadingPlan] = useState<PlanType | null>(null)
 
-  const handleSelectPlan = async (planName: string) => {
+  const featureMatrixByPlan = useMemo(() => {
+    const map = new Map<PlanType, FeatureItem[]>()
+    PLAN_ORDER.forEach((planId) => {
+      const items: FeatureItem[] = PRICING_FEATURE_MATRIX.map((feature) => {
+        if (feature.key === 'reviewLimit') {
+          return {
+            label: feature.format ? feature.format(planId) : feature.label,
+            included: true,
+            description: feature.description,
+          }
+        }
+
+        if (feature.key === 'teamMembers') {
+          const seats = getFeatureValue(planId, 'teamMembers') as number
+          return {
+            label: feature.format ? feature.format(planId) : feature.label,
+            included: seats > 0,
+            description: feature.description,
+          }
+        }
+
+        const included = hasFeature(planId, feature.key as keyof typeof PLANS.free.features)
+        return {
+          label: feature.format ? feature.format(planId) : feature.label,
+          included,
+          description: feature.description,
+        }
+      })
+      map.set(planId, items)
+    })
+    return map
+  }, [])
+
+  const handleSelectPlan = async (planId: PlanType) => {
     if (!session) {
-      router.push('/login');
-      return;
+      router.push('/login')
+      return
     }
 
-    if (planName === '무료') {
-      router.push('/dashboard');
-      return;
+    if (planId === 'free') {
+      router.push('/dashboard')
+      return
     }
 
-    setLoading(true);
+    setLoadingPlan(planId)
     try {
-      const period = billingPeriod;
-      const planMap: { [key: string]: string } = {
-        '프리미엄': period === 'yearly' ? 'premium_yearly' : 'premium_monthly',
-        '프로': period === 'yearly' ? 'pro_yearly' : 'pro_monthly'
-      };
-      
-      const planId = planMap[planName];
-      if (!planId) {
-        throw new Error('Invalid plan');
-      }
-
+      const productId = `${planId}_${billingPeriod}` as ProductId
       const res = await fetch('/api/payments/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, period })
-      });
+        body: JSON.stringify({ planId: productId, period: billingPeriod })
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (data.success) {
-        // 결제 페이지로 리다이렉트
         if (data.paymentUrl) {
-          window.location.href = data.paymentUrl;
+          window.location.href = data.paymentUrl
         } else {
-          // 데모 모드
-          router.push(`/payment/process?id=${data.subscriptionId}&status=demo`);
+          router.push(`/payment/process?id=${data.subscriptionId}&status=demo`)
         }
       } else {
-        alert(data.error || '결제 요청 실패');
+        alert(data.error || '결제 요청에 실패했습니다.')
       }
     } catch (error) {
-      console.error('Payment error:', error);
-      alert('결제 처리 중 오류가 발생했습니다');
+      console.error('Payment error:', error)
+      alert('결제 처리 중 오류가 발생했습니다.')
     } finally {
-      setLoading(false);
+      setLoadingPlan(null)
     }
-  };
+  }
 
-  const getPrice = (basePrice: string) => {
-    if (basePrice === '0') return basePrice;
-    if (billingPeriod === 'yearly') {
-      const monthly = parseInt(basePrice.replace(',', ''));
-      const yearly = monthly * 12 * 0.8; // 20% 할인
-      return Math.floor(yearly / 12).toLocaleString();
+  const renderPriceBlock = (planId: PlanType) => {
+    const monthlyAmount = getPlanPrice(planId, 'monthly')
+    const yearlyAmount = getPlanPrice(planId, 'yearly')
+    const primaryAmount = billingPeriod === 'monthly' ? monthlyAmount : yearlyAmount
+    const primaryLabel = billingPeriod === 'monthly' ? '/월' : '/년'
+    const yearlySavings = getYearlySavings(planId)
+
+    if (primaryAmount === 0) {
+      return (
+        <div className="mt-4">
+          <span className="text-4xl font-bold">무료</span>
+        </div>
+      )
     }
-    return basePrice;
-  };
+
+    return (
+      <div className="mt-4 space-y-1">
+        <div>
+          <span className="text-4xl font-bold">₩{formatCurrency(primaryAmount)}</span>
+          <span className="ml-1 text-gray-600">{primaryLabel}</span>
+        </div>
+        {billingPeriod === 'yearly' && (
+          <p className="text-sm text-green-600">
+            월 ₩{formatCurrency(Math.round(yearlyAmount / 12))} • 연간 결제 시 ₩{formatCurrency(yearlyAmount)}
+            {yearlySavings > 0 && ` (₩${formatCurrency(yearlySavings)} 절약)`}
+          </p>
+        )}
+        {billingPeriod === 'monthly' && yearlySavings > 0 && (
+          <p className="text-sm text-gray-500">
+            연간 결제 시 ₩{formatCurrency(yearlyAmount)} (약 {PLANS[planId].pricing.yearlyDiscountPercent}% 절약)
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-20">
       <div className="container max-w-7xl mx-auto px-4">
-        {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">
-            합리적인 가격으로 시작하세요
-          </h1>
+          <h1 className="text-4xl font-bold mb-4">합리적인 가격으로 시작하세요</h1>
           <p className="text-xl text-gray-600 mb-8">
             리뷰 관리의 새로운 기준, Re:cord와 함께하세요
           </p>
 
-          {/* Billing Toggle */}
           <div className="inline-flex items-center gap-4 p-1 bg-gray-100 rounded-lg">
-            <button
-              onClick={() => setBillingPeriod('monthly')}
-              className={`px-4 py-2 rounded-md transition-all ${
-                billingPeriod === 'monthly'
-                  ? 'bg-white shadow-sm font-medium'
-                  : 'text-gray-600'
-              }`}
-            >
-              월간 결제
-            </button>
-            <button
-              onClick={() => setBillingPeriod('yearly')}
-              className={`px-4 py-2 rounded-md transition-all ${
-                billingPeriod === 'yearly'
-                  ? 'bg-white shadow-sm font-medium'
-                  : 'text-gray-600'
-              }`}
-            >
-              연간 결제
-              <Badge className="ml-2" variant="secondary">20% 할인</Badge>
-            </button>
+            {(['monthly', 'yearly'] as BillingPeriod[]).map((period) => (
+              <button
+                key={period}
+                onClick={() => setBillingPeriod(period)}
+                className={`px-4 py-2 rounded-md transition-all ${
+                  billingPeriod === period ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-600'
+                }`}
+              >
+                {BILLING_LABELS[period]}
+                {period === 'yearly' && (
+                  <Badge className="ml-2" variant="secondary">20% 할인</Badge>
+                )}
+              </button>
+            ))}
           </div>
+
+          <p className="text-sm text-gray-500 mt-4">
+            연간 결제는 월별 요금 대비 자동으로 할인 적용됩니다. 청구는 토스페이먼츠를 통해 안전하게 처리됩니다.
+          </p>
         </div>
 
-        {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 mb-20">
-          {plans.map((plan) => (
-            <Card
-              key={plan.name}
-              className={`relative ${
-                plan.name === '프리미엄' ? 'border-blue-500 shadow-xl scale-105' : ''
-              }`}
-            >
-              {plan.badge && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  {plan.badge}
-                </Badge>
-              )}
-              
-              <CardHeader>
-                <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">₩{getPrice(plan.price)}</span>
-                  <span className="text-gray-600">{plan.period}</span>
-                  {billingPeriod === 'yearly' && plan.price !== '0' && (
-                    <div className="text-sm text-green-600 mt-1">
-                      연 ₩{(parseInt(plan.price.replace(',', '')) * 12 * 0.8).toLocaleString()} 
-                      (₩{(parseInt(plan.price.replace(',', '')) * 12 * 0.2).toLocaleString()} 절약)
+          {PLAN_ORDER.map((planId) => {
+            const plan = PLANS[planId]
+            const features = featureMatrixByPlan.get(planId) || []
+            const isFree = planId === 'free'
+            const isLoading = loadingPlan === planId
+
+            return (
+              <Card
+                key={planId}
+                className={`relative flex flex-col ${plan.badge ? 'border-blue-500 shadow-xl scale-105' : ''}`}
+              >
+                {plan.badge && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    {plan.badge}
+                  </Badge>
+                )}
+
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center justify-center gap-2">
+                    {plan.name}
+                  </CardTitle>
+                  <CardDescription className="text-center text-sm text-gray-600">
+                    {plan.description}
+                  </CardDescription>
+                  {renderPriceBlock(planId)}
+                  <p className="mt-4 text-sm text-gray-500 text-center">
+                    {plan.highlight}
+                  </p>
+                  {plan.marketingHighlights.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2 mt-4">
+                      {plan.marketingHighlights.map((item) => (
+                        <Badge key={item} variant="outline" className="text-xs">
+                          {item}
+                        </Badge>
+                      ))}
                     </div>
                   )}
-                </div>
-              </CardHeader>
+                </CardHeader>
 
-              <CardContent>
-                <ul className="space-y-3">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      {feature.included ? (
-                        <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      ) : (
-                        <X className="w-5 h-5 text-gray-300 mt-0.5 flex-shrink-0" />
-                      )}
-                      <span className={feature.included ? '' : 'text-gray-400'}>
-                        {feature.text}
+                <CardContent className="flex-1">
+                  <ul className="space-y-3">
+                    {features.map((feature, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        {feature.included ? (
+                          <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <X className="w-5 h-5 text-gray-300 mt-0.5 flex-shrink-0" />
+                        )}
+                        <div>
+                          <span className={feature.included ? '' : 'text-gray-400'}>
+                            {feature.label}
+                          </span>
+                          {feature.description && (
+                            <p className="text-xs text-gray-400">{feature.description}</p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 space-y-1">
+                    <p><strong>추천 대상:</strong> {plan.bestFor}</p>
+                    <p><strong>지원 범위:</strong> {plan.supportLevel}</p>
+                  </div>
+                </CardContent>
+
+                <CardFooter>
+                  <Button
+                    variant={isFree ? 'outline' : 'default'}
+                    className="w-full"
+                    onClick={() => handleSelectPlan(planId)}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        처리 중...
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-
-              <CardFooter>
-                <Button
-                  className="w-full"
-                  variant={plan.buttonVariant}
-                  size="lg"
-                  onClick={() => handleSelectPlan(plan.name)}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      처리중...
-                    </>
-                  ) : (
-                    plan.buttonText
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        {isFree ? '무료로 시작하기' : `${plan.name} 신청하기`}
+                        {!isFree && <ArrowRight className="w-4 h-4" />}
+                      </span>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            )
+          })}
         </div>
 
-        {/* FAQ Section */}
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">자주 묻는 질문</h2>
-          
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">
-                언제든지 플랜을 변경할 수 있나요?
-              </h3>
-              <p className="text-gray-600">
-                네, 언제든지 플랜을 업그레이드하거나 다운그레이드할 수 있습니다. 
-                변경사항은 다음 결제일부터 적용됩니다.
-              </p>
-            </div>
+        <div className="space-y-10">
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle>요금제 핵심 비교</CardTitle>
+              <CardDescription>
+                주요 유료 플랜의 혜택을 한눈에 정리했습니다. 자세한 플랜 안내는 아래 링크에서 확인하세요.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <PlanSummary planId="premium" billingPeriod={billingPeriod} />
+                <PlanSummary planId="pro" billingPeriod={billingPeriod} />
+              </div>
+            </CardContent>
+            <CardFooter className="justify-between text-sm text-gray-600">
+              <span>요금제 상세 정책과 변경/환불 절차는 안내 페이지에서 확인할 수 있습니다.</span>
+              <Link href="/pricing/guide" className="text-[#FF6B35] hover:underline font-medium">
+                요금제 안내 전체 보기
+              </Link>
+            </CardFooter>
+          </Card>
 
-            <div>
-              <h3 className="text-lg font-semibold mb-2">
-                환불 정책은 어떻게 되나요?
-              </h3>
-              <p className="text-gray-600">
-                구매 후 7일 이내에는 전액 환불이 가능합니다. 
-                이후에는 남은 기간에 대해 일할 계산하여 환불해 드립니다.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">
-                무료 플랜의 리뷰 50개 제한은 어떻게 계산되나요?
-              </h3>
-              <p className="text-gray-600">
-                등록된 리뷰의 총 개수로 계산됩니다. 리뷰를 삭제하면 다시 추가할 수 있는 
-                여유가 생깁니다.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">
-                팀 플랜은 없나요?
-              </h3>
-              <p className="text-gray-600">
-                프로 플랜에서 최대 5명까지 팀 멤버를 초대할 수 있습니다. 
-                더 많은 인원이 필요하신 경우 별도 문의 바랍니다.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* CTA Section */}
-        <div className="text-center mt-20 p-12 bg-blue-50 rounded-2xl">
-          <h2 className="text-3xl font-bold mb-4">
-            아직 결정하지 못하셨나요?
-          </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            무료로 시작해보고 필요할 때 업그레이드하세요
-          </p>
-          <Button size="lg" onClick={() => router.push('/signup')}>
-            무료로 시작하기
-          </Button>
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle>자주 묻는 요금 관련 질문</CardTitle>
+              <CardDescription>요금제 변경과 결제에 대한 핵심 답변을 모았습니다.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <dl className="space-y-6 text-sm text-gray-600">
+                <div>
+                  <dt className="font-semibold text-gray-900 mb-1">연간 결제는 어떤 혜택이 있나요?</dt>
+                  <dd>
+                    연간 결제를 선택하면 월 요금 대비 약 20% 할인된 금액으로 청구됩니다. 프리미엄은 연 ₩
+                    {formatCurrency(getPlanPrice('premium', 'yearly'))} (월 환산 ₩
+                    {formatCurrency(Math.round(getPlanPrice('premium', 'yearly') / 12))}), 프로는 연 ₩
+                    {formatCurrency(getPlanPrice('pro', 'yearly'))}입니다.
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-gray-900 mb-1">플랜을 언제든 변경할 수 있나요?</dt>
+                  <dd>
+                    네. 관리자 센터 &gt; 결제 관리에서 상위 플랜으로 즉시 업그레이드할 수 있으며, 만료 시점에는 자동으로 새 플랜이 적용됩니다. 하향 조정은 만료일 이후 무료 플랜으로 자동 전환됩니다.
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-gray-900 mb-1">결제가 실패하거나 환불이 필요한 경우 어떻게 하나요?</dt>
+                  <dd>
+                    결제 실패 시 카드사 또는 토스페이먼츠 오류 메시지를 확인하고 다시 시도해주세요. 환불이 필요한 경우 support@record.kr 로 결제 정보와 사유를 보내주시면 1영업일 내 안내드리겠습니다.
+                  </dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
-  );
+  )
+}
+
+function PlanSummary({ planId, billingPeriod }: { planId: Exclude<PlanType, 'free'>; billingPeriod: BillingPeriod }) {
+  const plan = PLANS[planId]
+  const monthlyAmount = getPlanPrice(planId, 'monthly')
+  const yearlyAmount = getPlanPrice(planId, 'yearly')
+  const savings = getYearlySavings(planId)
+
+  return (
+    <div className="rounded-lg border border-gray-200 p-5 bg-white shadow-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+        {plan.badge && <Badge variant="outline" className="text-xs">{plan.badge}</Badge>}
+      </div>
+      <p className="text-sm text-gray-500 mb-4">{plan.bestFor}</p>
+      <ul className="space-y-2 text-sm text-gray-600">
+        {plan.marketingHighlights.map((item) => (
+          <li key={item} className="flex items-start gap-2">
+            <Check className="w-4 h-4 text-green-500 mt-0.5" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 text-sm text-gray-600 space-y-1">
+        <p>월 ₩{formatCurrency(monthlyAmount)}</p>
+        <p>
+          연 ₩{formatCurrency(yearlyAmount)}
+          {savings > 0 && ` (₩${formatCurrency(savings)} 절약)`}
+        </p>
+        {billingPeriod === 'yearly' && (
+          <p className="text-xs text-green-600">현재 연간 결제를 선택했습니다.</p>
+        )}
+      </div>
+    </div>
+  )
 }

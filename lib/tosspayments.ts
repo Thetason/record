@@ -1,4 +1,5 @@
 import { loadTossPayments } from '@tosspayments/payment-sdk'
+import { PLANS, PlanType, getPlanPrice, getYearlySavings } from '@/lib/plan-limits'
 
 // 토스페이먼츠 클라이언트 키 (테스트용)
 const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
@@ -6,40 +7,69 @@ const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJ
 // 토스페이먼츠 시크릿 키 (서버 사이드용)
 export const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY || 'test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R'
 
-// 결제 플랜 정보
-export const PAYMENT_PLANS = {
-  premium: {
-    id: 'premium',
-    name: '프리미엄',
-    price: {
-      monthly: 9900,
-      yearly: 99000
-    },
-    features: [
-      '리뷰 무제한 등록',
-      '고급 통계 분석',
-      '맞춤형 리뷰 위젯',
-      '우선 고객 지원',
-      'CSV 대량 업로드'
-    ]
-  },
-  pro: {
-    id: 'pro', 
-    name: '프로',
-    price: {
-      monthly: 19900,
-      yearly: 199000
-    },
-    features: [
-      '프리미엄 모든 기능',
-      'API 액세스',
-      '브랜드 제거',
-      '커스텀 도메인',
-      '전담 매니저 지원',
-      '맞춤형 디자인'
-    ]
-  }
+export type BillingPeriod = 'monthly' | 'yearly'
+export type PaidPlanId = Exclude<PlanType, 'free'>
+
+const PAID_PLAN_IDS: PaidPlanId[] = ['premium', 'pro']
+const BILLING_PERIODS: BillingPeriod[] = ['monthly', 'yearly']
+
+// 결제 플랜 정보 (UI 및 결제 공통 사용)
+type PaymentPlanConfig = {
+  id: PaidPlanId
+  name: string
+  price: Record<BillingPeriod, number>
+  features: string[]
 }
+
+export const PAYMENT_PLANS: Record<PaidPlanId, PaymentPlanConfig> = PAID_PLAN_IDS.reduce((acc, plan) => {
+  acc[plan] = {
+    id: plan,
+    name: PLANS[plan].name,
+    price: {
+      monthly: getPlanPrice(plan, 'monthly'),
+      yearly: getPlanPrice(plan, 'yearly')
+    },
+    features: PLANS[plan].marketingHighlights,
+  }
+  return acc
+}, {} as Record<PaidPlanId, PaymentPlanConfig>)
+
+// 구독 상품 정보 (토스 결제 금액 검증용)
+export type ProductId = `${PaidPlanId}_${BillingPeriod}`
+
+type SubscriptionProduct = {
+  id: ProductId
+  name: string
+  amount: number
+  currency: 'KRW'
+  plan: PaidPlanId
+  period: BillingPeriod
+  features: string[]
+  savings: number
+}
+
+export const SUBSCRIPTION_PRODUCTS: Record<ProductId, SubscriptionProduct> = Object.fromEntries(
+  PAID_PLAN_IDS.flatMap((plan) =>
+    BILLING_PERIODS.map((period) => {
+      const id = `${plan}_${period}` as ProductId
+      const amount = getPlanPrice(plan, period)
+      const savings = period === 'yearly' ? getYearlySavings(plan) : 0
+      return [
+        id,
+        {
+          id,
+          name: `${PLANS[plan].name} ${period === 'monthly' ? '월간' : '연간'} 구독`,
+          amount,
+          currency: 'KRW',
+          plan,
+          period,
+          features: PLANS[plan].marketingHighlights,
+          savings,
+        }
+      ]
+    })
+  )
+) as Record<ProductId, SubscriptionProduct>
 
 // 토스페이먼츠 클라이언트 초기화
 export async function initTossPayments() {
@@ -57,8 +87,8 @@ export function generateOrderId() {
 }
 
 // 결제 요청 데이터 생성
-export function createPaymentData(plan: string, period: 'monthly' | 'yearly', user: any) {
-  const selectedPlan = PAYMENT_PLANS[plan as keyof typeof PAYMENT_PLANS]
+export function createPaymentData(plan: PaidPlanId, period: BillingPeriod, user: { name?: string | null; email?: string | null }) {
+  const selectedPlan = PAYMENT_PLANS[plan]
   if (!selectedPlan) {
     throw new Error('유효하지 않은 플랜입니다')
   }
@@ -71,8 +101,8 @@ export function createPaymentData(plan: string, period: 'monthly' | 'yearly', us
     amount,
     orderId,
     orderName,
-    customerName: user.name,
-    customerEmail: user.email,
+    customerName: user.name ?? '고객',
+    customerEmail: user.email ?? '',
     successUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/payments/success`,
     failUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/payments/fail`,
   }
@@ -164,32 +194,5 @@ export async function cancelPayment(paymentKey: string, cancelReason: string) {
   } catch (error) {
     console.error('결제 취소 오류:', error)
     throw error
-  }
-}
-
-// 구독 상품 정보 (SUBSCRIPTION_PRODUCTS 추가)
-export const SUBSCRIPTION_PRODUCTS = {
-  premium: {
-    id: 'premium_monthly',
-    name: '프리미엄 플랜',
-    price: 9900,
-    interval: 'month',
-    features: [
-      '리뷰 500개 저장',
-      '고급 통계',
-      '우선 지원'
-    ]
-  },
-  pro: {
-    id: 'pro_monthly',
-    name: '프로 플랜',
-    price: 19900,
-    interval: 'month',
-    features: [
-      '리뷰 무제한 저장',
-      '전체 기능',
-      'API 액세스',
-      '전담 지원'
-    ]
   }
 }

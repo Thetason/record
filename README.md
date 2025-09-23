@@ -73,6 +73,8 @@ GOOGLE_VISION_API_KEY="your-api-key"
 - `/signup` - 회원가입
 - `/dashboard` - 사용자 대시보드
 - `/[username]` - 공개 프로필 페이지
+- `/pricing` - 요금제 선택 및 결제 페이지 (실시간 플랜 데이터 연동)
+- `/pricing/guide` - 요금제 기능 비교 및 결제/환불 정책 안내
 
 ## 🚀 배포
 
