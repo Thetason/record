@@ -82,7 +82,11 @@ export async function middleware(request: NextRequest) {
   }
   
   // 관리자 권한 확인
-  if (isAdminPath && token?.role !== 'admin') {
+  if (
+    isAdminPath &&
+    token?.role !== 'admin' &&
+    token?.role !== 'super_admin'
+  ) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
