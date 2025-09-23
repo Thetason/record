@@ -83,6 +83,12 @@ export async function POST(req: NextRequest) {
     // 비밀번호 암호화
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 첫 가입 사용자는 자동으로 super admin 권한 부여
+    const superAdminCount = await prisma.user.count({
+      where: { role: 'super_admin' }
+    });
+    const assignedRole = superAdminCount === 0 ? 'super_admin' : 'user';
+
     // 사용자 생성
     const user = await prisma.user.create({
       data: {
@@ -93,7 +99,8 @@ export async function POST(req: NextRequest) {
         avatar:
           name?.charAt(0).toUpperCase() || normalizedUsername.charAt(0).toUpperCase(),
         plan: 'free',
-        reviewLimit: 50
+        reviewLimit: 50,
+        role: assignedRole
       }
     });
 
@@ -116,7 +123,8 @@ export async function POST(req: NextRequest) {
       success: true,
       message: '회원가입이 완료되었습니다.',
       username: normalizedUsername,
-      truncated: usernameValidation.truncated
+      truncated: usernameValidation.truncated,
+      role: assignedRole
     });
 
   } catch (error) {

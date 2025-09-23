@@ -1,5 +1,16 @@
 import { PrismaClient } from '@prisma/client'
 
+// Fall back to known Postgres env vars when DATABASE_URL is absent.
+const resolvedDatabaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.DATABASE_URL_UNPOOLED
+
+if (!process.env.DATABASE_URL && resolvedDatabaseUrl) {
+  process.env.DATABASE_URL = resolvedDatabaseUrl
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }

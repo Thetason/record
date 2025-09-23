@@ -174,10 +174,36 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { username: token.username as string },
-            select: { role: true, email: true }
+            select: { id: true, role: true, email: true }
           })
           if (dbUser) {
-            token.role = dbUser.role
+            let effectiveRole = dbUser.role
+
+            // 슈퍼 관리자가 없는 경우 현재 사용자를 승격해 접근 차단을 방지
+            if (effectiveRole !== 'super_admin') {
+              const existingSuperAdmin = await prisma.user.findFirst({
+                where: {
+                  role: 'super_admin',
+                  NOT: { id: dbUser.id }
+                },
+                select: { id: true }
+              })
+
+              if (!existingSuperAdmin) {
+                const promoted = await prisma.user.update({
+                  where: { id: dbUser.id },
+                  data: { role: 'super_admin' },
+                  select: { role: true }
+                })
+                effectiveRole = promoted.role
+                console.log('🚀 자동 슈퍼 관리자 승격:', {
+                  username: token.username,
+                  role: effectiveRole
+                })
+              }
+            }
+
+            token.role = effectiveRole
             token.email = dbUser.email
             console.log("🔄 DB에서 최신 정보 업데이트:", {
               role: token.role,
