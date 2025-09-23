@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   FilePlus,
   ArrowRight,
-  FileSpreadsheet,
   Image,
   ClipboardCheck,
   MousePointer2,
@@ -30,10 +29,10 @@ const quickStartSteps = [
   },
   {
     title: '2. 리뷰 불러오기',
-    description: '네이버, 카카오, 구글 등 기존 리뷰를 CSV나 스크린샷으로 업로드합니다.',
+    description: '기존 플랫폼 리뷰 스크린샷을 OCR로 읽어와 단 몇 번의 클릭으로 저장합니다.',
     icon: <Wrench className="w-5 h-5" />,
     href: '#import-guide',
-    cta: '업로드 가이드'
+    cta: 'OCR 가이드'
   },
   {
     title: '3. 프로필 공개',
@@ -83,8 +82,8 @@ const setupChecklist = [
   {
     heading: '리뷰 데이터 불러오기',
     items: [
-      'CSV 템플릿으로 대량 업로드',
       '스크린샷 OCR로 빠르게 입력',
+      '필요 시 수동 입력으로 즉시 등록',
       '검수 체크리스트로 품질 점검'
     ]
   },
@@ -100,16 +99,16 @@ const setupChecklist = [
 
 const visualGuides = [
   {
-    title: 'CSV 대량 업로드',
-    description: '대시보드 > 리뷰 관리 > 대량 업로드 경로에서 CSV 파일을 올립니다.',
-    highlight: 'CSV 업로드 버튼 클릭',
-    steps: ['CSV 업로드 탭 선택', '템플릿 파일 첨부', '미리보기 확인 후 업로드'],
-  },
-  {
     title: 'OCR 이미지 업로드',
     description: '리뷰 추가 화면에서 스크린샷을 드래그하면 자동으로 텍스트를 인식합니다.',
     highlight: '이미지 영역에 드래그',
     steps: ['이미지 탭 선택', '리뷰 스크린샷 업로드', '인식 결과 확인 후 저장'],
+  },
+  {
+    title: '추가 데이터 정리',
+    description: 'OCR로 읽은 내용은 즉시 편집 가능하며, 필요한 경우 태그와 메모를 추가합니다.',
+    highlight: '내용 확인 후 저장',
+    steps: ['필드 자동 채움 확인', '필요 시 내용 수정', '태그 및 메모 추가'],
   }
 ]
 
@@ -166,39 +165,17 @@ export default function GuidePage() {
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-gray-900">리뷰 업로드 가이드</h2>
               <p className="text-gray-600">
-                기존 리뷰 데이터를 세 가지 방식으로 불러올 수 있습니다. 프로젝트에 맞는 방법을 선택하고, 필요한 자료를 준비한 뒤 아래 절차를 따라 주세요.
+                Re:cord의 핵심은 스크린샷만으로 리뷰를 기록하는 OCR 업로드입니다. 기존 플랫폼에서 캡처한 이미지를 준비하고 아래 절차를 따르면 1분 안에 리뷰를 저장할 수 있습니다.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button variant="outline" asChild>
-                <Link href="/templates/review-upload-template.csv" download>
-                  CSV 템플릿 다운로드
-                </Link>
-              </Button>
               <Button variant="ghost" asChild>
-                <Link href="/dashboard/bulk-upload">대량 업로드 화면 열기 →</Link>
+                <Link href="/dashboard/bulk-upload">OCR 업로드 화면 열기 →</Link>
               </Button>
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            <Card className="border-0 bg-[#F8FAFC]">
-              <CardHeader className="space-y-3">
-                <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-                <CardTitle className="text-xl font-semibold text-gray-900">CSV 업로드</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-gray-700">
-                <ol className="space-y-2 list-decimal list-inside">
-                  <li>템플릿에 플랫폼, 업체명, 고객명, 평점, 리뷰 내용, 작성일을 작성합니다.</li>
-                  <li>`대시보드 → 리뷰 관리 → 대량 업로드`에서 CSV 파일을 선택합니다.</li>
-                  <li>미리보기에서 잘못된 값이 있는지 확인 후 업로드를 확정합니다.</li>
-                </ol>
-                <p className="text-xs text-gray-500">* 평점은 1~5 범위, 날짜는 YYYY-MM-DD 형식으로 입력해 주세요.</p>
-              </CardContent>
-            </Card>
-
+          <div className="grid gap-6 md:grid-cols-2">
             <Card className="border-0 bg-[#F8FAFC]">
               <CardHeader className="space-y-3">
                 <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center">
@@ -237,9 +214,9 @@ export default function GuidePage() {
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900">화면 안내</h3>
             <p className="text-sm text-gray-600">아래 이미지는 실제 Re:cord 대시보드 UI를 단순화한 예시입니다. 강조된 포인터를 따라가며 화면 위치를 확인하세요.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {visualGuides.map((guide) => (
-                <div key={guide.title} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-sm">
+          <div className="grid gap-6 md:grid-cols-2">
+            {visualGuides.map((guide) => (
+              <div key={guide.title} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-sm">
                   <div className="px-6 pt-6 pb-4 space-y-3">
                     <h4 className="text-base font-semibold text-gray-900">{guide.title}</h4>
                     <p className="text-sm text-gray-600">{guide.description}</p>
@@ -250,13 +227,13 @@ export default function GuidePage() {
                         <div className="w-2 h-2 rounded-full bg-red-400"></div>
                         <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
                         <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                        <span className="ml-2 font-medium text-gray-600">리뷰 대량 업로드</span>
+                        <span className="ml-2 font-medium text-gray-600">리뷰 업로드</span>
                       </div>
                       <div className="grid grid-cols-4">
                         <div className="col-span-1 border-r border-gray-100 bg-gray-50 p-4 space-y-2 text-xs text-gray-500">
                           <p className="font-semibold text-gray-700">탭</p>
-                          {['CSV 업로드', '이미지 OCR', '붙여넣기'].map((label) => (
-                            <div key={label} className={`px-3 py-2 rounded-md ${label.includes('CSV') ? 'bg-white shadow-sm text-[#FF6B35] font-semibold' : ''}`}>
+                          {['이미지 OCR', '직접 입력'].map((label, idx) => (
+                            <div key={label} className={`px-3 py-2 rounded-md ${idx === 0 ? 'bg-white shadow-sm text-[#FF6B35] font-semibold' : ''}`}>
                               {label}
                             </div>
                           ))}
@@ -285,6 +262,8 @@ export default function GuidePage() {
               ))}
             </div>
           </div>
+
+          <p className="text-xs text-gray-500">※ 기존 시스템에서 대용량 CSV로 데이터를 이전해야 하는 경우, 고객 지원(support@record.kr)으로 요청하시면 전용 마이그레이션 도구를 제공해 드립니다.</p>
         </section>
 
         <section className="bg-white rounded-2xl shadow-sm p-8 md:p-12 space-y-8" id="live-demo">
