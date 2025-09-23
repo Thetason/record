@@ -10,7 +10,7 @@ import {
   BarChartIcon,
   GearIcon,
   Share2Icon,
-  ShieldIcon
+  LockClosedIcon
 } from "@radix-ui/react-icons"
 
 export default function MobileNav() {
@@ -29,7 +29,7 @@ export default function MobileNav() {
     navItems.splice(1, 0, {
       href: "/admin",
       label: "관리자",
-      icon: <ShieldIcon className="w-5 h-5" />
+      icon: <LockClosedIcon className="w-5 h-5" />
     })
   }
 

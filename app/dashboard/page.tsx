@@ -17,7 +17,7 @@ import {
   CalendarIcon,
   EyeOpenIcon,
   Share2Icon,
-  ShieldIcon
+  LockClosedIcon
 } from "@radix-ui/react-icons"
 import {
   BarChart,
@@ -289,7 +289,7 @@ export default function DashboardPage() {
           <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
           <NavItem icon={<GearIcon />} label="커스터마이즈" href="/dashboard/customize" />
           {(session?.user?.role === 'admin' || session?.user?.role === 'super_admin') && (
-            <NavItem icon={<ShieldIcon />} label="관리자 센터" href="/admin" />
+            <NavItem icon={<LockClosedIcon />} label="관리자 센터" href="/admin" />
           )}
           </nav>
 
