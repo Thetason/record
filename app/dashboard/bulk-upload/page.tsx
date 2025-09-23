@@ -546,6 +546,19 @@ export default function BulkUploadPage() {
                           >
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                               <div className="flex items-start gap-3">
+                                {result.previewUrl ? (
+                                  <div className="hidden sm:block w-16 h-16 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                                    <img
+                                      src={result.previewUrl}
+                                      alt={result.fileName}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="hidden sm:flex w-16 h-16 items-center justify-center rounded-xl bg-gray-100 text-gray-400 border border-gray-200">
+                                    <ImageIcon className="w-6 h-6" />
+                                  </div>
+                                )}
                                 <div className="w-9 h-9 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center font-semibold">
                                   {result.order}
                                 </div>
