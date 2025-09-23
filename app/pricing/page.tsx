@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Check, X, Loader2, ArrowRight } from 'lucide-react'
+import { Check, X, Loader2, ArrowRight, Sparkles, ShieldCheck, UsersRound } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
@@ -153,10 +153,31 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-20">
       <div className="container max-w-7xl mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">합리적인 가격으로 시작하세요</h1>
-          <p className="text-xl text-gray-600 mb-8">
-            리뷰 관리의 새로운 기준, Re:cord와 함께하세요
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm font-medium mb-4">
+            <span>요금제 한눈에 보기</span>
+            <Link href="/pricing/guide" className="underline underline-offset-2">
+              상세 가이드 이동
+            </Link>
+          </div>
+          <h1 className="text-4xl font-bold mb-4">리뷰를 성장 자산으로 만드는 요금제</h1>
+          <p className="text-xl text-gray-600 mb-6">
+            브랜드 신뢰를 키우고 싶은 전문가부터 협업이 필요한 팀까지, 필요한 기능을 묶어 합리적으로 제공합니다.
           </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+            <Button onClick={() => router.push('/signup')} className="bg-[#FF6B35] hover:bg-[#E55A2B]">
+              3분 만에 무료 시작하기
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/pricing/guide')}>
+              요금제 가이드 읽어보기
+            </Button>
+            <Link
+              href="mailto:support@record.kr"
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              맞춤 상담 문의하기 →
+            </Link>
+          </div>
 
           <div className="inline-flex items-center gap-4 p-1 bg-gray-100 rounded-lg">
             {(['monthly', 'yearly'] as BillingPeriod[]).map((period) => (
@@ -178,6 +199,24 @@ export default function PricingPage() {
           <p className="text-sm text-gray-500 mt-4">
             연간 결제는 월별 요금 대비 자동으로 할인 적용됩니다. 청구는 토스페이먼츠를 통해 안전하게 처리됩니다.
           </p>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3 text-left">
+            <FeatureHighlight
+              icon={<Sparkles className="w-5 h-5 text-[#FF6B35]" />}
+              title="브랜드 신뢰 강화"
+              description="리뷰 검증 배지, 워터마크 제거, 커스텀 테마로 전문적인 포트폴리오를 구축할 수 있습니다."
+            />
+            <FeatureHighlight
+              icon={<ShieldCheck className="w-5 h-5 text-[#FF6B35]" />}
+              title="안전한 결제 시스템"
+              description="토스페이먼츠 기반의 정기 결제로 안정적인 구독 관리를 제공합니다."
+            />
+            <FeatureHighlight
+              icon={<UsersRound className="w-5 h-5 text-[#FF6B35]" />}
+              title="팀 협업 최적화"
+              description="프로 플랜에서는 팀 멤버 초대와 API 연동으로 워크플로우 전체를 자동화할 수 있습니다."
+            />
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 mb-20">
@@ -361,6 +400,28 @@ function PlanSummary({ planId, billingPeriod }: { planId: Exclude<PlanType, 'fre
         {billingPeriod === 'yearly' && (
           <p className="text-xs text-green-600">현재 연간 결제를 선택했습니다.</p>
         )}
+      </div>
+    </div>
+  )
+}
+
+function FeatureHighlight({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-start gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="p-2 bg-orange-50 rounded-lg">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        <p className="mt-1 text-sm text-gray-600 leading-relaxed">{description}</p>
       </div>
     </div>
   )
