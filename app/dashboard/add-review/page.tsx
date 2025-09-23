@@ -66,6 +66,7 @@ export default function AddReviewPage() {
     confidence?: number
     mock?: boolean
     error?: string
+    progress: number
     form: Partial<ReviewForm>
   }
   const [batchItems, setBatchItems] = useState<BatchItem[]>([])
@@ -107,6 +108,18 @@ export default function AddReviewPage() {
   const formValues = watch()
   const reviewDateValue = watch("reviewDate")
 
+  const selectedBatchItem = selectedIndex >= 0 ? batchItems[selectedIndex] : null
+  const confirmPreview = watermarkEnabled && watermarkedImage
+    ? watermarkedImage
+    : (uploadedImage || selectedBatchItem?.form?.imageUrl || selectedBatchItem?.previewUrl || formValues.imageUrl || '')
+  const summaryPlatform = selectedPlatform || selectedBatchItem?.form.platform || '미선택'
+  const summaryRatingValue = selectedRating || (selectedBatchItem?.form.rating ? String(selectedBatchItem.form.rating) : '')
+  const summaryRatingDisplay = summaryRatingValue ? `${summaryRatingValue}점` : '미선택'
+  const summaryBusiness = formValues.businessName || selectedBatchItem?.form.businessName || '미기입'
+  const summaryAuthor = formValues.customerName || selectedBatchItem?.form.customerName || '익명'
+  const summaryDate = formValues.reviewDate || selectedBatchItem?.form.reviewDate || '-'
+  const summaryContent = formValues.content || selectedBatchItem?.form.content || ''
+
   const steps = [
     { key: 'upload' as const, title: '이미지 업로드', description: '스크린샷을 추가하세요' },
     { key: 'recognize' as const, title: '자동 인식', description: 'AI가 내용을 추출합니다' },
@@ -125,6 +138,14 @@ export default function AddReviewPage() {
     done: { label: '완료', tone: 'text-emerald-600' },
     saved: { label: '저장됨', tone: 'text-blue-600' },
     error: { label: '오류', tone: 'text-red-600' }
+  }
+
+  const updateBatchItem = (id: string, patch: Partial<BatchItem> | ((item: BatchItem) => Partial<BatchItem>)) => {
+    setBatchItems(prev => prev.map(item => {
+      if (item.id !== id) return item
+      const update = typeof patch === 'function' ? patch(item) : patch
+      return { ...item, ...update }
+    }))
   }
 
   // Sync currently selected batch item's recognized form into the visible form
@@ -472,7 +493,7 @@ export default function AddReviewPage() {
       // 배치 모드 처리
       if (batchItems.length > 0 && selectedIndex < batchItems.length - 1) {
         // 현재 아이템을 저장됨 상태로 표시
-        setBatchItems(prev => prev.map((it, idx) => idx===selectedIndex ? { ...it, status: 'saved' } : it))
+        setBatchItems(prev => prev.map((it, idx) => idx===selectedIndex ? { ...it, status: 'saved', progress: 100 } : it))
         // 다음 아이템 자동 선택
         const next = Math.min(selectedIndex + 1, batchItems.length - 1)
         setSelectedIndex(next)
@@ -520,6 +541,7 @@ export default function AddReviewPage() {
           previewUrl: dataUrl,
           dataUrl,
           status: 'queued',
+          progress: 0,
           form: { imageUrl: dataUrl }
         }
       })
@@ -545,6 +567,7 @@ export default function AddReviewPage() {
         const it = updated[i]
         if (it.status === 'queued') {
           it.status = 'processing'
+          it.progress = Math.max(it.progress ?? 0, 10)
           // fire and forget
           processBatchItem(it).catch(()=>{})
         }
@@ -554,6 +577,7 @@ export default function AddReviewPage() {
   }
 
   const processBatchItem = async (item: BatchItem) => {
+    let progressInterval: NodeJS.Timeout | null = null
     try {
       // Reuse existing validation from processImageFile
       if (!item.file.type.startsWith('image/')) throw new Error('이미지 파일만 업로드할 수 있습니다')
@@ -561,6 +585,15 @@ export default function AddReviewPage() {
       // prepare formData
       const fd = new FormData()
       fd.append('image', item.file)
+
+      updateBatchItem(item.id, { status: 'processing', progress: Math.max(item.progress, 12) })
+
+      let current = Math.max(item.progress, 12)
+      progressInterval = setInterval(() => {
+        current = Math.min(current + 7, 85)
+        updateBatchItem(item.id, { progress: current })
+      }, 350)
+
       const res = await fetch('/api/ocr', { method: 'POST', body: fd })
       if (!res.ok) {
         const err = await res.json().catch(()=>({}))
@@ -594,7 +627,14 @@ export default function AddReviewPage() {
         formUpd.imageUrl
       )
 
-      setBatchItems(prev => prev.map(it => it.id === item.id ? ({ ...it, status: 'done', confidence: d.confidence, mock: d.mock, dataUrl, form: { ...it.form, ...formUpd } }) : it))
+      updateBatchItem(item.id, existing => ({
+        status: 'done',
+        progress: 100,
+        confidence: d.confidence,
+        mock: d.mock,
+        dataUrl,
+        form: { ...existing.form, ...formUpd }
+      }))
       // If this is the selected one, push into form UI
       if (selectedIndex >= 0) {
         const idx = batchItems.findIndex(it => it.id === item.id)
@@ -615,8 +655,13 @@ export default function AddReviewPage() {
         }
       }
     } catch (e:any) {
-      setBatchItems(prev => prev.map(it => it.id === item.id ? ({ ...it, status: 'error', error: e.message || '오류' }) : it))
+      updateBatchItem(item.id, {
+        status: 'error',
+        progress: 100,
+        error: e.message || '오류'
+      })
     } finally {
+      if (progressInterval) clearInterval(progressInterval)
       // schedule next if queue remains
       scheduleOcr()
     }
@@ -959,83 +1004,133 @@ export default function AddReviewPage() {
                 <input type="hidden" {...register('platform', { required: '플랫폼을 선택해주세요' })} />
                 <input type="hidden" {...register('rating', { required: '평점을 선택하세요' })} />
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <FormLabel>플랫폼</FormLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {platforms.map(({ value }) => (
-                        <Button
-                          key={value}
-                          type="button"
-                          size="sm"
-                          variant={selectedPlatform === value ? 'default' : 'outline'}
-                          className={selectedPlatform === value ? 'bg-orange-500 hover:bg-orange-500/90 text-white' : 'text-gray-600'}
-                          onClick={() => setValue('platform', value, { shouldValidate: true })}
-                        >
-                          {value}
-                        </Button>
-                      ))}
-                    </div>
-                    {errors.platform && <FormMessage>{errors.platform.message}</FormMessage>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <FormLabel>평점</FormLabel>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Button
-                          key={n}
-                          type="button"
-                          size="sm"
-                          variant={Number(selectedRating) === n ? 'default' : 'outline'}
-                          className={Number(selectedRating) === n ? 'bg-orange-500 hover:bg-orange-500/90 text-white' : 'text-gray-600'}
-                          onClick={() => setValue('rating', String(n), { shouldValidate: true })}
-                        >
-                          {n} 점
-                        </Button>
-                      ))}
-                    </div>
-                    {errors.rating && <FormMessage>{errors.rating.message}</FormMessage>}
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <FormLabel>업체명</FormLabel>
-                      <Input placeholder="업체명을 입력" {...register('businessName', { required: '업체명을 입력하세요' })} />
-                      {errors.businessName && <FormMessage>{errors.businessName.message}</FormMessage>}
-                    </div>
-                    <div>
-                      <FormLabel>작성자</FormLabel>
-                      <Input placeholder="예: 김**" {...register('customerName', { required: '작성자를 입력하세요' })} />
-                      {errors.customerName && <FormMessage>{errors.customerName.message}</FormMessage>}
-                    </div>
-                    <div>
-                      <FormLabel>작성일</FormLabel>
-                      <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
-                      {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
-                      {futureDateWarning && (
-                        <div className="mt-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-                          {futureDateWarning}
+                <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
+                  <div className="space-y-4">
+                    <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                      {confirmPreview ? (
+                        <img
+                          src={confirmPreview}
+                          alt="리뷰 스크린샷"
+                          className="w-full max-h-[420px] object-contain bg-gray-50"
+                        />
+                      ) : (
+                        <div className="flex h-[220px] items-center justify-center text-sm text-gray-500 bg-gray-50">
+                          이미지 미리보기가 없습니다
                         </div>
                       )}
+                      {selectedIndex >= 0 && (
+                        <span className="absolute top-3 left-3 text-xs font-semibold px-2 py-1 rounded-full bg-white/90 border text-gray-700">
+                          {selectedIndex + 1} / {batchItems.length} 이미지
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <FormLabel>원본 링크 (선택)</FormLabel>
-                      <Input placeholder="https://" {...register('originalUrl')} />
+                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-xs text-gray-600 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-800">플랫폼</span>
+                        <span>{summaryPlatform}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-800">평점</span>
+                        <span>{summaryRatingDisplay}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-800">작성자</span>
+                        <span>{summaryAuthor}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-800">업체명</span>
+                        <span>{summaryBusiness}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-800">작성일</span>
+                        <span>{summaryDate}</span>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">리뷰 본문 미리보기</p>
+                      <p className="text-xs leading-5 text-gray-600 whitespace-pre-wrap">
+                        {summaryContent ? summaryContent : '인식된 내용이 여기에 표시됩니다.'}
+                      </p>
                     </div>
                   </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <FormLabel>플랫폼</FormLabel>
+                      <div className="flex flex-wrap gap-2">
+                        {platforms.map(({ value }) => (
+                          <Button
+                            key={value}
+                            type="button"
+                            size="sm"
+                            variant={selectedPlatform === value ? 'default' : 'outline'}
+                            className={selectedPlatform === value ? 'bg-orange-500 hover:bg-orange-500/90 text-white' : 'text-gray-600'}
+                            onClick={() => setValue('platform', value, { shouldValidate: true })}
+                          >
+                            {value}
+                          </Button>
+                        ))}
+                      </div>
+                      {errors.platform && <FormMessage>{errors.platform.message}</FormMessage>}
+                    </div>
 
-                  <div>
-                    <FormLabel>리뷰 내용</FormLabel>
-                    <Textarea
-                      className="mt-1 min-h-36"
-                      placeholder="리뷰 내용을 입력해주세요..."
-                      {...register('content', {
-                        required: '리뷰 내용을 입력하세요',
-                        minLength: { value: 10, message: '최소 10자 이상 입력해주세요' },
-                      })}
-                    />
-                    {errors.content && <FormMessage>{errors.content.message}</FormMessage>}
+                    <div className="space-y-2">
+                      <FormLabel>평점</FormLabel>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Button
+                            key={n}
+                            type="button"
+                            size="sm"
+                            variant={Number(selectedRating) === n ? 'default' : 'outline'}
+                            className={Number(selectedRating) === n ? 'bg-orange-500 hover:bg-orange-500/90 text-white' : 'text-gray-600'}
+                            onClick={() => setValue('rating', String(n), { shouldValidate: true })}
+                          >
+                            {n} 점
+                          </Button>
+                        ))}
+                      </div>
+                      {errors.rating && <FormMessage>{errors.rating.message}</FormMessage>}
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <FormLabel>업체명</FormLabel>
+                        <Input placeholder="업체명을 입력" {...register('businessName', { required: '업체명을 입력하세요' })} />
+                        {errors.businessName && <FormMessage>{errors.businessName.message}</FormMessage>}
+                      </div>
+                      <div>
+                        <FormLabel>작성자</FormLabel>
+                        <Input placeholder="예: 김**" {...register('customerName', { required: '작성자를 입력하세요' })} />
+                        {errors.customerName && <FormMessage>{errors.customerName.message}</FormMessage>}
+                      </div>
+                      <div>
+                        <FormLabel>작성일</FormLabel>
+                        <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
+                        {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
+                        {futureDateWarning && (
+                          <div className="mt-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+                            {futureDateWarning}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <FormLabel>원본 링크 (선택)</FormLabel>
+                        <Input placeholder="https://" {...register('originalUrl')} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <FormLabel>리뷰 내용</FormLabel>
+                      <Textarea
+                        className="mt-1 min-h-36"
+                        placeholder="리뷰 내용을 입력해주세요..."
+                        {...register('content', {
+                          required: '리뷰 내용을 입력하세요',
+                          minLength: { value: 10, message: '최소 10자 이상 입력해주세요' },
+                        })}
+                      />
+                      {errors.content && <FormMessage>{errors.content.message}</FormMessage>}
+                    </div>
                   </div>
                 </div>
 
