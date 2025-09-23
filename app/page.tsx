@@ -221,6 +221,12 @@ export default function HomePage() {
             {/* 네비게이션 메뉴 */}
             <div className="hidden md:flex items-center gap-6">
               <Link
+                href="/guide"
+                className="text-gray-600 hover:text-[#FF6B35] transition-colors"
+              >
+                사용 가이드
+              </Link>
+              <Link
                 href="/pricing"
                 className="text-gray-600 hover:text-[#FF6B35] transition-colors"
               >
