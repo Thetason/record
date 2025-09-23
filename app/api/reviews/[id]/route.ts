@@ -45,7 +45,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { platform, business, rating, content, author, reviewDate, imageUrl, isPublic } = body
+    const { platform, business, content, author, reviewDate, imageUrl, isPublic } = body
 
     // 소유자 확인
     const existingReview = await prisma.review.findUnique({
@@ -58,17 +58,6 @@ export async function PUT(
 
     if (existingReview.userId !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    // 입력 검증
-    if (rating !== undefined) {
-      const numericRating = parseInt(rating)
-      if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
-        return NextResponse.json({ 
-          error: 'Invalid rating',
-          message: '평점은 1점부터 5점까지만 가능합니다.'
-        }, { status: 400 })
-      }
     }
 
     // 날짜 검증
@@ -109,7 +98,6 @@ export async function PUT(
     const updateData = {}
     if (platform) updateData.platform = platform
     if (business) updateData.business = business
-    if (rating !== undefined) updateData.rating = parseInt(rating)
     if (content) updateData.content = content
     if (author) updateData.author = author
     if (reviewDate) updateData.reviewDate = new Date(reviewDate)

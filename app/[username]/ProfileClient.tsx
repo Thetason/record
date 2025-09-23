@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { 
-  Share1Icon, 
-  CheckIcon, 
-  StarFilledIcon,
+import {
+  Share1Icon,
+  CheckIcon,
   CalendarIcon,
   BarChartIcon,
   QuoteIcon,
@@ -45,7 +44,6 @@ interface ProfileData {
   avatar: string
   coverImage: string
   totalReviews: number
-  averageRating: number
   platforms: string[]
   reviews: Review[]
   experience: string
@@ -157,17 +155,21 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
       </header>
 
       {/* Hero Section with Parallax */}
-      <section className="relative h-[70vh] md:h-[80vh] overflow-hidden">
+      <section className="relative h-[48vh] md:h-[60vh] overflow-hidden">
         {/* Cover Image with Gradient Overlay */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/60 z-10" />
-          <Image
-            src={profile.coverImage || "/images/default-cover.jpg"}
-            alt="Cover"
-            fill
-            className="object-cover"
-            priority
-          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/70 z-10" />
+          {profile.coverImage ? (
+            <Image
+              src={profile.coverImage}
+              alt="커버 이미지"
+              fill
+              className="object-cover"
+              priority
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1f2937] via-[#2d3a4b] to-[#111827]" />
+          )}
         </div>
 
         {/* Profile Content */}
@@ -253,21 +255,10 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="flex gap-4"
+                className="bg-white/10 backdrop-blur-md rounded-2xl px-6 py-4 border border-white/20"
               >
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-6 text-center border border-white/20">
-                  <div className="text-3xl md:text-4xl font-bold text-white mb-1">
-                    {profile.totalReviews}
-                  </div>
-                  <div className="text-sm text-white/80">총 리뷰</div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-6 text-center border border-white/20">
-                  <div className="text-3xl md:text-4xl font-bold text-white mb-1 flex items-center justify-center">
-                    {profile.averageRating}
-                    <StarFilledIcon className="w-6 h-6 ml-1 text-yellow-400" />
-                  </div>
-                  <div className="text-sm text-white/80">평균 평점</div>
-                </div>
+                <p className="text-xs uppercase tracking-wide text-white/70 mb-1">총 리뷰</p>
+                <p className="text-3xl md:text-4xl font-bold text-white">{profile.totalReviews}</p>
               </motion.div>
             </div>
           </div>
@@ -368,19 +359,46 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="h-full hover:shadow-xl transition-all duration-300 border-0 overflow-hidden group">
-                  {/* Platform Badge */}
-                  <div className={`h-1 bg-gradient-to-r ${platformColors[review.platform]}`} />
-                  
-                  <CardContent className="p-6">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
+                <Card className="group h-full border border-gray-200 overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-xl">
+                  <div className="relative">
+                    {review.imageUrl ? (
+                      <div className="relative h-56 overflow-hidden">
+                        <img
+                          src={review.imageUrl}
+                          alt={`${review.author} 리뷰 이미지`}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-0 p-5 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-y-auto text-sm leading-6 whitespace-pre-wrap">
+                          {review.content}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveImage(review.imageUrl as string)
+                            setActiveReview(review)
+                          }}
+                          className="absolute inset-x-0 bottom-3 mx-auto w-fit rounded-full bg-white/80 px-4 py-1 text-xs font-medium text-gray-800 shadow transition hover:bg-white"
+                          aria-label="리뷰 이미지 크게 보기"
+                        >
+                          전체 이미지 보기
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-56 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center px-6 text-sm text-gray-600 text-center whitespace-pre-wrap">
+                        {review.content}
+                      </div>
+                    )}
+                  </div>
+
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${platformColors[review.platform]} flex items-center justify-center text-white font-bold shadow-lg`}>
                           {platformIcons[review.platform]}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm">{review.business}</p>
+                          <p className="font-semibold text-sm text-gray-900">{review.business}</p>
                           <p className="text-xs text-gray-500">{review.platform}</p>
                         </div>
                       </div>
@@ -392,51 +410,17 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                       )}
                     </div>
 
-                    {/* Rating */}
-                    <div className="flex items-center gap-1 mb-3">
-                      {[...Array(5)].map((_, i) => (
-                        <StarFilledIcon
-                          key={i}
-                          className={`w-5 h-5 ${
-                            i < review.rating ? "text-yellow-400" : "text-gray-200"
-                          }`}
-                        />
-                      ))}
-                      <span className="ml-2 text-sm font-semibold">{review.rating}.0</span>
-                    </div>
-
-                    {/* Content */}
-                    {review.imageUrl && (
-                      <div className="mb-4 overflow-hidden rounded-xl border border-gray-200 group/image relative max-w-sm mx-auto md:mx-0">
-                        <img
-                          src={review.imageUrl}
-                          alt={`${review.author} 리뷰 이미지`}
-                          className="w-full h-40 object-cover transition-transform duration-300 group-hover/image:scale-105"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveImage(review.imageUrl as string)
-                            setActiveReview(review)
-                          }}
-                          className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 group-hover/image:opacity-100 transition-opacity text-white text-xs font-medium"
-                          aria-label="리뷰 이미지 크게 보기"
-                        >
-                          이미지 확대 보기
-                        </button>
+                    {!review.imageUrl && (
+                      <div className="relative">
+                        <QuoteIcon className="absolute -top-2 -left-2 w-8 h-8 text-gray-100" />
+                        <p className="pl-4 text-sm leading-6 text-gray-700 whitespace-pre-wrap">
+                          {review.content}
+                        </p>
                       </div>
                     )}
 
-                    <div className="relative mb-4">
-                      <QuoteIcon className="absolute -top-2 -left-2 w-8 h-8 text-gray-100" />
-                      <p className="text-gray-700 line-clamp-4 relative z-10 pl-4">
-                        {review.content}
-                      </p>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t">
-                      <span className="font-medium">{review.author}</span>
+                    <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                      <span className="font-medium text-gray-700">{review.author}</span>
                       <span className="flex items-center gap-1">
                         <CalendarIcon className="w-4 h-4" />
                         {new Date(review.reviewDate).toLocaleDateString()}
@@ -444,7 +428,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                     </div>
 
                     {review.originalUrl && (
-                      <div className="mt-3">
+                      <div className="pt-2 border-t border-gray-100">
                         <a
                           href={review.originalUrl}
                           target="_blank"

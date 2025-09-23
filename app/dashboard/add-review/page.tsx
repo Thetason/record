@@ -20,7 +20,6 @@ interface ReviewForm {
   businessName: string
   customerName: string
   content: string
-  rating: number
   reviewDate: string
   originalUrl?: string
   imageUrl?: string
@@ -78,7 +77,6 @@ export default function AddReviewPage() {
     id: string
     previewUrl: string
     platform: string
-    rating: number
     author: string
     reviewDate: string
     businessName: string
@@ -89,8 +87,8 @@ export default function AddReviewPage() {
   // Simple 3-step wizard state: upload -> recognize -> confirm
   const [step, setStep] = useState<'upload'|'recognize'|'confirm'>("upload")
   const [ocrEngine, setOcrEngine] = useState<string | null>(null)
-  const [autoFilled, setAutoFilled] = useState<{platform:boolean;business:boolean;author:boolean;date:boolean;rating:boolean;content:boolean}>({
-    platform:false, business:false, author:false, date:false, rating:false, content:false
+  const [autoFilled, setAutoFilled] = useState<{platform:boolean;business:boolean;author:boolean;date:boolean;content:boolean}>({
+    platform:false, business:false, author:false, date:false, content:false
   })
   const [futureDateWarning, setFutureDateWarning] = useState("")
 
@@ -104,7 +102,6 @@ export default function AddReviewPage() {
   } = useForm<ReviewForm>()
 
   const selectedPlatform = watch("platform")
-  const selectedRating = watch("rating")
   const formValues = watch()
   const reviewDateValue = watch("reviewDate")
 
@@ -113,8 +110,6 @@ export default function AddReviewPage() {
     ? watermarkedImage
     : (uploadedImage || selectedBatchItem?.form?.imageUrl || selectedBatchItem?.previewUrl || formValues.imageUrl || '')
   const summaryPlatform = selectedPlatform || selectedBatchItem?.form.platform || '미선택'
-  const summaryRatingValue = selectedRating || (selectedBatchItem?.form.rating ? String(selectedBatchItem.form.rating) : '')
-  const summaryRatingDisplay = summaryRatingValue ? `${summaryRatingValue}점` : '미선택'
   const summaryBusiness = formValues.businessName || selectedBatchItem?.form.businessName || '미기입'
   const summaryAuthor = formValues.customerName || selectedBatchItem?.form.customerName || '익명'
   const summaryDate = formValues.reviewDate || selectedBatchItem?.form.reviewDate || '-'
@@ -157,13 +152,18 @@ export default function AddReviewPage() {
     if (f.businessName) setValue('businessName', f.businessName)
     if (f.customerName) setValue('customerName', f.customerName)
     if (f.reviewDate) setValue('reviewDate', f.reviewDate)
-    if (typeof f.rating !== 'undefined') setValue('rating', String(f.rating))
     if (f.content) setValue('content', f.content)
     if (sel.confidence) setOcrConfidence(Math.round((sel.confidence as number) * 100))
   }
 
   useEffect(() => {
     syncFormFromSelected()
+    const sel = selectedIndex >= 0 ? batchItems[selectedIndex] : undefined
+    if (sel) {
+      const preview = sel.form?.imageUrl || sel.previewUrl || null
+      setUploadedImage(preview)
+      setWatermarkedImage(preview)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIndex, JSON.stringify(batchItems.map(b => ({ id: b.id, form: b.form, status: b.status })))])
 
@@ -299,17 +299,17 @@ export default function AddReviewPage() {
 
   const minimalValid = () => {
     const v = getValues()
-    return Boolean(v.platform && v.reviewDate && v.rating && (v.content && v.content.trim().length >= 10))
+    return Boolean(v.platform && v.reviewDate && (v.content && v.content.trim().length >= 10))
   }
 
   const selectedHasParsed = () => {
     // Prefer batch parsed flags
     const sel = selectedIndex >= 0 ? batchItems[selectedIndex] : undefined
     const f: any = sel?.form || {}
-    if ((f.content && f.content.trim().length >= 5) || f.platform || f.businessName || f.customerName || f.rating) return true
+    if ((f.content && f.content.trim().length >= 5) || f.platform || f.businessName || f.customerName) return true
     // Fallback: if current form already has meaningful values, allow next
     const v = getValues()
-    if ((v.content && v.content.trim().length >= 5) || v.platform || v.businessName || v.customerName || v.rating) return true
+    if ((v.content && v.content.trim().length >= 5) || v.platform || v.businessName || v.customerName) return true
     // Or if OCR recognized flag set (from handleOCRExtract), allow progression
     try { if (typeof window !== 'undefined' && (window as any).__recognized__) return true } catch {}
     return false
@@ -453,7 +453,6 @@ export default function AddReviewPage() {
           business: data.businessName,
           author: data.customerName,
           content: data.content,
-          rating: parseInt(data.rating.toString()),
           reviewDate: data.reviewDate,
           imageUrl: imageSrc || null,
           originalUrl: data.originalUrl,
@@ -481,7 +480,6 @@ export default function AddReviewPage() {
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           previewUrl: imageSrc || '',
           platform: data.platform,
-          rating: parseInt(data.rating.toString()),
           author: data.customerName,
           reviewDate: data.reviewDate,
           businessName: data.businessName,
@@ -505,7 +503,6 @@ export default function AddReviewPage() {
           if (f.businessName) setValue('businessName', f.businessName)
           if (f.customerName) setValue('customerName', f.customerName)
           if (f.reviewDate) setValue('reviewDate', f.reviewDate)
-          if (f.rating) setValue('rating', f.rating.toString())
           if (f.content) setValue('content', f.content)
           setUploadedImage(nextItem.previewUrl)
           if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -610,7 +607,6 @@ export default function AddReviewPage() {
       if (d.business) formUpd.businessName = d.business
       if (d.author) formUpd.customerName = d.author
       if (d.date) formUpd.reviewDate = d.date
-      if (d.rating) formUpd.rating = d.rating
       const base = useNormalized ? (d.reviewText || d.normalizedText || d.text) : (d.rawText || d.text)
       formUpd.content = applyClientNormalization(base || '', normalizeLevel)
 
@@ -623,7 +619,6 @@ export default function AddReviewPage() {
         formUpd.customerName ||
         formUpd.reviewDate ||
         formUpd.content ||
-        typeof formUpd.rating !== 'undefined' ||
         formUpd.imageUrl
       )
 
@@ -643,7 +638,6 @@ export default function AddReviewPage() {
           if (formUpd.businessName) setValue('businessName', formUpd.businessName)
           if (formUpd.customerName) setValue('customerName', formUpd.customerName)
           if (formUpd.reviewDate) setValue('reviewDate', formUpd.reviewDate)
-          if (formUpd.rating) setValue('rating', formUpd.rating.toString())
           if (formUpd.content) setValue('content', formUpd.content)
           if (formUpd.imageUrl) {
             setUploadedImage(formUpd.imageUrl)
@@ -704,7 +698,7 @@ export default function AddReviewPage() {
       let fieldsUpdated = 0
       
       if (data.parsed) {
-        const { platform, business, rating, content, author, reviewDate } = data.parsed
+      const { platform, business, content, author, reviewDate } = data.parsed
         
         // 플랫폼 설정
         if (platform && platform.trim()) {
@@ -729,12 +723,6 @@ export default function AddReviewPage() {
         }
         
         // 평점 설정
-        if (rating && rating >= 1 && rating <= 5) {
-          setValue("rating", rating.toString())
-          fieldsUpdated++
-          setAutoFilled(prev=>({...prev, rating:true}))
-        }
-        
         // 작성자명 설정
         if (author && author.trim()) {
           setValue("customerName", author.trim())
@@ -773,7 +761,6 @@ export default function AddReviewPage() {
         // 날짜
         if (d.date) { setValue("reviewDate", d.date); fieldsUpdated++; setAutoFilled(prev=>({...prev, date:true})) }
         // 평점
-        if (d.rating && d.rating >= 1 && d.rating <= 5) { setValue("rating", d.rating.toString()); fieldsUpdated++; setAutoFilled(prev=>({...prev, rating:true})) }
         // 내용
         setOcrRawText(d.rawText || d.text || "")
         setOcrNormalizedText(d.reviewText || d.normalizedText || d.text || "")
@@ -927,11 +914,10 @@ export default function AddReviewPage() {
                   {ocrConfidence !== null && (
                     <span className="px-2 py-1 rounded-full border text-gray-700 bg-gray-50">신뢰도: {ocrConfidence}%</span>
                   )}
-                  {(autoFilled.platform||autoFilled.date||autoFilled.rating||autoFilled.business||autoFilled.author||autoFilled.content) && (
+                  {(autoFilled.platform||autoFilled.date||autoFilled.business||autoFilled.author||autoFilled.content) && (
                     <>
                       {autoFilled.platform && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">플랫폼✓</span>}
                       {autoFilled.date && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">날짜✓</span>}
-                      {autoFilled.rating && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">평점✓</span>}
                       {autoFilled.business && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">업체명✓</span>}
                       {autoFilled.author && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">작성자✓</span>}
                       {autoFilled.content && <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border">내용✓</span>}
@@ -992,17 +978,16 @@ export default function AddReviewPage() {
                 <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                   {ocrEngine && <span className="rounded-full border px-2 py-1">엔진: {ocrEngine}</span>}
                   {ocrConfidence !== null && <span className="rounded-full border px-2 py-1">신뢰도: {ocrConfidence}%</span>}
-                  {(['platform','business','author','date','rating','content'] as const).map((key) =>
+                  {(['platform','business','author','date','content'] as const).map((key) =>
                     (autoFilled as any)[key] ? (
                       <span key={key} className="rounded-full border border-green-200 bg-green-50 px-2 py-1 text-green-700">
-                        {key === 'platform' ? '플랫폼' : key === 'business' ? '업체명' : key === 'author' ? '작성자' : key === 'date' ? '작성일' : key === 'rating' ? '평점' : '내용'} 자동 입력
+                        {key === 'platform' ? '플랫폼' : key === 'business' ? '업체명' : key === 'author' ? '작성자' : key === 'date' ? '작성일' : '내용'} 자동 입력
                       </span>
                     ) : null
                   )}
                 </div>
 
                 <input type="hidden" {...register('platform', { required: '플랫폼을 선택해주세요' })} />
-                <input type="hidden" {...register('rating', { required: '평점을 선택하세요' })} />
 
                 <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
                   <div className="space-y-4">
@@ -1028,10 +1013,6 @@ export default function AddReviewPage() {
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-gray-800">플랫폼</span>
                         <span>{summaryPlatform}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-800">평점</span>
-                        <span>{summaryRatingDisplay}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-gray-800">작성자</span>
@@ -1073,25 +1054,6 @@ export default function AddReviewPage() {
                       {errors.platform && <FormMessage>{errors.platform.message}</FormMessage>}
                     </div>
 
-                    <div className="space-y-2">
-                      <FormLabel>평점</FormLabel>
-                      <div className="flex gap-2">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <Button
-                            key={n}
-                            type="button"
-                            size="sm"
-                            variant={Number(selectedRating) === n ? 'default' : 'outline'}
-                            className={Number(selectedRating) === n ? 'bg-orange-500 hover:bg-orange-500/90 text-white' : 'text-gray-600'}
-                            onClick={() => setValue('rating', String(n), { shouldValidate: true })}
-                          >
-                            {n} 점
-                          </Button>
-                        ))}
-                      </div>
-                      {errors.rating && <FormMessage>{errors.rating.message}</FormMessage>}
-                    </div>
-
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <FormLabel>업체명</FormLabel>
@@ -1103,16 +1065,21 @@ export default function AddReviewPage() {
                         <Input placeholder="예: 김**" {...register('customerName', { required: '작성자를 입력하세요' })} />
                         {errors.customerName && <FormMessage>{errors.customerName.message}</FormMessage>}
                       </div>
-                      <div>
-                        <FormLabel>작성일</FormLabel>
-                        <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
-                        {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
-                        {futureDateWarning && (
-                          <div className="mt-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-                            {futureDateWarning}
-                          </div>
-                        )}
-                      </div>
+                    <div>
+                      <FormLabel>작성일</FormLabel>
+                      <Input type="date" {...register('reviewDate', { required: '작성일을 입력하세요' })} />
+                      {errors.reviewDate && <FormMessage>{errors.reviewDate.message}</FormMessage>}
+                      {futureDateWarning && (
+                        <div className="mt-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+                          {futureDateWarning}
+                        </div>
+                      )}
+                      {!reviewDateValue && (
+                        <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                          이미지에서 날짜를 확인할 수 없었습니다. 정확한 작성일을 직접 입력해주세요.
+                        </div>
+                      )}
+                    </div>
                       <div>
                         <FormLabel>원본 링크 (선택)</FormLabel>
                         <Input placeholder="https://" {...register('originalUrl')} />
@@ -1141,7 +1108,6 @@ export default function AddReviewPage() {
                       <div className="space-y-2">
                         <div className="grid gap-2 text-xs text-gray-500 md:grid-cols-2">
                           <span>플랫폼: <strong className="text-gray-800">{v.platform || '-'}</strong></span>
-                          <span>평점: <strong className="text-gray-800">{v.rating || '-'}</strong></span>
                           <span>업체명: <strong className="text-gray-800">{v.businessName || '-'}</strong></span>
                           <span>작성자: <strong className="text-gray-800">{v.customerName || '-'}</strong></span>
                           <span>작성일: <strong className="text-gray-800">{v.reviewDate || '-'}</strong></span>

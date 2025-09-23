@@ -98,7 +98,7 @@ model Review {
   id          String   @id @default(cuid())
   platform    String   // 네이버, 카카오맵, 구글, 크몽 등
   business    String   // 업체명
-  rating      Int      // 평점 (1-5)
+  rating      Int      @default(0)
   content     String   // 리뷰 내용
   author      String   // 리뷰 작성자 (익명화된 이름)
   reviewDate  DateTime // 실제 리뷰 작성일

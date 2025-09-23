@@ -86,13 +86,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { platform, business, rating, content, author, reviewDate, imageUrl, originalUrl, verifiedBy } = body
+    const { platform, business, content, author, reviewDate, imageUrl, originalUrl, verifiedBy } = body
 
     // 입력 검증
     const missingFields = []
     if (!platform) missingFields.push('platform')
     if (!business) missingFields.push('business')
-    if (!rating) missingFields.push('rating')
     if (!content) missingFields.push('content')
     if (!author) missingFields.push('author')
     if (!reviewDate) missingFields.push('reviewDate')
@@ -102,15 +101,6 @@ export async function POST(request: NextRequest) {
         error: 'Missing required fields',
         message: `다음 필드가 필요합니다: ${missingFields.join(', ')}`,
         missingFields
-      }, { status: 400 })
-    }
-
-    // 평점 검증
-    const numericRating = parseInt(rating)
-    if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
-      return NextResponse.json({ 
-        error: 'Invalid rating',
-        message: '평점은 1점부터 5점까지만 가능합니다.'
       }, { status: 400 })
     }
 
@@ -150,7 +140,7 @@ export async function POST(request: NextRequest) {
       data: {
         platform,
         business,
-        rating: numericRating,
+        rating: 0,
         content,
         author,
         reviewDate: parsedDate,
