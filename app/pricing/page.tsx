@@ -273,7 +273,6 @@ export default function PricingPage() {
                       {!isFree && (
                         <p>월 ₩{formatCurrency(monthlyAmount)} • 연간 ₩{formatCurrency(yearlyAmount)}</p>
                       )}
-                      <p>결제는 토스페이먼츠를 통해 안전하게 처리됩니다.</p>
                     </div>
                   </CardFooter>
                 </Card>
