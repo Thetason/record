@@ -12,7 +12,10 @@ import {
   Users,
   ShieldCheck,
   FilePlus,
-  ArrowRight
+  ArrowRight,
+  FileSpreadsheet,
+  Image,
+  ClipboardCheck
 } from 'lucide-react'
 
 const quickStartSteps = [
@@ -27,7 +30,7 @@ const quickStartSteps = [
     title: '2. 리뷰 불러오기',
     description: '네이버, 카카오, 구글 등 기존 리뷰를 CSV나 스크린샷으로 업로드합니다.',
     icon: <Wrench className="w-5 h-5" />,
-    href: '/guide#import-review',
+    href: '#import-guide',
     cta: '업로드 가이드'
   },
   {
@@ -139,6 +142,80 @@ export default function GuidePage() {
               </CardContent>
             </Card>
           ))}
+        </section>
+
+        <section id="import-guide" className="bg-white rounded-2xl shadow-sm p-8 md:p-12 space-y-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-gray-900">리뷰 업로드 가이드</h2>
+              <p className="text-gray-600">
+                기존 리뷰 데이터를 세 가지 방식으로 불러올 수 있습니다. 프로젝트에 맞는 방법을 선택하고, 필요한 자료를 준비한 뒤 아래 절차를 따라 주세요.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" asChild>
+                <Link href="/templates/review-upload-template.csv" download>
+                  CSV 템플릿 다운로드
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/dashboard/bulk-upload">대량 업로드 화면 열기 →</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            <Card className="border-0 bg-[#F8FAFC]">
+              <CardHeader className="space-y-3">
+                <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <CardTitle className="text-xl font-semibold text-gray-900">CSV 업로드</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-700">
+                <ol className="space-y-2 list-decimal list-inside">
+                  <li>템플릿에 플랫폼, 업체명, 고객명, 평점, 리뷰 내용, 작성일을 작성합니다.</li>
+                  <li>`대시보드 → 리뷰 관리 → 대량 업로드`에서 CSV 파일을 선택합니다.</li>
+                  <li>미리보기에서 잘못된 값이 있는지 확인 후 업로드를 확정합니다.</li>
+                </ol>
+                <p className="text-xs text-gray-500">* 평점은 1~5 범위, 날짜는 YYYY-MM-DD 형식으로 입력해 주세요.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 bg-[#F8FAFC]">
+              <CardHeader className="space-y-3">
+                <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center">
+                  <Image className="w-5 h-5" />
+                </div>
+                <CardTitle className="text-xl font-semibold text-gray-900">스크린샷 업로드 (OCR)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-700">
+                <ol className="space-y-2 list-decimal list-inside">
+                  <li>리뷰가 보이도록 캡처한 이미지를 준비합니다.</li>
+                  <li>`대시보드 → 리뷰 추가`에서 이미지 업로드 방식을 선택합니다.</li>
+                  <li>OCR로 추출된 텍스트를 검토하고 필요한 부분만 수정 후 저장합니다.</li>
+                </ol>
+                <p className="text-xs text-gray-500">* 텍스트가 흐릿한 경우 패스워드 보호된 PDF 대신 PNG/JPG로 업로드하는 것이 좋습니다.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 bg-[#F8FAFC]">
+              <CardHeader className="space-y-3">
+                <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center">
+                  <ClipboardCheck className="w-5 h-5" />
+                </div>
+                <CardTitle className="text-xl font-semibold text-gray-900">수동 입력</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-700">
+                <ol className="space-y-2 list-decimal list-inside">
+                  <li>`대시보드 → 리뷰 추가`에서 플랫폼과 고객 정보를 직접 입력합니다.</li>
+                  <li>원본 링크와 내부 메모를 함께 기록하면 관리가 쉬워집니다.</li>
+                  <li>저장 후 태그를 부여해 검색성과 필터링을 높입니다.</li>
+                </ol>
+                <p className="text-xs text-gray-500">* 새로 받은 리뷰를 즉시 등록할 때 유용한 방식입니다.</p>
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         <section className="bg-white rounded-2xl shadow-sm p-8 md:p-12 space-y-8" id="live-demo">
