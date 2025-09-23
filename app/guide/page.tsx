@@ -15,7 +15,9 @@ import {
   ArrowRight,
   FileSpreadsheet,
   Image,
-  ClipboardCheck
+  ClipboardCheck,
+  MousePointer2,
+  UploadCloud
 } from 'lucide-react'
 
 const quickStartSteps = [
@@ -93,6 +95,21 @@ const setupChecklist = [
       '주요 키워드/감성 분석 확인',
       '공유 링크 클릭·문의 전환율 추적'
     ]
+  }
+]
+
+const visualGuides = [
+  {
+    title: 'CSV 대량 업로드',
+    description: '대시보드 > 리뷰 관리 > 대량 업로드 경로에서 CSV 파일을 올립니다.',
+    highlight: 'CSV 업로드 버튼 클릭',
+    steps: ['CSV 업로드 탭 선택', '템플릿 파일 첨부', '미리보기 확인 후 업로드'],
+  },
+  {
+    title: 'OCR 이미지 업로드',
+    description: '리뷰 추가 화면에서 스크린샷을 드래그하면 자동으로 텍스트를 인식합니다.',
+    highlight: '이미지 영역에 드래그',
+    steps: ['이미지 탭 선택', '리뷰 스크린샷 업로드', '인식 결과 확인 후 저장'],
   }
 ]
 
@@ -215,6 +232,58 @@ export default function GuidePage() {
                 <p className="text-xs text-gray-500">* 새로 받은 리뷰를 즉시 등록할 때 유용한 방식입니다.</p>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">화면 안내</h3>
+            <p className="text-sm text-gray-600">아래 이미지는 실제 Re:cord 대시보드 UI를 단순화한 예시입니다. 강조된 포인터를 따라가며 화면 위치를 확인하세요.</p>
+            <div className="grid gap-6 md:grid-cols-2">
+              {visualGuides.map((guide) => (
+                <div key={guide.title} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-sm">
+                  <div className="px-6 pt-6 pb-4 space-y-3">
+                    <h4 className="text-base font-semibold text-gray-900">{guide.title}</h4>
+                    <p className="text-sm text-gray-600">{guide.description}</p>
+                  </div>
+                  <div className="px-6 pb-6">
+                    <div className="relative rounded-xl border border-gray-200 bg-white shadow-inner">
+                      <div className="h-10 border-b border-gray-100 flex items-center gap-2 px-4 text-xs text-gray-500">
+                        <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                        <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                        <span className="ml-2 font-medium text-gray-600">리뷰 대량 업로드</span>
+                      </div>
+                      <div className="grid grid-cols-4">
+                        <div className="col-span-1 border-r border-gray-100 bg-gray-50 p-4 space-y-2 text-xs text-gray-500">
+                          <p className="font-semibold text-gray-700">탭</p>
+                          {['CSV 업로드', '이미지 OCR', '붙여넣기'].map((label) => (
+                            <div key={label} className={`px-3 py-2 rounded-md ${label.includes('CSV') ? 'bg-white shadow-sm text-[#FF6B35] font-semibold' : ''}`}>
+                              {label}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="col-span-3 p-4 space-y-3 text-xs text-gray-600 relative">
+                          <div className="absolute top-6 right-8 flex items-center gap-2 bg-[#FF6B35] text-white px-3 py-1 rounded-full text-[10px] font-semibold shadow-lg animate-pulse">
+                            <MousePointer2 className="w-3 h-3" /> {guide.highlight}
+                          </div>
+                          <div className="h-28 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                            <UploadCloud className="w-6 h-6 mb-2" />
+                            <span>여기에 파일을 드래그하세요</span>
+                          </div>
+                          <ul className="space-y-1">
+                            {guide.steps.map((step) => (
+                              <li key={step} className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B35]"></span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
