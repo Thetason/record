@@ -2,31 +2,36 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { 
   HomeIcon, 
   PersonIcon, 
   PlusIcon, 
   BarChartIcon,
   GearIcon,
-  Share2Icon
+  Share2Icon,
+  ShieldIcon
 } from "@radix-ui/react-icons"
-
-interface NavItem {
-  href: string
-  label: string
-  icon: React.ReactNode
-}
-
-const navItems: NavItem[] = [
-  { href: "/dashboard", label: "홈", icon: <HomeIcon className="w-5 h-5" /> },
-  { href: "/dashboard/reviews", label: "리뷰", icon: <BarChartIcon className="w-5 h-5" /> },
-  { href: "/dashboard/add-review", label: "추가", icon: <PlusIcon className="w-5 h-5" /> },
-  { href: "/dashboard/share", label: "공유", icon: <Share2Icon className="w-5 h-5" /> },
-  { href: "/dashboard/profile", label: "프로필", icon: <PersonIcon className="w-5 h-5" /> },
-]
 
 export default function MobileNav() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+
+  const navItems = [
+    { href: "/dashboard", label: "홈", icon: <HomeIcon className="w-5 h-5" /> },
+    { href: "/dashboard/reviews", label: "리뷰", icon: <BarChartIcon className="w-5 h-5" /> },
+    { href: "/dashboard/add-review", label: "추가", icon: <PlusIcon className="w-5 h-5" /> },
+    { href: "/dashboard/share", label: "공유", icon: <Share2Icon className="w-5 h-5" /> },
+    { href: "/dashboard/profile", label: "프로필", icon: <PersonIcon className="w-5 h-5" /> },
+  ]
+
+  if (session?.user?.role === 'admin' || session?.user?.role === 'super_admin') {
+    navItems.splice(1, 0, {
+      href: "/admin",
+      label: "관리자",
+      icon: <ShieldIcon className="w-5 h-5" />
+    })
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-50">

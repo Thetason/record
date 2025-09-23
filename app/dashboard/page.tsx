@@ -16,7 +16,8 @@ import {
   StarIcon,
   CalendarIcon,
   EyeOpenIcon,
-  Share2Icon
+  Share2Icon,
+  ShieldIcon
 } from "@radix-ui/react-icons"
 import {
   BarChart,
@@ -284,9 +285,12 @@ export default function DashboardPage() {
             <NavItem icon={<HomeIcon />} label="대시보드" href="/dashboard" active />
             <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" />
             <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" />
-            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/add-review" />
-            <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
-            <NavItem icon={<GearIcon />} label="커스터마이즈" href="/dashboard/customize" />
+          <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/add-review" />
+          <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
+          <NavItem icon={<GearIcon />} label="커스터마이즈" href="/dashboard/customize" />
+          {(session?.user?.role === 'admin' || session?.user?.role === 'super_admin') && (
+            <NavItem icon={<ShieldIcon />} label="관리자 센터" href="/admin" />
+          )}
           </nav>
 
           {/* User Profile */}
