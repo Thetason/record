@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Check, X, Loader2, ArrowRight, Sparkles, ShieldCheck, UsersRound } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
@@ -12,27 +12,63 @@ import { Badge } from '@/components/ui/badge'
 import {
   PLAN_ORDER,
   PLANS,
-  PRICING_FEATURE_MATRIX,
   PlanType,
   formatCurrency,
-  getFeatureValue,
   getPlanPrice,
   getYearlySavings,
-  hasFeature,
 } from '@/lib/plan-limits'
 import type { ProductId } from '@/lib/tosspayments'
 
 type BillingPeriod = 'monthly' | 'yearly'
 
-type FeatureItem = {
-  label: string
-  included: boolean
-  description?: string
+const BILLING_LABELS: Record<BillingPeriod, string> = {
+  monthly: '월간 구독',
+  yearly: '연간 구독',
 }
 
-const BILLING_LABELS: Record<BillingPeriod, string> = {
-  monthly: '월간 결제',
-  yearly: '연간 결제',
+const PLAN_COPY: Record<PlanType, {
+  title: string
+  subtitle: string
+  emphasis?: string
+  cta: string
+  accent?: 'highlight' | 'default'
+  bullets: string[]
+}> = {
+  free: {
+    title: '무료 체험',
+    subtitle: '가입 즉시 50개의 리뷰를 정리할 수 있는 기본 기능',
+    emphasis: '무료 0원',
+    cta: '무료로 시작하기',
+    accent: 'default',
+    bullets: [
+      '리뷰 50개까지 저장',
+      '기본 프로필 공개 페이지',
+      '플랫폼별 리뷰 자동 분류',
+    ],
+  },
+  premium: {
+    title: '라이트',
+    subtitle: '전문가와 크리에이터를 위한 브랜드 강화 기능',
+    emphasis: '가장 인기 있는 선택',
+    cta: '라이트 플랜 시작하기',
+    accent: 'highlight',
+    bullets: [
+      '리뷰 무제한 등록 & 고급 통계',
+      '프로필 커스터마이징 · 위젯 제공',
+      '워터마크 제거와 우선 지원',
+    ],
+  },
+  pro: {
+    title: '비즈니스',
+    subtitle: '팀 단위 협업과 고급 통합이 필요한 브랜드용',
+    cta: '비즈니스 플랜 상담하기',
+    accent: 'default',
+    bullets: [
+      'API · 커스텀 도메인 · 커스텀 CSS',
+      '팀 멤버 초대 (최대 5명) · 데이터 내보내기',
+      '전담 매니저와 우선 대응',
+    ],
+  },
 }
 
 export default function PricingPage() {
@@ -40,39 +76,6 @@ export default function PricingPage() {
   const { data: session } = useSession()
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly')
   const [loadingPlan, setLoadingPlan] = useState<PlanType | null>(null)
-
-  const featureMatrixByPlan = useMemo(() => {
-    const map = new Map<PlanType, FeatureItem[]>()
-    PLAN_ORDER.forEach((planId) => {
-      const items: FeatureItem[] = PRICING_FEATURE_MATRIX.map((feature) => {
-        if (feature.key === 'reviewLimit') {
-          return {
-            label: feature.format ? feature.format(planId) : feature.label,
-            included: true,
-            description: feature.description,
-          }
-        }
-
-        if (feature.key === 'teamMembers') {
-          const seats = getFeatureValue(planId, 'teamMembers') as number
-          return {
-            label: feature.format ? feature.format(planId) : feature.label,
-            included: seats > 0,
-            description: feature.description,
-          }
-        }
-
-        const included = hasFeature(planId, feature.key as keyof typeof PLANS.free.features)
-        return {
-          label: feature.format ? feature.format(planId) : feature.label,
-          included,
-          description: feature.description,
-        }
-      })
-      map.set(planId, items)
-    })
-    return map
-  }, [])
 
   const handleSelectPlan = async (planId: PlanType) => {
     if (!session) {
@@ -150,168 +153,136 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-20">
-      <div className="container max-w-7xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm font-medium mb-4">
-            <span>요금제 한눈에 보기</span>
-            <Link href="/pricing/guide" className="underline underline-offset-2">
-              상세 가이드 이동
-            </Link>
-          </div>
-          <h1 className="text-4xl font-bold mb-4">리뷰를 성장 자산으로 만드는 요금제</h1>
-          <p className="text-xl text-gray-600 mb-6">
-            브랜드 신뢰를 키우고 싶은 전문가부터 협업이 필요한 팀까지, 필요한 기능을 묶어 합리적으로 제공합니다.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-            <Button onClick={() => router.push('/signup')} className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-              3분 만에 무료 시작하기
-            </Button>
-            <Button variant="outline" onClick={() => router.push('/pricing/guide')}>
-              요금제 가이드 읽어보기
-            </Button>
-            <Link
-              href="mailto:support@record.kr"
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              맞춤 상담 문의하기 →
-            </Link>
-          </div>
-
-          <div className="inline-flex items-center gap-4 p-1 bg-gray-100 rounded-lg">
-            {(['monthly', 'yearly'] as BillingPeriod[]).map((period) => (
-              <button
-                key={period}
-                onClick={() => setBillingPeriod(period)}
-                className={`px-4 py-2 rounded-md transition-all ${
-                  billingPeriod === period ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-600'
-                }`}
-              >
-                {BILLING_LABELS[period]}
-                {period === 'yearly' && (
-                  <Badge className="ml-2" variant="secondary">20% 할인</Badge>
-                )}
-              </button>
-            ))}
-          </div>
-
-          <p className="text-sm text-gray-500 mt-4">
-            연간 결제는 월별 요금 대비 자동으로 할인 적용됩니다. 청구는 토스페이먼츠를 통해 안전하게 처리됩니다.
-          </p>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-3 text-left">
-            <FeatureHighlight
-              icon={<Sparkles className="w-5 h-5 text-[#FF6B35]" />}
-              title="브랜드 신뢰 강화"
-              description="리뷰 검증 배지, 워터마크 제거, 커스텀 테마로 전문적인 포트폴리오를 구축할 수 있습니다."
-            />
-            <FeatureHighlight
-              icon={<ShieldCheck className="w-5 h-5 text-[#FF6B35]" />}
-              title="안전한 결제 시스템"
-              description="토스페이먼츠 기반의 정기 결제로 안정적인 구독 관리를 제공합니다."
-            />
-            <FeatureHighlight
-              icon={<UsersRound className="w-5 h-5 text-[#FF6B35]" />}
-              title="팀 협업 최적화"
-              description="프로 플랜에서는 팀 멤버 초대와 API 연동으로 워크플로우 전체를 자동화할 수 있습니다."
-            />
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8 mb-20">
-          {PLAN_ORDER.map((planId) => {
-            const plan = PLANS[planId]
-            const features = featureMatrixByPlan.get(planId) || []
-            const isFree = planId === 'free'
-            const isLoading = loadingPlan === planId
-
-            return (
-              <Card
-                key={planId}
-                className={`relative flex flex-col ${plan.badge ? 'border-blue-500 shadow-xl scale-105' : ''}`}
-              >
-                {plan.badge && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    {plan.badge}
-                  </Badge>
-                )}
-
-                <CardHeader>
-                  <CardTitle className="text-2xl flex items-center justify-center gap-2">
-                    {plan.name}
-                  </CardTitle>
-                  <CardDescription className="text-center text-sm text-gray-600">
-                    {plan.description}
-                  </CardDescription>
-                  {renderPriceBlock(planId)}
-                  <p className="mt-4 text-sm text-gray-500 text-center">
-                    {plan.highlight}
-                  </p>
-                  {plan.marketingHighlights.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 mt-4">
-                      {plan.marketingHighlights.map((item) => (
-                        <Badge key={item} variant="outline" className="text-xs">
-                          {item}
-                        </Badge>
-                      ))}
-                    </div>
+    <div className="min-h-screen bg-[#F6F7F9] py-16">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="bg-white rounded-3xl shadow-md p-8 md:p-12">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-[#FF6B35]">가격 안내</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">다양한 플랜으로 Re:cord를 만나보세요</h1>
+              <p className="text-gray-600 md:max-w-xl">
+                무료로 가볍게 시작한 뒤, 브랜드 확장과 팀 협업이 필요해지는 시점에 맞춰 업그레이드하세요.
+                모든 요금제는 언제든 변경할 수 있고, 연간 구독 시 자동으로 할인됩니다.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 md:justify-end">
+              {(['monthly', 'yearly'] as BillingPeriod[]).map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setBillingPeriod(period)}
+                  className={`px-4 py-2 text-sm rounded-full border transition ${
+                    billingPeriod === period
+                      ? 'border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35] font-semibold'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {BILLING_LABELS[period]}
+                  {period === 'yearly' && (
+                    <span className="ml-2 inline-flex items-center text-xs text-green-600">2개월 무료</span>
                   )}
-                </CardHeader>
+                </button>
+              ))}
+            </div>
+          </div>
 
-                <CardContent className="flex-1">
-                  <ul className="space-y-3">
-                    {features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        {feature.included ? (
-                          <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        ) : (
-                          <X className="w-5 h-5 text-gray-300 mt-0.5 flex-shrink-0" />
-                        )}
-                        <div>
-                          <span className={feature.included ? '' : 'text-gray-400'}>
-                            {feature.label}
+          <div className="grid gap-6 md:grid-cols-3">
+            {PLAN_ORDER.map((planId) => {
+              const plan = PLANS[planId]
+              const copy = PLAN_COPY[planId]
+              const isFree = planId === 'free'
+              const isLoading = loadingPlan === planId
+              const amount = getPlanPrice(planId, billingPeriod)
+              const monthlyAmount = getPlanPrice(planId, 'monthly')
+              const yearlyAmount = getPlanPrice(planId, 'yearly')
+              const savings = getYearlySavings(planId)
+
+              return (
+                <Card
+                  key={planId}
+                  className={`flex flex-col justify-between border-2 ${
+                    copy.accent === 'highlight'
+                      ? 'border-[#FF6B35] shadow-lg bg-[#FF6B35]/5'
+                      : 'border-transparent bg-gray-50'
+                  }`}
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-semibold text-gray-500">{copy.title}</div>
+                      {copy.emphasis && (
+                        <span className="text-xs font-medium text-[#FF6B35] bg-white/70 px-2 py-1 rounded-full">
+                          {copy.emphasis}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900">{plan.name}</h2>
+                    <p className="mt-2 text-sm text-gray-600 leading-relaxed">{copy.subtitle}</p>
+
+                    <div className="mt-6 space-y-1">
+                      {amount === 0 ? (
+                        <p className="text-4xl font-bold text-gray-900">무료</p>
+                      ) : (
+                        <p className="text-4xl font-bold text-gray-900">
+                          ₩{formatCurrency(amount)}
+                          <span className="text-base font-medium text-gray-500 ml-1">
+                            {billingPeriod === 'monthly' ? '/월' : '/년'}
                           </span>
-                          {feature.description && (
-                            <p className="text-xs text-gray-400">{feature.description}</p>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                        </p>
+                      )}
+                      {billingPeriod === 'yearly' && amount > 0 && (
+                        <p className="text-xs text-green-600">
+                          월 환산 ₩{formatCurrency(Math.round(yearlyAmount / 12))} · 연간 결제 시 ₩{formatCurrency(yearlyAmount)}
+                          {savings > 0 && ` (₩${formatCurrency(savings)} 절약)`}
+                        </p>
+                      )}
+                      {billingPeriod === 'monthly' && amount > 0 && (
+                        <p className="text-xs text-gray-500">
+                          연간 구독 시 ₩{formatCurrency(yearlyAmount)} (약 {plan.pricing.yearlyDiscountPercent}% 할인)
+                        </p>
+                      )}
+                    </div>
+                  </CardHeader>
 
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 space-y-1">
-                    <p><strong>추천 대상:</strong> {plan.bestFor}</p>
-                    <p><strong>지원 범위:</strong> {plan.supportLevel}</p>
-                  </div>
-                </CardContent>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      {copy.bullets.map((item) => (
+                        <li key={item} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 mt-0.5 text-[#FF6B35]" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
 
-                <CardFooter>
-                  <Button
-                    variant={isFree ? 'outline' : 'default'}
-                    className="w-full"
-                    onClick={() => handleSelectPlan(planId)}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        처리 중...
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-2">
-                        {isFree ? '무료로 시작하기' : `${plan.name} 신청하기`}
-                        {!isFree && <ArrowRight className="w-4 h-4" />}
-                      </span>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            )
-          })}
+                  <CardFooter className="pt-0">
+                    <Button
+                      variant={copy.accent === 'highlight' ? 'default' : 'outline'}
+                      className={`w-full ${copy.accent === 'highlight' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : 'border-gray-300 text-gray-800'}`}
+                      onClick={() => handleSelectPlan(planId)}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" /> 처리 중...
+                        </span>
+                      ) : (
+                        copy.cta
+                      )}
+                    </Button>
+
+                    <div className="mt-4 text-xs text-gray-500 space-y-1">
+                      {!isFree && (
+                        <p>월 ₩{formatCurrency(monthlyAmount)} • 연간 ₩{formatCurrency(yearlyAmount)}</p>
+                      )}
+                      <p>결제는 토스페이먼츠를 통해 안전하게 처리됩니다.</p>
+                    </div>
+                  </CardFooter>
+                </Card>
+              )
+            })}
+          </div>
         </div>
 
-        <div className="space-y-10">
+        <div className="space-y-10 mt-12">
           <Card className="border border-gray-200">
             <CardHeader>
               <CardTitle>요금제 핵심 비교</CardTitle>
@@ -400,28 +371,6 @@ function PlanSummary({ planId, billingPeriod }: { planId: Exclude<PlanType, 'fre
         {billingPeriod === 'yearly' && (
           <p className="text-xs text-green-600">현재 연간 결제를 선택했습니다.</p>
         )}
-      </div>
-    </div>
-  )
-}
-
-function FeatureHighlight({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode
-  title: string
-  description: string
-}) {
-  return (
-    <div className="flex items-start gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div className="p-2 bg-orange-50 rounded-lg">
-        {icon}
-      </div>
-      <div>
-        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-        <p className="mt-1 text-sm text-gray-600 leading-relaxed">{description}</p>
       </div>
     </div>
   )

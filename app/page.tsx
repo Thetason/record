@@ -220,6 +220,12 @@ export default function HomePage() {
             
             {/* 네비게이션 메뉴 */}
             <div className="hidden md:flex items-center gap-6">
+              <Link
+                href="/pricing"
+                className="text-gray-600 hover:text-[#FF6B35] transition-colors"
+              >
+                요금 안내
+              </Link>
               <button 
                 className="text-gray-600 hover:text-[#FF6B35] transition-colors"
                 onClick={() => {
