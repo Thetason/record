@@ -359,37 +359,16 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="group h-full border border-gray-200 overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-xl">
-                  <div className="relative">
-                    {review.imageUrl ? (
-                      <div className="relative h-56 overflow-hidden">
-                        <img
-                          src={review.imageUrl}
-                          alt={`${review.author} 리뷰 이미지`}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute inset-0 p-5 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-y-auto text-sm leading-6 whitespace-pre-wrap">
-                          {review.content}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveImage(review.imageUrl as string)
-                            setActiveReview(review)
-                          }}
-                          className="absolute inset-x-0 bottom-3 mx-auto w-fit rounded-full bg-white/80 px-4 py-1 text-xs font-medium text-gray-800 shadow transition hover:bg-white"
-                          aria-label="리뷰 이미지 크게 보기"
-                        >
-                          전체 이미지 보기
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="h-56 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center px-6 text-sm text-gray-600 text-center whitespace-pre-wrap">
-                        {review.content}
-                      </div>
-                    )}
-                  </div>
+                <Card className="h-full border border-gray-200 overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-xl">
+                  {review.imageUrl && (
+                    <div className="h-40 overflow-hidden">
+                      <img
+                        src={review.imageUrl}
+                        alt={`${review.author} 리뷰 이미지`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
 
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-start justify-between">
@@ -410,14 +389,12 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                       )}
                     </div>
 
-                    {!review.imageUrl && (
-                      <div className="relative">
-                        <QuoteIcon className="absolute -top-2 -left-2 w-8 h-8 text-gray-100" />
-                        <p className="pl-4 text-sm leading-6 text-gray-700 whitespace-pre-wrap">
-                          {review.content}
-                        </p>
-                      </div>
-                    )}
+                    <div className="relative">
+                      <QuoteIcon className="absolute -top-2 -left-2 w-8 h-8 text-gray-100" />
+                      <p className="pl-4 text-sm leading-6 text-gray-700 whitespace-pre-wrap">
+                        {review.content}
+                      </p>
+                    </div>
 
                     <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
                       <span className="font-medium text-gray-700">{review.author}</span>
