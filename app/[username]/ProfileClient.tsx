@@ -71,6 +71,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
   const [showAllReviews, setShowAllReviews] = useState(false)
   const [activeImage, setActiveImage] = useState<string | null>(null)
   const [activeReview, setActiveReview] = useState<Review | null>(null)
+  const [coverError, setCoverError] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,6 +80,10 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  useEffect(() => {
+    setCoverError(false)
+  }, [profile.coverImage])
 
   const handleShare = async () => {
     const url = window.location.href
@@ -159,13 +164,14 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
         {/* Cover Image with Gradient Overlay */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/70 z-10" />
-          {profile.coverImage ? (
+          {profile.coverImage && !coverError ? (
             <Image
               src={profile.coverImage}
-              alt="커버 이미지"
+              alt=""
               fill
               className="object-cover"
               priority
+              onError={() => setCoverError(true)}
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#1f2937] via-[#2d3a4b] to-[#111827]" />
