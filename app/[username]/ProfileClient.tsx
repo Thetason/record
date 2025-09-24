@@ -361,12 +361,25 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
               >
                 <Card className="h-full border border-gray-200 overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-xl">
                   {review.imageUrl && (
-                    <div className="h-40 overflow-hidden">
-                      <img
-                        src={review.imageUrl}
-                        alt={`${review.author} 리뷰 이미지`}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="relative h-48 overflow-hidden bg-black/5 group">
+                      <div className="absolute inset-0 overflow-auto">
+                        <img
+                          src={review.imageUrl}
+                          alt={`${review.author} 리뷰 이미지`}
+                          className="w-full object-contain"
+                          style={{ maxHeight: '300px' }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveImage(review.imageUrl as string)
+                          setActiveReview(review)
+                        }}
+                        className="absolute right-3 bottom-3 px-3 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700 shadow transition hover:bg-white"
+                      >
+                        이미지 확대
+                      </button>
                     </div>
                   )}
 
