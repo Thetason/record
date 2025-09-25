@@ -12,9 +12,9 @@ import {
   BarChartIcon,
   GearIcon,
   ExitIcon,
-  ExternalLinkIcon,
-  EyeOpenIcon,
-  CameraIcon
+  CameraIcon,
+  Share1Icon,
+  Link2Icon
 } from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
@@ -144,6 +144,22 @@ export default function ProfilePage() {
     }))
   }
 
+  const handleCopyProfileUrl = async () => {
+    if (!formData.username) {
+      alert('먼저 사용자명을 입력하고 저장해주세요.')
+      return
+    }
+
+    const url = `https://re-cord.kr/${formData.username}`
+    try {
+      await navigator.clipboard.writeText(url)
+      alert('공유 링크가 복사되었습니다!')
+    } catch (error) {
+      console.error('Failed to copy profile URL:', error)
+      alert('링크 복사에 실패했습니다. 브라우저 설정을 확인해주세요.')
+    }
+  }
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -222,7 +238,7 @@ export default function ProfilePage() {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>
   }
 
-  const profileUrl = `re-cord.kr/${formData.username}`
+  const shortProfileUrl = formData.username ? `re-cord.kr/${formData.username}` : 're-cord.kr/yourname'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -278,6 +294,61 @@ export default function ProfilePage() {
               공개 프로필 정보를 편집하고 관리하세요
             </p>
           </div>
+
+          <Card className="overflow-hidden border-0 shadow-xl">
+            <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="text-2xl">공개 프로필 미리보기</CardTitle>
+                <CardDescription>
+                  현재 저장된 정보 기준으로 공유 페이지와 동일한 화면이 표시됩니다.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleCopyProfileUrl}
+                  disabled={!formData.username}
+                >
+                  링크 복사
+                </Button>
+                <Button
+                  variant="outline"
+                  asChild
+                  disabled={!formData.username}
+                >
+                  <Link href={formData.username ? `/${formData.username}` : '#'} target="_blank">
+                    새 탭에서 보기
+                  </Link>
+                </Button>
+                <Button variant="ghost" asChild>
+                  <Link href="/dashboard/share">
+                    공유 설정 열기
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {formData.username ? (
+                <div className="bg-slate-100">
+                  <div className="mx-auto w-full max-w-[1280px] px-4 pb-8">
+                    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                      <iframe
+                        key={formData.username}
+                        src={`/${formData.username}`}
+                        title="프로필 미리보기"
+                        className="h-[900px] w-full"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 text-center text-sm text-gray-500">
+                  사용자명을 입력하고 저장하면 공개 프로필 미리보기가 표시됩니다.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Profile Form */}
@@ -355,7 +426,7 @@ export default function ProfilePage() {
                         required
                       />
                       <p className="text-xs text-gray-500">
-                        공개 프로필 URL: {profileUrl}
+                        공개 프로필 URL: {shortProfileUrl}
                       </p>
                     </div>
 
@@ -472,64 +543,8 @@ export default function ProfilePage() {
               </Card>
             </div>
 
-            {/* Preview & Actions */}
+            {/* Side information */}
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>프로필 미리보기</CardTitle>
-                  <CardDescription>
-                    다른 사용자에게 보여지는 모습입니다
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center">
-                    <div className="relative w-16 h-16 bg-orange-100 rounded-full mx-auto mb-3 flex items-center justify-center text-xl font-bold text-[#FF6B35] overflow-hidden">
-                      {previewImage ? (
-                        <Image src={previewImage} alt="Profile" fill sizes="64px" className="object-cover" />
-                      ) : (
-                        formData.name.charAt(0).toUpperCase() || "U"
-                      )}
-                    </div>
-                    <h3 className="font-bold text-lg">{formData.name || "이름 없음"}</h3>
-                    <p className="text-gray-600 text-sm">@{formData.username || "username"}</p>
-                    {formData.location && (
-                      <p className="text-gray-500 text-xs mt-1">{formData.location}</p>
-                    )}
-                  </div>
-                  
-                  {formData.bio && (
-                    <div>
-                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                        {formData.bio.slice(0, 100)}{formData.bio.length > 100 ? '...' : ''}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      className="flex-1"
-                      asChild
-                    >
-                      <Link href={`/${formData.username}`} target="_blank">
-                        <EyeOpenIcon className="w-4 h-4 mr-1" />
-                        미리보기
-                      </Link>
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`https://re-cord.kr/${formData.username}`)
-                        alert('링크가 복사되었습니다!')
-                      }}
-                    >
-                      <ExternalLinkIcon className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>통계</CardTitle>
@@ -553,6 +568,36 @@ export default function ProfilePage() {
                       <span className="font-medium">{stats.thisMonthReviews}개</span>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>빠른 작업</CardTitle>
+                  <CardDescription>
+                    프로필 공유 및 리뷰 요청 기능을 빠르게 열 수 있어요
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start" asChild>
+                    <Link href="/dashboard/share">
+                      <Share1Icon className="w-4 h-4 mr-2" /> 리뷰 공유 설정 열기
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    disabled={!formData.username}
+                    onClick={() => {
+                      if (!formData.username) return
+                      window.open(`/${formData.username}/review-request`, '_blank')
+                    }}
+                  >
+                    <Link2Icon className="w-4 h-4 mr-2" /> 리뷰 요청 폼 열기
+                  </Button>
+                  <p className="text-xs text-gray-500">
+                    공개 페이지에서 변경 사항이 보이지 않을 경우, 위 메뉴에서 즉시 공유 상태를 확인할 수 있습니다.
+                  </p>
                 </CardContent>
               </Card>
             </div>
