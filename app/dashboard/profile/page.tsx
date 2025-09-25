@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type ComponentProps } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import ProfileClient from "@/app/[username]/ProfileClient"
 
 interface ProfileStats {
   totalReviews: number
@@ -31,6 +32,8 @@ interface ProfileStats {
 interface ReviewSummary {
   createdAt: string
 }
+
+type ProfileClientPayload = ComponentProps<typeof ProfileClient>["profile"]
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
@@ -54,12 +57,44 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [error, setError] = useState("")
+  const [previewProfile, setPreviewProfile] = useState<ProfileClientPayload | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(true)
+  const [previewError, setPreviewError] = useState("")
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
     }
   }, [status, router])
+
+  const fetchPreview = useCallback(async (username?: string | null) => {
+    if (!username) {
+      setPreviewProfile(null)
+      setPreviewError('사용자명을 입력하면 공개 미리보기를 확인할 수 있습니다.')
+      setPreviewLoading(false)
+      return
+    }
+
+    setPreviewLoading(true)
+    setPreviewError("")
+    try {
+      const res = await fetch('/api/users/me/preview')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        setPreviewProfile(null)
+        setPreviewError(data.error || '프로필 미리보기를 불러오지 못했습니다.')
+      } else {
+        const data = await res.json() as ProfileClientPayload
+        setPreviewProfile(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile preview:', error)
+      setPreviewProfile(null)
+      setPreviewError('프로필 미리보기를 불러오지 못했습니다.')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }, [])
 
   const fetchUserProfile = useCallback(async () => {
     if (!session) return
@@ -84,13 +119,14 @@ export default function ProfilePage() {
           ...prev,
           profileViews: data.profileViews || prev.profileViews || 0
         }))
+        await fetchPreview(data.username)
       }
     } catch (error) {
       console.error("Failed to fetch user profile:", error)
     } finally {
       setIsLoading(false)
     }
-  }, [session])
+  }, [session, fetchPreview])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -145,12 +181,13 @@ export default function ProfilePage() {
   }
 
   const handleCopyProfileUrl = async () => {
-    if (!formData.username) {
+    const url = formData.username ? `https://re-cord.kr/${formData.username}` : ''
+
+    if (!url) {
       alert('먼저 사용자명을 입력하고 저장해주세요.')
       return
     }
 
-    const url = `https://re-cord.kr/${formData.username}`
     try {
       await navigator.clipboard.writeText(url)
       alert('공유 링크가 복사되었습니다!')
@@ -220,7 +257,7 @@ export default function ProfilePage() {
       }
 
       alert("프로필이 성공적으로 업데이트되었습니다!")
-      fetchUserProfile()
+      await fetchUserProfile()
     } catch (error) {
       console.error("Profile update error:", error)
       const message = error instanceof Error ? error.message : "프로필 업데이트 중 오류가 발생했습니다."
@@ -306,6 +343,13 @@ export default function ProfilePage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
+                  onClick={() => fetchPreview(formData.username)}
+                  disabled={previewLoading}
+                >
+                  새로고침
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={handleCopyProfileUrl}
                   disabled={!formData.username}
                 >
@@ -328,23 +372,21 @@ export default function ProfilePage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {formData.username ? (
+              {previewLoading ? (
+                <div className="flex min-h-[400px] items-center justify-center bg-slate-100">
+                  <div className="text-sm text-gray-500">미리보기를 불러오는 중입니다...</div>
+                </div>
+              ) : previewProfile ? (
                 <div className="bg-slate-100">
                   <div className="mx-auto w-full max-w-[1280px] px-4 pb-8">
-                    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-                      <iframe
-                        key={formData.username}
-                        src={`/${formData.username}`}
-                        title="프로필 미리보기"
-                        className="h-[900px] w-full"
-                        loading="lazy"
-                      />
+                    <div className="max-h-[900px] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                      <ProfileClient profile={previewProfile} />
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="p-6 text-center text-sm text-gray-500">
-                  사용자명을 입력하고 저장하면 공개 프로필 미리보기가 표시됩니다.
+                  {previewError || '사용자명을 입력하고 저장하면 공개 프로필 미리보기가 표시됩니다.'}
                 </div>
               )}
             </CardContent>
