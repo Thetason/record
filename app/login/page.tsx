@@ -1,17 +1,25 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getProviders, signIn, type ClientSafeProvider } from "next-auth/react"
 import Link from "next/link"
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  oauth_missing_email: '소셜 계정에서 이메일 정보를 전달받지 못했습니다. 카카오 계정에서 이메일 제공을 허용한 뒤 다시 시도해주세요.',
-  OAuthAccountNotLinked: '이미 다른 로그인 방식으로 가입된 계정입니다. 기존 로그인 수단으로 로그인하거나 비밀번호 재설정을 진행해주세요.',
+  oauth_missing_email: '소셜 계정에서 이메일 정보를 전달받지 못했습니다. 카카오 계정에서 이메일 제공에 동의한 뒤 다시 시도해주세요.',
+  OAuthAccountNotLinked: '이미 다른 로그인 방식으로 가입된 계정입니다. 기존 로그인 수단을 사용하거나 비밀번호 재설정을 진행해주세요.',
   Configuration: '소셜 로그인 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.',
 }
 
-export default function LoginPage() {
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+      <div className="text-center text-gray-600">로딩 중...</div>
+    </div>
+  )
+}
+
+function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -115,11 +123,7 @@ export default function LoginPage() {
   }
 
   if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-        <div className="text-center">로딩 중...</div>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   return (
@@ -262,5 +266,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
