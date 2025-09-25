@@ -13,15 +13,12 @@ import {
   ExitIcon,
   UploadIcon,
   ArrowUpIcon,
-  StarIcon,
   CalendarIcon,
   EyeOpenIcon,
   Share2Icon,
   LockClosedIcon
 } from "@radix-ui/react-icons"
 import {
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -42,7 +39,6 @@ interface Review {
   id: string
   platform: string
   business: string
-  rating: number
   content: string
   author: string
   reviewDate: string
@@ -52,7 +48,6 @@ interface Review {
 interface DashboardStats {
   overview: {
     totalReviews: number
-    averageRating: number
     platforms: number
     thisMonth: number
     profileViews: number
@@ -75,17 +70,8 @@ interface DashboardStats {
     }>
   }
   distribution: {
-    ratings: {
-      1: number
-      2: number
-      3: number
-      4: number
-      5: number
-    }
     platforms: Record<string, {
       count: number
-      totalRating: number
-      averageRating: number
     }>
   }
   recent: {
@@ -137,35 +123,33 @@ export default function DashboardPage() {
   }
 
   const getPlatformColor = (platform: string) => {
-    const colors: { [key: string]: string } = {
-      "네이버": "bg-green-100 text-green-800",
-      "카카오맵": "bg-yellow-100 text-yellow-800",
-      "구글": "bg-blue-100 text-blue-800",
-      "크몽": "bg-purple-100 text-purple-800",
-      "인스타그램": "bg-pink-100 text-pink-800"
+    const map: Record<string, string> = {
+      '네이버': 'bg-green-100 text-green-800',
+      '카카오맵': 'bg-yellow-100 text-yellow-800',
+      '카카오': 'bg-yellow-100 text-yellow-800',
+      '구글': 'bg-blue-100 text-blue-800',
+      '인스타그램': 'bg-pink-100 text-pink-800',
+      '인스타': 'bg-pink-100 text-pink-800',
+      '당근': 'bg-orange-100 text-orange-700',
+      '당근마켓': 'bg-orange-100 text-orange-700',
+      'Re:cord': 'bg-[#FF6B35]/10 text-[#FF6B35]',
+      're:cord': 'bg-[#FF6B35]/10 text-[#FF6B35]',
+      '크몽': 'bg-purple-100 text-purple-800'
     }
-    return colors[platform] || "bg-gray-100 text-gray-800"
+    return map[platform] || "bg-gray-100 text-gray-800"
   }
 
   // 차트 색상
-  const COLORS = ['#FF6B35', '#FFA726', '#66BB6A', '#42A5F5', '#AB47BC']
   const platformColors: { [key: string]: string } = {
     "네이버": "#2DB400",
     "카카오맵": "#FAE100",
     "구글": "#4285F4",
     "크몽": "#7C3AED",
     "인스타그램": "#E4405F",
+    "당근": "#FF8A3D",
+    "Re:cord": "#FF6B35",
     "기타": "#6B7280"
   }
-
-  // 평점 분포 데이터 준비
-  const ratingData = stats ? [
-    { rating: '1점', count: stats.distribution.ratings[1] },
-    { rating: '2점', count: stats.distribution.ratings[2] },
-    { rating: '3점', count: stats.distribution.ratings[3] },
-    { rating: '4점', count: stats.distribution.ratings[4] },
-    { rating: '5점', count: stats.distribution.ratings[5] }
-  ] : []
 
   // 플랫폼별 분포 데이터 준비
   const platformData = stats ? Object.entries(stats.distribution.platforms).map(([name, data]) => ({
@@ -410,12 +394,12 @@ export default function DashboardPage() {
               color="blue"
             />
             <StatCard
-              icon={<StarIcon className="w-5 h-5" />}
-              title="평균 평점"
-              value={stats?.overview.averageRating || 0}
-              suffix="점"
-              trend={stats?.overview.averageRating >= 4.5 ? "우수" : "양호"}
-              trendLabel="평가"
+              icon={<UploadIcon className="w-5 h-5" />}
+              title="최근 7일 등록"
+              value={stats?.trends.thisWeekReviews || 0}
+              suffix="개"
+              trend=""
+              trendLabel="지난 7일"
               color="yellow"
             />
             <StatCard
@@ -495,46 +479,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* 평점 분포 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>평점 분포</CardTitle>
-                <CardDescription>별점별 리뷰 개수 분포</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {ratingData && ratingData.some(item => item.count > 0) ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={ratingData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="rating" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px'
-                        }}
-                      />
-                      <Bar dataKey="count" name="리뷰 수" radius={[8, 8, 0, 0]}>
-                        {ratingData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex flex-col items-center justify-center text-gray-500">
-                    <StarIcon className="w-12 h-12 mb-4 opacity-50" />
-                    <p className="text-sm font-medium mb-2">평점 데이터가 없어요</p>
-                    <p className="text-xs">리뷰가 추가되면 평점 분포를 확인할 수 있습니다</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Charts Row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             {/* 플랫폼별 분포 */}
             <Card>
               <CardHeader>
@@ -543,7 +487,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 {platformData && platformData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
                         data={platformData}
@@ -551,7 +495,7 @@ export default function DashboardPage() {
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        outerRadius={90}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -563,7 +507,7 @@ export default function DashboardPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[250px] flex flex-col items-center justify-center text-gray-500">
+                  <div className="h-[300px] flex flex-col items-center justify-center text-gray-500">
                     <ArrowUpIcon className="w-12 h-12 mb-4 opacity-50" />
                     <p className="text-sm font-medium mb-2">플랫폼 데이터가 없어요</p>
                     <p className="text-xs">다양한 플랫폼의 리뷰를 추가해보세요</p>
@@ -571,56 +515,9 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* 플랫폼별 평균 평점 */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>플랫폼별 평균 평점</CardTitle>
-                <CardDescription>각 플랫폼에서 받은 평균 점수</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {stats && Object.keys(stats.distribution.platforms).length > 0 ? (
-                  <div className="space-y-4">
-                    {Object.entries(stats.distribution.platforms).map(([platform, data]) => (
-                      <div key={platform} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className={`px-3 py-1 text-sm font-medium rounded-full ${getPlatformColor(platform)}`}>
-                            {platform}
-                          </span>
-                          <span className="text-sm text-gray-600">
-                            {data.count}개 리뷰
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <StarIcon
-                                key={i}
-                                className={`w-4 h-4 ${
-                                  i < Math.floor(data.averageRating) 
-                                    ? 'text-yellow-400 fill-current' 
-                                    : 'text-gray-300'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm font-semibold">
-                            {data.averageRating.toFixed(1)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-gray-500">
-                    <PersonIcon className="w-12 h-12 mb-4 opacity-50" />
-                    <p className="text-sm font-medium mb-2">평점 정보가 없어요</p>
-                    <p className="text-xs text-center">리뷰를 추가하면 플랫폼별<br/>평균 평점을 확인할 수 있습니다</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
+
+          {/* Platform summary row removed */}
 
           {/* Quick Actions */}
           <Card className="mb-6">
@@ -682,13 +579,6 @@ export default function DashboardPage() {
                             {review.platform}
                           </span>
                           <span className="text-sm font-medium">{review.business}</span>
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <span key={i} className={`text-sm ${i < review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>
-                                ★
-                              </span>
-                            ))}
-                          </div>
                         </div>
                         <p className="text-sm text-gray-600 overflow-hidden" style={{
                           display: '-webkit-box',

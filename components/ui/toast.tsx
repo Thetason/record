@@ -80,20 +80,22 @@ function ToastItem({ toast, onClose }: ToastProps) {
 // Toast Container
 export function ToastContainer() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const TOAST_EVENT = 'show-toast';
 
   useEffect(() => {
-    const handleToast = (event: CustomEvent<Toast>) => {
-      const newToast = {
-        ...event.detail,
+    const listener: EventListener = (event) => {
+      const customEvent = event as CustomEvent<Toast>;
+      const newToast: Toast = {
+        ...customEvent.detail,
         id: Math.random().toString(36).substr(2, 9),
-        duration: event.detail.duration || 5000,
+        duration: customEvent.detail.duration || 5000,
       };
       setToasts(prev => [...prev, newToast]);
     };
 
-    window.addEventListener('show-toast' as any, handleToast);
+    window.addEventListener(TOAST_EVENT, listener);
     return () => {
-      window.removeEventListener('show-toast' as any, handleToast);
+      window.removeEventListener(TOAST_EVENT, listener);
     };
   }, []);
 
@@ -114,7 +116,7 @@ export function ToastContainer() {
 export const toast = {
   success: (title: string, message?: string) => {
     window.dispatchEvent(
-      new CustomEvent('show-toast', {
+      new CustomEvent<Toast>('show-toast', {
         detail: { type: 'success', title, message },
       })
     );

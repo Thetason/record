@@ -27,7 +27,6 @@ export async function GET(
             id: true,
             platform: true,
             business: true,
-            rating: true,
             content: true,
             author: true,
             reviewDate: true,
@@ -54,9 +53,6 @@ export async function GET(
     // 통계 계산
     const stats = {
       totalReviews: user.reviews.length,
-      averageRating: user.reviews.length > 0 
-        ? parseFloat((user.reviews.reduce((sum, review) => sum + review.rating, 0) / user.reviews.length).toFixed(1))
-        : 0,
       platforms: new Set(user.reviews.map(review => review.platform)).size,
       responseRate: 98 // 임시값, 실제로는 계산 로직 필요
     }

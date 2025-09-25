@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withRateLimit, corsHeaders, securityHeaders } from '@/lib/security';
+import { withRateLimit } from '@/lib/security';
 import { verifyLatpeedWebhook, LatpeedWebhookEvent } from '@/lib/latpeed';
 
 export async function POST(req: NextRequest) {
@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
         await handlePaymentSuccess({
           subscriptionId: event.data.subscriptionId || event.data.paymentId,
           customerEmail: event.data.customerEmail,
-          amount: event.data.amount,
           plan: event.data.metadata?.plan || 'premium',
         });
         break;
@@ -56,7 +55,6 @@ export async function POST(req: NextRequest) {
       case 'subscription.renewed':
         // 구독 갱신 처리
         await handleSubscriptionRenewal({
-          subscriptionId: event.data.subscriptionId,
           customerEmail: event.data.customerEmail,
           nextBillingDate: event.data.nextBillingDate,
         });
@@ -79,12 +77,10 @@ export async function POST(req: NextRequest) {
 async function handlePaymentSuccess({
   subscriptionId,
   customerEmail,
-  amount,
   plan,
 }: {
   subscriptionId: string;
   customerEmail: string;
-  amount: number;
   plan: string;
 }) {
   try {
@@ -180,11 +176,9 @@ async function handlePaymentFailure({
 }
 
 async function handleSubscriptionRenewal({
-  subscriptionId,
   customerEmail,
   nextBillingDate,
 }: {
-  subscriptionId: string;
   customerEmail: string;
   nextBillingDate: string;
 }) {

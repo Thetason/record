@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
     }
 
     // 플랜 만료일 계산
-    const now = new Date()
     const expiryDate = new Date()
     
     if (product.period === 'monthly') {

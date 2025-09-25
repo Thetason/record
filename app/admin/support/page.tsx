@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,6 @@ import {
   User,
   Send,
   Search,
-  Filter,
   ArrowUp,
   Paperclip
 } from 'lucide-react'
@@ -52,11 +51,7 @@ export default function AdminSupportPage() {
   const [replyMessage, setReplyMessage] = useState('')
   const [sending, setSending] = useState(false)
 
-  useEffect(() => {
-    fetchTickets()
-  }, [filter])
-
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/admin/tickets?status=${filter}`)
@@ -69,7 +64,11 @@ export default function AdminSupportPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filter])
+
+  useEffect(() => {
+    fetchTickets()
+  }, [fetchTickets])
 
   const sendReply = async () => {
     if (!selectedTicket || !replyMessage.trim()) return

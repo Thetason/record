@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
@@ -30,7 +31,6 @@ export default function SharePage() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
-  const emailRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -257,15 +257,15 @@ export default function SharePage() {
           <CardContent>
             <div 
               ref={qrRef}
-              className="bg-white p-6 rounded-lg border flex flex-col items-center"
+              className="flex flex-col items-center rounded-lg border bg-white p-6"
             >
               {qrCodeUrl && (
                 <>
-                  <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                  <Image src={qrCodeUrl} alt="QR Code" width={192} height={192} className="h-48 w-48" />
                   <p className="mt-4 text-sm font-medium text-gray-700">
                     @{session.user.username || session.user.name}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Re:cord 리뷰 프로필</p>
+                  <p className="mt-1 text-xs text-gray-500">Re:cord 리뷰 프로필</p>
                 </>
               )}
             </div>
@@ -356,6 +356,30 @@ export default function SharePage() {
 // Kakao SDK 타입 선언
 declare global {
   interface Window {
-    Kakao: any;
+    Kakao: {
+      isInitialized(): boolean;
+      init(key?: string): void;
+      Share: {
+        sendDefault(options: {
+          objectType: 'feed';
+          content: {
+            title: string;
+            description: string;
+            imageUrl: string;
+            link: {
+              mobileWebUrl: string;
+              webUrl: string;
+            };
+          };
+          buttons: Array<{
+            title: string;
+            link: {
+              mobileWebUrl: string;
+              webUrl: string;
+            };
+          }>;
+        }): void;
+      };
+    };
   }
 }

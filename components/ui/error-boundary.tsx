@@ -1,6 +1,7 @@
 'use client';
 
-import { Component, ReactNode } from 'react';
+import Link from 'next/link';
+import { Component, ReactNode, ErrorInfo } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { getUserFriendlyError } from '@/lib/error-messages';
 
@@ -24,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
     
     // 프로덕션에서는 에러 로깅 서비스로 전송
@@ -68,13 +69,13 @@ export class ErrorBoundary extends Component<Props, State> {
                   다시 시도
                 </button>
                 
-                <a
+                <Link
                   href="/"
                   className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
                 >
                   <Home className="w-4 h-4" />
                   홈으로
-                </a>
+                </Link>
               </div>
               
               {process.env.NODE_ENV === 'development' && this.state.error && (

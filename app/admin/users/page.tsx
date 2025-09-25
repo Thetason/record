@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,12 +14,7 @@ import {
   Lock,
   Unlock,
   Eye,
-  Ban,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  TrendingUp,
-  Calendar
+  Ban
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -52,18 +47,7 @@ export default function AdminUsersPage() {
   const [currentAdmin, setCurrentAdmin] = useState<{ id: string; role: 'admin' | 'super_admin' } | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
 
-  useEffect(() => {
-    fetchAdminInfo()
-  }, [])
-
-  useEffect(() => {
-    if (currentAdmin) {
-      fetchUsers()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, currentAdmin])
-
-  const fetchAdminInfo = async () => {
+  const fetchAdminInfo = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/check-auth')
       if (!res.ok) {
@@ -82,9 +66,9 @@ export default function AdminUsersPage() {
     } finally {
       setAuthLoading(false)
     }
-  }
+  }, [router])
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!currentAdmin) return
     try {
       setLoading(true)
@@ -135,7 +119,17 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentAdmin, filter])
+
+  useEffect(() => {
+    fetchAdminInfo()
+  }, [fetchAdminInfo])
+
+  useEffect(() => {
+    if (currentAdmin) {
+      fetchUsers()
+    }
+  }, [currentAdmin, fetchUsers])
 
   const updateUserStatus = async (userId: string, action: string, payload: Record<string, unknown> = {}) => {
     if (!currentAdmin) return

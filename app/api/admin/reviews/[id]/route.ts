@@ -80,7 +80,7 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { verificationStatus, verificationNote, qualityScore } = body
+    const { verificationStatus, verificationNote } = body
 
     // 리뷰 업데이트
     const updatedReview = await prisma.review.update({
@@ -88,7 +88,6 @@ export async function PATCH(
       data: {
         verificationStatus,
         verificationNote,
-        qualityScore,
         verifiedAt: verificationStatus === 'approved' ? new Date() : null,
         verifiedBy: verificationStatus === 'approved' ? 'manual' : null,
         isVerified: verificationStatus === 'approved'

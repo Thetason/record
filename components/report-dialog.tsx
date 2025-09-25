@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Flag, X } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -72,10 +72,11 @@ export function ReportDialog({ reviewId, onReportSuccess }: ReportDialogProps) {
       if (onReportSuccess) {
         onReportSuccess();
       }
-    } catch (error: any) {
+    } catch (error) {
+      const descriptionMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
       toast({
         title: '신고 실패',
-        description: error.message,
+        description: descriptionMessage,
         variant: 'destructive',
       });
     } finally {

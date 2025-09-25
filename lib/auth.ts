@@ -5,30 +5,101 @@ import KakaoProvider from "next-auth/providers/kakao"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import type { Adapter } from "next-auth/adapters"
+
+interface ExtendedUser {
+  username?: string | null
+  role?: string | null
+}
+
+function extractUserMeta(candidate: unknown): ExtendedUser {
+  if (!candidate || typeof candidate !== 'object') {
+    return {}
+  }
+  const source = candidate as { username?: unknown; role?: unknown }
+  return {
+    username: typeof source.username === 'string' ? source.username : undefined,
+    role: typeof source.role === 'string' ? source.role : undefined
+  }
+}
+
+async function findAvailableUsername(base: string): Promise<string> {
+  const sanitizedBase = base
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/_{2,}/g, '_')
+    .replace(/-{2,}/g, '-')
+    .slice(0, 20)
+    || 'user'
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const suffix = attempt === 0 ? '' : `_${Math.random().toString(36).slice(2, 6)}`
+    const candidate = `${sanitizedBase}${suffix}`.slice(0, 20)
+    const existing = await prisma.user.findUnique({ where: { username: candidate } })
+    if (!existing) {
+      return candidate
+    }
+  }
+
+  return `${sanitizedBase.slice(0, 10)}_${Date.now()}`
+}
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt"
   },
   providers: [
     // OAuth 제공자는 환경변수가 있을 때만 활성화
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
-      GoogleProvider({
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        allowDangerousEmailAccountLinking: true,
-      })
-    ] : []),
-    
-    ...(process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET ? [
-      KakaoProvider({
-        clientId: process.env.KAKAO_CLIENT_ID,
-        clientSecret: process.env.KAKAO_CLIENT_SECRET,
-        allowDangerousEmailAccountLinking: true,
-      })
-    ] : []),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
+
+    ...(process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET
+      ? [
+          KakaoProvider({
+            clientId: process.env.KAKAO_CLIENT_ID,
+            clientSecret: process.env.KAKAO_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
+            authorization: {
+              params: {
+                scope: 'profile_nickname profile_image account_email',
+              },
+            },
+            profile(profile) {
+              const account = (profile as Record<string, unknown>).kakao_account as Record<string, unknown> | undefined
+              const properties = (profile as Record<string, unknown>).properties as Record<string, unknown> | undefined
+
+              const profileId = profile && typeof profile === 'object' && 'id' in profile ? String((profile as { id?: unknown }).id ?? '') : ''
+              const email = (account?.email as string | undefined) ?? null
+              const nickname =
+                (properties?.nickname as string | undefined) ||
+                (account?.profile && typeof account.profile === 'object'
+                  ? ((account.profile as Record<string, unknown>).nickname as string | undefined)
+                  : undefined)
+              const image =
+                (properties?.profile_image as string | undefined) ||
+                (account?.profile && typeof account.profile === 'object'
+                  ? ((account.profile as Record<string, unknown>).profile_image_url as string | undefined)
+                  : undefined)
+
+              return {
+                id: profileId || `kakao-${Date.now()}`,
+                name: nickname ?? `카카오사용자_${profile?.id ?? ''}`,
+                email,
+                image: image ?? null,
+              }
+            },
+          }),
+        ]
+      : []),
     
     // 기존 이메일/패스워드 로그인
     CredentialsProvider({
@@ -112,28 +183,47 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       // OAuth 로그인 시 username 자동 생성
       if (account?.provider !== "credentials") {
-        const email = user.email!
+        const email = user.email
+
+        if (!email) {
+          console.error('OAuth provider did not return an email address', {
+            provider: account?.provider,
+          })
+          return '/login?error=oauth_missing_email'
+        }
+
         const existingUser = await prisma.user.findUnique({
           where: { email }
         })
-        
-        if (!existingUser) {
-          // 새 사용자인 경우 username 생성
-          const username = email.split('@')[0] + '_' + Math.random().toString(36).substr(2, 5)
-          await prisma.user.create({
-            data: {
-              email,
-              username,
-              name: user.name || username,
-              avatar: user.image?.charAt(0).toUpperCase() || user.name?.charAt(0).toUpperCase() || 'U',
-              plan: 'free',
-              reviewLimit: 50
-            }
-          })
+        let username = existingUser?.username
+
+        if (!username) {
+          const base = email.split('@')[0] || 'user'
+          username = await findAvailableUsername(base)
         }
+
+        const nameToUse = user.name || existingUser?.name || username
+        const avatar = user.image ?? existingUser?.avatar ?? null
+
+        await prisma.user.upsert({
+          where: { email },
+          update: {
+            name: nameToUse,
+            username,
+            avatar,
+          },
+          create: {
+            email,
+            username,
+            name: nameToUse,
+            avatar,
+            plan: 'free',
+            reviewLimit: 50,
+          },
+        })
       }
       return true
     },
@@ -159,8 +249,9 @@ export const authOptions: NextAuthOptions = {
           token.username = dbUser?.username
           token.role = dbUser?.role || 'user'
         } else {
-          token.username = (user as any).username
-          token.role = (user as any).role
+          const meta = extractUserMeta(user)
+          token.username = meta.username
+          token.role = meta.role ?? 'user'
         }
         console.log("👤 JWT에 사용자 정보 추가:", {
           id: token.id,
@@ -230,9 +321,15 @@ export const authOptions: NextAuthOptions = {
       })
 
       if (session?.user) {
-        session.user.id = token.id as string
-        session.user.username = token.username as string
-        session.user.role = token.role as string
+        if (typeof token.id === 'string') {
+          session.user.id = token.id
+        }
+        if (typeof token.username === 'string') {
+          session.user.username = token.username
+        }
+        if (typeof token.role === 'string') {
+          session.user.role = token.role
+        }
         
         console.log("📱 Session 정보 설정:", {
           id: session.user.id,

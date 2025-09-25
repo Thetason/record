@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertCircle, Shield } from 'lucide-react';
+import { AlertCircle, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,

@@ -1,12 +1,12 @@
 "use client"
 
 import React from "react"
+import Image from "next/image"
 
 type Item = {
   id: string
   previewUrl: string
   platform: string
-  rating: number
   author: string
   reviewDate: string
   businessName: string
@@ -24,7 +24,15 @@ export function SavedFeed({ items }: { items: Item[] }) {
     <div className="grid grid-cols-3 gap-2">
       {top3.map((it, idx) => (
         <div key={it.id} className="relative rounded-lg overflow-hidden border border-gray-200">
-          <img src={it.previewUrl} alt={it.businessName} className="h-20 w-full object-cover" />
+          <div className="relative h-20 w-full">
+            <Image
+              src={it.previewUrl}
+              alt={it.businessName}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 33vw, 120px"
+            />
+          </div>
           <div className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">
             {idx + 1}
           </div>
@@ -32,7 +40,9 @@ export function SavedFeed({ items }: { items: Item[] }) {
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500 text-white">
               {it.platform}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">★ {it.rating}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 border">
+              {new Date(it.reviewDate).toLocaleDateString('ko-KR')}
+            </span>
           </div>
         </div>
       ))}
@@ -41,4 +51,3 @@ export function SavedFeed({ items }: { items: Item[] }) {
 }
 
 export default SavedFeed
-

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
@@ -24,7 +24,6 @@ interface Review {
   id: string
   platform: string
   business: string
-  rating: number
   content: string
   author: string
   reviewDate: string
@@ -43,7 +42,6 @@ export default function EditReviewPage() {
   const [formData, setFormData] = useState({
     platform: "",
     business: "",
-    rating: 5,
     content: "",
     author: "",
     reviewDate: ""
@@ -55,13 +53,7 @@ export default function EditReviewPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
-    if (session && reviewId) {
-      fetchReview()
-    }
-  }, [session, reviewId])
-
-  const fetchReview = async () => {
+  const fetchReview = useCallback(async () => {
     try {
       const res = await fetch(`/api/reviews/${reviewId}`)
       if (res.ok) {
@@ -70,7 +62,6 @@ export default function EditReviewPage() {
         setFormData({
           platform: data.platform,
           business: data.business,
-          rating: data.rating,
           content: data.content,
           author: data.author,
           reviewDate: data.reviewDate.split('T')[0] // Format for date input
@@ -85,7 +76,13 @@ export default function EditReviewPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [reviewId, router])
+
+  useEffect(() => {
+    if (session && reviewId) {
+      fetchReview()
+    }
+  }, [session, reviewId, fetchReview])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -217,6 +214,8 @@ export default function EditReviewPage() {
                       <option value="구글">구글</option>
                       <option value="크몽">크몽</option>
                       <option value="인스타그램">인스타그램</option>
+                      <option value="당근">당근</option>
+                      <option value="Re:cord">Re:cord</option>
                       <option value="기타">기타</option>
                     </select>
                   </div>
@@ -233,26 +232,7 @@ export default function EditReviewPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="rating">평점</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, rating: star })}
-                          className={`text-2xl ${
-                            star <= formData.rating ? 'text-yellow-500' : 'text-gray-300'
-                          } hover:text-yellow-400 transition-colors`}
-                        >
-                          ★
-                        </button>
-                      ))}
-                      <span className="ml-2 text-gray-600">{formData.rating}점</span>
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="reviewDate">리뷰 작성일</Label>
                     <Input
@@ -263,18 +243,18 @@ export default function EditReviewPage() {
                       required
                     />
                   </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="author">작성자명</Label>
-                  <Input
-                    id="author"
-                    type="text"
-                    value={formData.author}
-                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                    placeholder="고객님이 남긴 이름 또는 닉네임"
-                    required
-                  />
+                  <div>
+                    <Label htmlFor="author">작성자명</Label>
+                    <Input
+                      id="author"
+                      type="text"
+                      value={formData.author}
+                      onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                      placeholder="고객님이 남긴 이름 또는 닉네임"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>

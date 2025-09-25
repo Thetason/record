@@ -33,9 +33,6 @@ export async function GET() {
 
     const stats = {
       totalReviews: allReviews.length,
-      averageRating: allReviews.length > 0 
-        ? parseFloat((allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length).toFixed(1))
-        : 0,
       platforms: new Set(allReviews.map(review => review.platform)).size,
       thisMonth: allReviews.filter(review => {
         const reviewDate = new Date(review.reviewDate)

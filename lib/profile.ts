@@ -34,7 +34,6 @@ export type PublicReview = {
   id: string;
   platform: string;
   business: string;
-  rating: number;
   content: string;
   author: string;
   reviewDate: string;
@@ -54,7 +53,6 @@ export type PublicProfile = {
   avatar: string;
   coverImage: string;
   totalReviews: number;
-  averageRating: number;
   platforms: string[];
   experience: string;
   location: string;
@@ -101,7 +99,6 @@ const DEMO_REVIEWS: PublicReview[] = [
     id: '1',
     platform: '네이버',
     business: '비너스필라테스',
-    rating: 5,
     content:
       '김서연 강사님 정말 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요. 허리 통증이 있었는데 3개월만에 완전히 좋아졌습니다.',
     author: '정**',
@@ -115,7 +112,6 @@ const DEMO_REVIEWS: PublicReview[] = [
     id: '2',
     platform: '카카오',
     business: '밸런스드필라테스',
-    rating: 5,
     content:
       '서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요. 체형 교정 효과도 확실히 보고 있습니다.',
     author: '이**',
@@ -129,7 +125,6 @@ const DEMO_REVIEWS: PublicReview[] = [
     id: '3',
     platform: '네이버',
     business: '필라오라인',
-    rating: 5,
     content:
       '6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님! 운동 처방도 너무 정확해서 만족도 200%입니다.',
     author: '박**',
@@ -143,7 +138,6 @@ const DEMO_REVIEWS: PublicReview[] = [
     id: '4',
     platform: '구글',
     business: '비너스필라테스',
-    rating: 5,
     content:
       'Professional and caring instructor. Kim Seoyeon really knows her stuff. My posture has improved significantly after just 2 months of training.',
     author: 'Sarah K.',
@@ -157,7 +151,6 @@ const DEMO_REVIEWS: PublicReview[] = [
     id: '5',
     platform: '인스타',
     business: '필라오라인',
-    rating: 5,
     content:
       '산후 회복 프로그램으로 김서연 선생님 수업 들었는데 정말 만족스러웠어요! 몸도 마음도 건강해지는 느낌. 강추합니다!',
     author: '최**',
@@ -171,7 +164,6 @@ const DEMO_REVIEWS: PublicReview[] = [
     id: '6',
     platform: '네이버',
     business: '비너스필라테스',
-    rating: 5,
     content:
       '회원님 한 분 한 분 신경써주시는게 느껴져요. 운동 효과도 좋고 무엇보다 재밌게 운동할 수 있어서 좋습니다!',
     author: '강**',
@@ -179,6 +171,32 @@ const DEMO_REVIEWS: PublicReview[] = [
     verified: true,
     verifiedAt: null,
     verifiedBy: null,
+    originalUrl: null
+  },
+  {
+    id: '7',
+    platform: '당근',
+    business: '이웃공방 레터링 클래스',
+    content:
+      '동네에서 이렇게 편하게 배울 수 있는 공간이 있다는 게 좋았어요. 수업 후에도 자료를 보내주셔서 혼자 복습하기 편합니다.',
+    author: '당***',
+    reviewDate: '2024-07-28',
+    verified: false,
+    verifiedAt: null,
+    verifiedBy: null,
+    originalUrl: null
+  },
+  {
+    id: '8',
+    platform: 'Re:cord',
+    business: '보컬 트레이닝 1:1',
+    content:
+      '리뷰 요청 링크를 통해 작성한 후기입니다. 수업 전 상담부터 수업 후 피드백까지 체계적으로 챙겨주셔서 실력이 빠르게 늘었어요.',
+    author: '자체고객',
+    reviewDate: '2024-07-20',
+    verified: false,
+    verifiedAt: null,
+    verifiedBy: 'request',
     originalUrl: null
   }
 ];
@@ -193,14 +211,6 @@ function buildProfilePayload(
 ): PublicProfile {
   const reviews = user.reviews ?? [];
   const totalReviews = reviews.length;
-  const averageRating = totalReviews
-    ? Number(
-        (
-          reviews.reduce((sum, review) => sum + review.rating, 0) /
-          totalReviews
-        ).toFixed(1)
-      )
-    : 0;
   const platforms = Array.from(new Set(reviews.map(review => review.platform)));
 
   const fallbackCover = '/images/default-cover.jpg';
@@ -227,7 +237,6 @@ function buildProfilePayload(
     avatar: user.avatar ?? '',
     coverImage: user.bgImage || fallbackCover,
     totalReviews,
-    averageRating,
     platforms,
     experience: yearsExperience,
     location: user.location ?? '',
@@ -248,7 +257,6 @@ function buildProfilePayload(
       id: review.id,
       platform: review.platform,
       business: review.business || '',
-      rating: review.rating,
       content: review.content,
       author: review.author,
       reviewDate: review.reviewDate.toISOString(),
@@ -263,7 +271,6 @@ function buildProfilePayload(
   if (includeDemoFallback && baseProfile.reviews.length === 0) {
     baseProfile.reviews = DEMO_REVIEWS.map(review => ({ ...review }));
     baseProfile.totalReviews = DEMO_REVIEWS.length;
-    baseProfile.averageRating = 5;
     baseProfile.platforms = Array.from(
       new Set(DEMO_REVIEWS.map(review => review.platform))
     );

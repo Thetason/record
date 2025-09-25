@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   FilePlus,
   ArrowRight,
-  Image,
+  Image as ImageIcon,
   ClipboardCheck,
   MousePointer2,
   UploadCloud
@@ -179,7 +179,7 @@ export default function GuidePage() {
             <Card className="border-0 bg-[#F8FAFC]">
               <CardHeader className="space-y-3">
                 <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center">
-                  <Image className="w-5 h-5" />
+                  <ImageIcon className="w-5 h-5" />
                 </div>
                 <CardTitle className="text-xl font-semibold text-gray-900">스크린샷 업로드 (OCR)</CardTitle>
               </CardHeader>

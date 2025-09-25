@@ -126,7 +126,6 @@ const result = await response.json();
   "data": {
     "text": "전체 추출된 텍스트",
     "platform": "naver",
-    "rating": 5,
     "date": "2024-12-15",
     "author": "김고객",
     "confidence": 0.95

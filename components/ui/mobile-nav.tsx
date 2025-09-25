@@ -8,7 +8,6 @@ import {
   PersonIcon, 
   PlusIcon, 
   BarChartIcon,
-  GearIcon,
   Share2Icon,
   LockClosedIcon
 } from "@radix-ui/react-icons"

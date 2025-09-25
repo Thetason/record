@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export async function GET(
   req: NextRequest,
@@ -60,12 +61,18 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { status, priority, assignedTo } = body
+    const { status, priority, assignedTo } = body as {
+      status?: string
+      priority?: string
+      assignedTo?: string | null
+    }
 
-    const updateData: any = {}
+    const updateData: Prisma.TicketUpdateInput = {}
     if (status) updateData.status = status
     if (priority) updateData.priority = priority
-    if (assignedTo !== undefined) updateData.assignedTo = assignedTo
+    if (assignedTo !== undefined) {
+      updateData.assignedTo = assignedTo
+    }
 
     // 해결됨으로 변경시 resolvedBy, resolvedAt 설정
     if (status === 'resolved' || status === 'closed') {

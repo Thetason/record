@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ArrowRightIcon, CheckIcon, StarFilledIcon } from "@radix-ui/react-icons"
+import { ArrowRightIcon, CheckIcon } from "@radix-ui/react-icons"
 import { Shield, Camera } from "lucide-react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
@@ -24,38 +24,35 @@ const hashtags = [
   "#웨딩플래너_고객", "#포토그래퍼_리뷰", "#비즈니스_코칭"
 ]
 
+const TARGET_AUDIENCES = [
+  "보컬트레이너",
+  "미용사",
+  "강사",
+  "네일샵 사장님",
+  "자영업자",
+  "필라테스 강사",
+  "요가 선생님",
+  "트레이너",
+  "헤어디자이너",
+  "네일아티스트",
+  "메이크업 아티스트",
+  "카페 사장님",
+  "레스토랑 셰프",
+  "바리스타",
+  "플로리스트",
+  "인테리어 디자이너",
+  "사진작가"
+]
+
 export default function HomePage() {
   const { data: session, status } = useSession()
   const [reviewCount, setReviewCount] = useState(0)
-  const [avgRating, setAvgRating] = useState(0)
-  const [showDemo, setShowDemo] = useState(false)
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
   const [visibleReviews, setVisibleReviews] = useState(3)
-  
-  const targetAudiences = [
-    "보컬트레이너",
-    "미용사",
-    "강사", 
-    "네일샵 사장님",
-    "자영업자",
-    "필라테스 강사",
-    "요가 선생님",
-    "트레이너",
-    "헤어디자이너",
-    "네일아티스트",
-    "메이크업 아티스트",
-    "카페 사장님",
-    "레스토랑 셰프",
-    "바리스타",
-    "플로리스트",
-    "인테리어 디자이너",
-    "사진작가"
-  ]
 
   useEffect(() => {
     // 리뷰 카운트 애니메이션
     const timer = setTimeout(() => {
-      setShowDemo(true)
       let count = 0
       const interval = setInterval(() => {
         if (count <= 69) {
@@ -68,28 +65,13 @@ export default function HomePage() {
       }, 30)
     }, 500)
 
-    // 평점 애니메이션
-    const ratingTimer = setTimeout(() => {
-      let rating = 0
-      const interval = setInterval(() => {
-        if (rating <= 4.8) {
-          setAvgRating(rating)
-          rating += 0.1
-        } else {
-          clearInterval(interval)
-          setAvgRating(4.8)
-        }
-      }, 40)
-    }, 800)
-    
     // 타겟 오디언스 순환 애니메이션
     const targetTimer = setInterval(() => {
-      setCurrentTargetIndex((prev) => (prev + 1) % targetAudiences.length)
+      setCurrentTargetIndex((prev) => (prev + 1) % TARGET_AUDIENCES.length)
     }, 800) // 0.8초마다 변경
 
     return () => {
       clearTimeout(timer)
-      clearTimeout(ratingTimer)
       clearInterval(targetTimer)
     }
   }, [])
@@ -98,7 +80,6 @@ export default function HomePage() {
     {
       platform: "네이버",
       business: "비너스필라테스",
-      rating: 5,
       content: "수업 때마다 컨디션에 맞게 진행해주시기 때문에 무리하지 않는 선에서 운동할 수 있어서 좋아요. 동작할 때 꼼꼼히 봐주시고, 제가 불편하거나 자극이 없어서 아쉬운 부분이 있다고 말씀드리면 바로 수정도 해주셔서 좋아요. 최고입니다!",
       author: "헤이지오니",
       date: "5.22.목",
@@ -110,7 +91,6 @@ export default function HomePage() {
     {
       platform: "네이버",
       business: "서영빈 선생님",
-      rating: 5,
       content: "선생님이 늘 친절하시고, 꼼꼼하시고, 정말 열정적으로 잘 가르쳐주십니다. 저에게 필요했던 부분을 잘 지도해주셔서, 요즘 노래부르는 게 더 재밌어졌어요~ 감사합니다 :)",
       author: "20221001",
       date: "22.6.4",
@@ -122,7 +102,6 @@ export default function HomePage() {
     {
       platform: "네이버",
       business: "서영빈 선생님",
-      rating: 5,
       content: "친구 축가를 부르기 위해 배우게 되었는데요... 사실 음치 박치라 반쯤 포기하고 시작했는데, 쌤이 포기하지 않고 이끌어나가주고 있습니다. 항상 용기를 가득 채워주고, 열정을 가지고 가르쳐 주세요. 중간에 포기할 뻔한 순간도 있었지만, 그때마다 진심으로 할 수 있다고 말씀해주시고 좋은 말도 많이해주셔서 용기를 얻고 있습니다!",
       author: "ho****",
       date: "22.12.1",
@@ -134,7 +113,6 @@ export default function HomePage() {
     {
       platform: "네이버",
       business: "서영빈 선생님",
-      rating: 5,
       content: "이전에도 취미로 노래를 배웠었지만 뜻대로 되지않아 자신감만 떨어지던 날날을 보내던 중에 쾌라우디 뮤직, 그리고 영빈쌤을 만났어요! 멘탈관리도 보컬레슨에 있어서 중요한 영역이라고 말씀하시는 선생님께... 학생 수업 때마다 칭찬감에 가득주십니다...",
       author: "cod****",
       date: "22.12.2",
@@ -146,7 +124,6 @@ export default function HomePage() {
     {
       platform: "네이버",
       business: "서영빈 선생님",
-      rating: 5,
       content: "평소에 음악 듣는 것도 좋아하고 노래 부르는 것도 좋아했었는데, 꾼을 이쯀으로 정해서 학원을 찾던 도중 쾌라우디뮤직, 영빈쌤을 만났어요!! 수업을 받으지는 한 달 정도 지났는데, 한 달 전에 제가 불러본 것과 현재 부르는 게 조금씩 변하고 있다는 게 너무 신기하고 재밌어요!! 그냥 힐링 그 자체입니다",
       author: "aki****",
       date: "23.4.6",
@@ -158,7 +135,6 @@ export default function HomePage() {
     {
       platform: "카카오",
       business: "빈 보컬 스튜디오",
-      rating: 4,
       content: "복식호흡이 뭔지도 몰랐는데 이제는 자연스럽게 돼요! 일상생활에서도 활용할 수 있는 발성팁도 알려주셔서 목이 편해졌어요.",
       author: "조**",
       date: "2024.08.02",
@@ -168,7 +144,6 @@ export default function HomePage() {
     {
       platform: "네이버",
       business: "YB 보컬 아카데미",
-      rating: 5,
       content: "영빈선생님께 3개월째 레슨 받고 있는데 음정, 박자감이 확실히 좋아졌어요. 친구들이 노래 잘한다고 칭찬해줘요!",
       author: "최**",
       date: "2024.08.01",
@@ -178,7 +153,6 @@ export default function HomePage() {
     {
       platform: "인스타",
       business: "서영빈 보컬 클래스",
-      rating: 5,
       content: "취미로 시작했는데 이제는 버스킹도 해요! 영빈쌤과 함께하면서 무대 자신감도 생기고 실력도 늘었어요. 최고의 선생님!",
       author: "서**",
       date: "2024.07.31",
@@ -188,7 +162,6 @@ export default function HomePage() {
     {
       platform: "네이버",
       business: "빈 뮤직 스튜디오",
-      rating: 5,
       content: "상담부터 레슨까지 모든 과정이 체계적이에요. 개인별 맞춤 커리큘럼으로 진행해주셔서 실력이 빠르게 늘어요!",
       author: "이**",
       date: "2024.07.30",
@@ -198,7 +171,6 @@ export default function HomePage() {
     {
       platform: "카카오",
       business: "YB 보컬 트레이닝",
-      rating: 5,
       content: "목이 쉽게 아팠는데 올바른 발성법을 배우고 나서는 3시간 노래해도 멀쩡해요! 보컬 건강까지 챙겨주시는 선생님이세요.",
       author: "손**",
       date: "2024.07.29",
@@ -307,7 +279,7 @@ export default function HomePage() {
             <div className="flex justify-center mb-8">
               <div className="inline-block bg-white border-2 border-gray-200 rounded-full px-8 py-3">
                 <span className="text-2xl md:text-3xl font-bold text-[#FF6B35] transition-all duration-300">
-                  {targetAudiences[currentTargetIndex]}
+                  {TARGET_AUDIENCES[currentTargetIndex]}
                 </span>
               </div>
             </div>
@@ -414,13 +386,11 @@ export default function HomePage() {
                     <div>
                       <h3 className="font-bold text-xl">김서연</h3>
                       <p className="text-gray-600">필라테스 강사</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <div className="flex text-yellow-500">
-                          {[...Array(5)].map((_, i) => (
-                            <StarFilledIcon key={i} className="w-4 h-4" />
-                          ))}
-                        </div>
-                        <span className="text-sm font-bold">{avgRating.toFixed(1)}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#FF6B35] bg-[#FF6B35]/10 rounded-full">
+                          ⚡ 리뷰 자동 아카이빙
+                        </span>
+                        <span className="text-xs text-gray-500">평균 처리 45초</span>
                       </div>
                     </div>
                   </div>
@@ -431,8 +401,8 @@ export default function HomePage() {
                       <div className="text-xs text-gray-600">총 리뷰</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-[#FF6B35]">{avgRating.toFixed(1)}</div>
-                      <div className="text-xs text-gray-600">평균 평점</div>
+                      <div className="text-2xl font-bold text-[#FF6B35]">45초</div>
+                      <div className="text-xs text-gray-600">자동 아카이빙</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-[#FF6B35]">98%</div>
@@ -444,6 +414,8 @@ export default function HomePage() {
                     <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 33개</span>
                     <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 21개</span>
                     <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 15개</span>
+                    <span className="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-xs">당근 8개</span>
+                    <span className="bg-[#FF6B35]/10 text-[#FF6B35] px-3 py-1 rounded-full text-xs">Re:cord 요청 12건</span>
                   </div>
                 </div>
                 
@@ -491,14 +463,11 @@ export default function HomePage() {
                                       <span className="text-xs text-gray-500">· {review.date}</span>
                                     </div>
                                     
-                                    {/* 별점 */}
-                                    <div className="flex items-center gap-1 mb-2">
-                                      {[...Array(5)].map((_, j) => (
-                                        <StarFilledIcon 
-                                          key={j} 
-                                          className={`w-4 h-4 ${j < review.rating ? 'text-yellow-400' : 'text-gray-200'}`} 
-                                        />
-                                      ))}
+                                    {/* 자동 아카이빙 배지 */}
+                                    <div className="flex items-center gap-2 mb-2 text-xs text-[#FF6B35]">
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#FF6B35]/10 rounded-full">
+                                        ⚡ 자동 아카이빙 완료
+                                      </span>
                                     </div>
                                     
                                     {/* 리뷰 텍스트 */}
@@ -535,11 +504,7 @@ export default function HomePage() {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-medium text-gray-900">{review.author}</span>
-                                    <div className="flex text-yellow-400">
-                                      {[...Array(review.rating)].map((_, j) => (
-                                        <StarFilledIcon key={j} className="w-3 h-3" />
-                                      ))}
-                                    </div>
+                                    <span className="text-xs text-[#FF6B35] font-medium bg-[#FF6B35]/10 px-2 py-0.5 rounded-full">자동 아카이빙</span>
                                   </div>
                                   <p className="text-xs text-gray-500">{review.date}</p>
                                 </div>
@@ -599,11 +564,9 @@ export default function HomePage() {
                                   {review.verified && !review.imageUrl && (
                                     <Shield className="w-3 h-3 text-green-600" />
                                   )}
-                                  <div className="flex text-yellow-500 ml-auto">
-                                    {[...Array(review.rating)].map((_, j) => (
-                                      <StarFilledIcon key={j} className="w-3 h-3" />
-                                    ))}
-                                  </div>
+                                  <span className="ml-auto inline-flex items-center gap-1 text-xs text-[#FF6B35] bg-[#FF6B35]/10 px-2 py-0.5 rounded-full">
+                                    ⚡ 자동 아카이빙
+                                  </span>
                                 </div>
                                 <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
                                 <div className="flex items-center justify-between mt-2">
@@ -762,7 +725,7 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">김서연 강사님</p>
-                      <p className="text-xs text-gray-600">리뷰 {reviewCount}개 · ⭐ {avgRating.toFixed(1)}</p>
+                      <p className="text-xs text-gray-600">리뷰 {reviewCount}개 · 자동 아카이빙 45초</p>
                     </div>
                   </div>
                   <p className="text-xs text-gray-700 italic">

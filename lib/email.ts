@@ -89,11 +89,21 @@ const emailTemplates = {
   })
 };
 
+type EmailTemplate = 'welcome' | 'resetPassword' | 'reviewNotification'
+
+interface EmailDataMap {
+  welcome: { name: string }
+  resetPassword: { name: string; resetUrl: string }
+  reviewNotification: { name: string; reviewCount: number }
+}
+
+type EmailPayload<T extends EmailTemplate> = EmailDataMap[T]
+
 // 이메일 발송 함수
-export async function sendEmail(
+export async function sendEmail<T extends EmailTemplate>(
   to: string,
-  template: 'welcome' | 'resetPassword' | 'reviewNotification',
-  data: any
+  template: T,
+  data: EmailPayload<T>
 ) {
   // Resend API 키가 없는 경우 콘솔에만 출력 (개발 환경)
   if (!resend) {
@@ -132,7 +142,8 @@ export async function sendEmail(
     return { success: true, data: result };
   } catch (error) {
     console.error('이메일 발송 실패:', error);
-    return { success: false, error };
+    const message = error instanceof Error ? error.message : 'Unknown email error'
+    return { success: false, error: message };
   }
 }
 

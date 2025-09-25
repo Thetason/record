@@ -52,7 +52,6 @@ async function createTestUser() {
       {
         platform: '네이버',
         business: '맛있는 카페',
-        rating: 5,
         content: '정말 맛있고 분위기도 좋아요. 직원분들도 친절하시고 커피 맛도 훌륭합니다. 다시 방문하고 싶은 곳이에요!',
         author: '김고객',
         reviewDate: new Date('2024-08-15')
@@ -60,7 +59,6 @@ async function createTestUser() {
       {
         platform: '카카오맵',
         business: '행복한 식당',
-        rating: 4,
         content: '음식이 깔끔하고 맛있어요. 가격도 합리적이고 직원분들이 친절해서 좋았습니다.',
         author: '이리뷰',
         reviewDate: new Date('2024-08-10')
@@ -68,7 +66,6 @@ async function createTestUser() {
       {
         platform: '구글',
         business: '편안한 숙소',
-        rating: 5,
         content: 'Very comfortable stay! Clean rooms and excellent service. Highly recommended!',
         author: 'John Smith',
         reviewDate: new Date('2024-08-05')
@@ -76,7 +73,6 @@ async function createTestUser() {
       {
         platform: '크몽',
         business: '전문 서비스',
-        rating: 5,
         content: '전문적이고 빠른 서비스였습니다. 요청사항을 정확히 이해하시고 완벽하게 작업해주셨어요.',
         author: '박만족',
         reviewDate: new Date('2024-07-30')
@@ -84,10 +80,16 @@ async function createTestUser() {
       {
         platform: '인스타그램',
         business: '예쁜 카페',
-        rating: 4,
         content: '인스타 감성이 물씬~ 사진 찍기 좋고 디저트도 맛있어요 💕 #카페추천 #데이트코스',
         author: 'coffeelover_',
         reviewDate: new Date('2024-07-25')
+      },
+      {
+        platform: 'Re:cord',
+        business: '온라인 클래스 후기',
+        content: 'Re:cord 링크를 통해 작성된 자체 리뷰입니다. 과정 설명이 알기 쉬웠고 서비스 대응도 빨랐습니다.',
+        author: '자체고객',
+        reviewDate: new Date('2024-08-20')
       }
     ]
 

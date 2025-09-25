@@ -3,6 +3,14 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
+interface AuthUser {
+  id: string
+  email: string | null
+  name: string | null
+  username: string | null
+  role: string | null
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "dev_secret_key_for_local_development_only",
   session: {
@@ -57,9 +65,10 @@ export const authOptions: NextAuthOptions = {
             username: user.username,
             role: user.role
           }
-        } catch (error: any) {
-          console.log("❌ 인증 오류:", error.message)
-          throw new Error(error.message || "로그인 실패")
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "로그인 실패"
+          console.log("❌ 인증 오류:", message)
+          throw new Error(message)
         }
       }
     })
@@ -67,18 +76,24 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.email = user.email
-        token.username = (user as any).username
-        token.role = (user as any).role
+        const authUser = user as AuthUser
+        return {
+          ...token,
+          id: authUser.id,
+          email: authUser.email ?? token.email,
+          username: authUser.username ?? '',
+          role: authUser.role ?? 'user'
+        }
       }
       return token
     },
     async session({ session, token }) {
       if (session?.user) {
-        session.user.id = token.id as string
-        session.user.username = token.username as string
-        session.user.role = token.role as string
+        session.user.id = typeof token.id === 'string' ? token.id : session.user.id
+        session.user.username = typeof token.username === 'string' ? token.username : session.user.username
+        if (typeof token.role === 'string') {
+          ;(session.user as { role?: string }).role = token.role
+        }
       }
       return session
     }

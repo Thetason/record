@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const payment = await confirmPayment(paymentKey, orderId, Number(amount))
 
     // 주문 정보에서 사용자 ID와 플랜 정보 추출
-    const [, timestamp, userId, plan, period] = orderId.split('_')
+    const [, , userId, plan, period] = orderId.split('_')
 
     // 사용자 플랜 업데이트
     const planExpiry = period === 'yearly' 

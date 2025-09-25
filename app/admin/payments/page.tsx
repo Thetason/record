@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,11 +46,7 @@ export default function AdminPaymentsPage() {
     averageAmount: 0
   })
 
-  useEffect(() => {
-    fetchPayments()
-  }, [filter])
-
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/admin/payments?status=${filter}`)
@@ -64,7 +60,11 @@ export default function AdminPaymentsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filter])
+
+  useEffect(() => {
+    fetchPayments()
+  }, [fetchPayments])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR', {

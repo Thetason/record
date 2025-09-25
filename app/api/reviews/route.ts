@@ -140,7 +140,6 @@ export async function POST(request: NextRequest) {
       data: {
         platform,
         business,
-        rating: 0,
         content,
         author,
         reviewDate: parsedDate,

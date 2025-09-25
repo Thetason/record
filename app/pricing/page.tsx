@@ -116,42 +116,6 @@ export default function PricingPage() {
     }
   }
 
-  const renderPriceBlock = (planId: PlanType) => {
-    const monthlyAmount = getPlanPrice(planId, 'monthly')
-    const yearlyAmount = getPlanPrice(planId, 'yearly')
-    const primaryAmount = billingPeriod === 'monthly' ? monthlyAmount : yearlyAmount
-    const primaryLabel = billingPeriod === 'monthly' ? '/월' : '/년'
-    const yearlySavings = getYearlySavings(planId)
-
-    if (primaryAmount === 0) {
-      return (
-        <div className="mt-4">
-          <span className="text-4xl font-bold">무료</span>
-        </div>
-      )
-    }
-
-    return (
-      <div className="mt-4 space-y-1">
-        <div>
-          <span className="text-4xl font-bold">₩{formatCurrency(primaryAmount)}</span>
-          <span className="ml-1 text-gray-600">{primaryLabel}</span>
-        </div>
-        {billingPeriod === 'yearly' && (
-          <p className="text-sm text-green-600">
-            월 ₩{formatCurrency(Math.round(yearlyAmount / 12))} • 연간 결제 시 ₩{formatCurrency(yearlyAmount)}
-            {yearlySavings > 0 && ` (₩${formatCurrency(yearlySavings)} 절약)`}
-          </p>
-        )}
-        {billingPeriod === 'monthly' && yearlySavings > 0 && (
-          <p className="text-sm text-gray-500">
-            연간 결제 시 ₩{formatCurrency(yearlyAmount)} (약 {PLANS[planId].pricing.yearlyDiscountPercent}% 절약)
-          </p>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-[#F6F7F9] py-16">
       <div className="max-w-6xl mx-auto px-4">

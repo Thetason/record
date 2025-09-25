@@ -1,12 +1,11 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { LockClosedIcon, CheckCircledIcon } from "@radix-ui/react-icons"
 
 function ResetPasswordContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
   
@@ -58,9 +57,10 @@ function ResetPasswordContent() {
       }
 
       setIsSuccess(true)
-    } catch (error: any) {
+    } catch (error) {
       console.error("Reset password error:", error)
-      setError(error.message || "비밀번호 재설정 중 오류가 발생했습니다")
+      const message = error instanceof Error ? error.message : "비밀번호 재설정 중 오류가 발생했습니다"
+      setError(message)
     } finally {
       setIsLoading(false)
     }

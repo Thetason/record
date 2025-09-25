@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { 
   HomeIcon, 
   PersonIcon, 
@@ -20,32 +21,20 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-interface UserProfile {
-  id: string
-  email: string
-  name: string
-  username: string
-  bio: string | null
-  location: string | null
-  website: string | null
-  phone: string | null
-  avatar: string | null
-  _count?: {
-    reviews: number
-  }
-}
-
 interface ProfileStats {
   totalReviews: number
-  averageRating: number
   profileViews: number
   thisMonthReviews: number
+  recentWeekReviews: number
+}
+
+interface ReviewSummary {
+  createdAt: string
 }
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -57,9 +46,9 @@ export default function ProfilePage() {
   })
   const [stats, setStats] = useState<ProfileStats>({
     totalReviews: 0,
-    averageRating: 0,
     profileViews: 0,
-    thisMonthReviews: 0
+    thisMonthReviews: 0,
+    recentWeekReviews: 0
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -72,19 +61,13 @@ export default function ProfilePage() {
     }
   }, [status, router])
 
-  useEffect(() => {
-    fetchUserProfile()
-    fetchStats()
-  }, [session])
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     if (!session) return
 
     try {
       const res = await fetch("/api/user")
       if (res.ok) {
         const data = await res.json()
-        setUserProfile(data)
         setFormData({
           name: data.name || "",
           username: data.username || "",
@@ -97,44 +80,61 @@ export default function ProfilePage() {
         if (data.avatar) {
           setPreviewImage(data.avatar)
         }
+        setStats(prev => ({
+          ...prev,
+          profileViews: data.profileViews || prev.profileViews || 0
+        }))
       }
     } catch (error) {
       console.error("Failed to fetch user profile:", error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [session])
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await fetch("/api/reviews")
       if (res.ok) {
-        const data = await res.json()
-        const reviewsList = data.reviews || data
+        const data = await res.json() as { reviews?: ReviewSummary[] }
+        const reviewsList = Array.isArray(data.reviews) ? data.reviews : []
         
         const total = reviewsList.length
-        const avgRating = total > 0 
-          ? reviewsList.reduce((sum: number, r: any) => sum + r.rating, 0) / total
-          : 0
-        
-        const thisMonth = reviewsList.filter((r: any) => {
-          const reviewDate = new Date(r.createdAt)
+
+        const thisMonth = reviewsList.filter((review) => {
+          const reviewDate = new Date(review.createdAt)
           const now = new Date()
           return reviewDate.getMonth() === now.getMonth() && 
                  reviewDate.getFullYear() === now.getFullYear()
         }).length
 
-        setStats({
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        const recentWeek = reviewsList.filter((review) => {
+          const reviewDate = new Date(review.createdAt)
+          return reviewDate >= sevenDaysAgo
+        }).length
+
+        setStats(prev => ({
+          ...prev,
           totalReviews: total,
-          averageRating: Math.round(avgRating * 10) / 10,
-          profileViews: userProfile?.profileViews || 0,
-          thisMonthReviews: thisMonth
-        })
+          thisMonthReviews: thisMonth,
+          recentWeekReviews: recentWeek
+        }))
       }
     } catch (error) {
       console.error("Failed to fetch stats:", error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchUserProfile()
+  }, [fetchUserProfile])
+
+  useEffect(() => {
+    if (session) {
+      fetchStats()
+    }
+  }, [session, fetchStats])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -205,9 +205,10 @@ export default function ProfilePage() {
 
       alert("프로필이 성공적으로 업데이트되었습니다!")
       fetchUserProfile()
-    } catch (error: any) {
+    } catch (error) {
       console.error("Profile update error:", error)
-      setError(error.message || "프로필 업데이트 중 오류가 발생했습니다.")
+      const message = error instanceof Error ? error.message : "프로필 업데이트 중 오류가 발생했습니다."
+      setError(message)
     } finally {
       setIsSaving(false)
     }
@@ -294,9 +295,9 @@ export default function ProfilePage() {
                     <div className="space-y-4">
                       <label className="text-sm font-medium">프로필 사진</label>
                       <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                        <div className="relative w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                           {previewImage ? (
-                            <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
+                            <Image src={previewImage} alt="Profile" fill sizes="80px" className="object-cover" />
                           ) : (
                             <span className="text-2xl font-bold text-gray-400">
                               {formData.name.charAt(0).toUpperCase() || "U"}
@@ -482,9 +483,9 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center">
-                    <div className="w-16 h-16 bg-orange-100 rounded-full mx-auto mb-3 flex items-center justify-center text-xl font-bold text-[#FF6B35]">
+                    <div className="relative w-16 h-16 bg-orange-100 rounded-full mx-auto mb-3 flex items-center justify-center text-xl font-bold text-[#FF6B35] overflow-hidden">
                       {previewImage ? (
-                        <img src={previewImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                        <Image src={previewImage} alt="Profile" fill sizes="64px" className="object-cover" />
                       ) : (
                         formData.name.charAt(0).toUpperCase() || "U"
                       )}
@@ -540,8 +541,8 @@ export default function ProfilePage() {
                       <span className="font-medium">{stats.totalReviews}개</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">평균 평점</span>
-                      <span className="font-medium">{stats.averageRating}점</span>
+                      <span className="text-sm text-gray-600">최근 7일 리뷰</span>
+                      <span className="font-medium">{stats.recentWeekReviews}개</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">프로필 조회</span>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,9 +9,7 @@ import {
   XCircle, 
   AlertCircle, 
   Search,
-  Filter,
   Eye,
-  Shield,
   Clock,
   Flag
 } from 'lucide-react'
@@ -23,13 +21,11 @@ interface Review {
   id: string
   platform: string
   business: string
-  rating: number
   content: string
   author: string
   reviewDate: string
   imageUrl?: string
   verificationStatus: string
-  qualityScore?: number
   user: {
     username: string
     email: string
@@ -47,11 +43,7 @@ export default function AdminReviewsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
 
-  useEffect(() => {
-    fetchReviews()
-  }, [filter])
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/admin/reviews?status=${filter}`)
@@ -64,7 +56,11 @@ export default function AdminReviewsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filter])
+
+  useEffect(() => {
+    fetchReviews()
+  }, [fetchReviews])
 
   const updateReviewStatus = async (reviewId: string, status: string, note?: string) => {
     try {
@@ -84,22 +80,6 @@ export default function AdminReviewsPage() {
     } catch (error) {
       console.error('Failed to update review:', error)
     }
-  }
-
-  const calculateQualityScore = (review: Review) => {
-    let score = 50 // 기본 점수
-    
-    // 리뷰 길이에 따른 점수
-    if (review.content.length > 200) score += 20
-    else if (review.content.length > 100) score += 10
-    
-    // 이미지가 있으면 가산점
-    if (review.imageUrl) score += 20
-    
-    // 평점이 극단적이지 않으면 가산점
-    if (review.rating >= 2 && review.rating <= 4) score += 10
-    
-    return Math.min(score, 100)
   }
 
   const getStatusBadge = (status: string) => {
@@ -138,16 +118,25 @@ export default function AdminReviewsPage() {
   }
 
   const getPlatformColor = (platform: string) => {
-    switch (platform.toLowerCase()) {
+    const key = platform.toLowerCase()
+    switch (key) {
       case '네이버':
         return 'bg-green-100 text-green-700'
       case '카카오':
+      case '카카오맵':
         return 'bg-yellow-100 text-yellow-700'
       case '인스타':
       case '인스타그램':
         return 'bg-purple-100 text-purple-700'
       case '구글':
         return 'bg-blue-100 text-blue-700'
+      case '당근':
+      case '당근마켓':
+        return 'bg-orange-100 text-orange-700'
+      case 're:cord':
+      case 'record':
+      case '리코드':
+        return 'bg-[#FF6B35]/10 text-[#FF6B35]'
       default:
         return 'bg-gray-100 text-gray-700'
     }
@@ -311,15 +300,11 @@ export default function AdminReviewsPage() {
                           신고 {review._count.reports}건
                         </span>
                       )}
-                      <span className="text-xs text-gray-500">
-                        품질점수: {review.qualityScore || calculateQualityScore(review)}점
-                      </span>
                     </div>
                     
                     <h3 className="font-semibold text-lg mb-1">{review.business}</h3>
                     
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                      <span>⭐ {review.rating}</span>
                       <span>{review.author}</span>
                       <span>{new Date(review.reviewDate).toLocaleDateString('ko-KR')}</span>
                     </div>
@@ -416,18 +401,18 @@ export default function AdminReviewsPage() {
               </div>
               
               <div>
-                <span className="text-sm text-gray-600">평점</span>
-                <p className="font-medium">⭐ {selectedReview.rating}</p>
+                <span className="text-sm text-gray-600">작성자</span>
+                <p className="font-medium">{selectedReview.author}</p>
+              </div>
+              
+              <div>
+                <span className="text-sm text-gray-600">작성일</span>
+                <p className="font-medium">{new Date(selectedReview.reviewDate).toLocaleDateString('ko-KR')}</p>
               </div>
               
               <div>
                 <span className="text-sm text-gray-600">리뷰 내용</span>
-                <p className="font-medium">{selectedReview.content}</p>
-              </div>
-              
-              <div>
-                <span className="text-sm text-gray-600">품질 점수</span>
-                <p className="font-medium">{selectedReview.qualityScore || calculateQualityScore(selectedReview)}점 / 100점</p>
+                <p className="font-medium whitespace-pre-line">{selectedReview.content}</p>
               </div>
               
               <div className="pt-4 flex gap-2">

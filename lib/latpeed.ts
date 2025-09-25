@@ -20,7 +20,7 @@ export interface LatpeedWebhookEvent {
     amount?: number;
     currency?: string;
     nextBillingDate?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -86,7 +86,7 @@ export interface CreateCheckoutParams {
     name: string;
     id?: string;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   successUrl: string;
   cancelUrl: string;
 }

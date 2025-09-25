@@ -84,8 +84,8 @@ export function useLazyComponent<T>(
     setError(null)
     
     try {
-      const module = await importFn()
-      setComponent(() => module.default)
+      const loadedModule = await importFn()
+      setComponent(() => loadedModule.default)
     } catch (err) {
       setError(err as Error)
     } finally {

@@ -14,7 +14,7 @@ export interface LogEntry {
   ip?: string;
   userAgent?: string;
   error?: Error;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 class Logger {
@@ -50,7 +50,7 @@ class Logger {
     level: LogLevel, 
     message: string, 
     context?: string, 
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): LogEntry {
     return {
       timestamp: new Date().toISOString(),
@@ -61,7 +61,7 @@ class Logger {
     };
   }
 
-  error(message: string, context?: string, metadata?: Record<string, any>) {
+  error(message: string, context?: string, metadata?: Record<string, unknown>) {
     if (this.logLevel >= LogLevel.ERROR) {
       const entry = this.createLogEntry(LogLevel.ERROR, message, context, metadata);
       console.error(this.formatLog(entry));
@@ -73,21 +73,21 @@ class Logger {
     }
   }
 
-  warn(message: string, context?: string, metadata?: Record<string, any>) {
+  warn(message: string, context?: string, metadata?: Record<string, unknown>) {
     if (this.logLevel >= LogLevel.WARN) {
       const entry = this.createLogEntry(LogLevel.WARN, message, context, metadata);
       console.warn(this.formatLog(entry));
     }
   }
 
-  info(message: string, context?: string, metadata?: Record<string, any>) {
+  info(message: string, context?: string, metadata?: Record<string, unknown>) {
     if (this.logLevel >= LogLevel.INFO) {
       const entry = this.createLogEntry(LogLevel.INFO, message, context, metadata);
       console.info(this.formatLog(entry));
     }
   }
 
-  debug(message: string, context?: string, metadata?: Record<string, any>) {
+  debug(message: string, context?: string, metadata?: Record<string, unknown>) {
     if (this.logLevel >= LogLevel.DEBUG) {
       const entry = this.createLogEntry(LogLevel.DEBUG, message, context, metadata);
       console.debug(this.formatLog(entry));
@@ -95,7 +95,7 @@ class Logger {
   }
 
   // 보안 관련 로그 (항상 기록)
-  security(message: string, metadata?: Record<string, any>) {
+  security(message: string, metadata?: Record<string, unknown>) {
     const entry = this.createLogEntry(LogLevel.ERROR, `SECURITY: ${message}`, 'SECURITY', metadata);
     console.error(this.formatLog(entry));
     
@@ -105,18 +105,21 @@ class Logger {
 
   // 외부 로깅 서비스 전송 (예: Sentry, LogRocket 등)
   private sendToExternalLogger(entry: LogEntry) {
-    if (process.env.SENTRY_DSN) {
-      // Sentry 연동 예시
-      // Sentry.captureException(entry.error || new Error(entry.message), {
-      //   tags: { context: entry.context },
-      //   extra: entry.metadata,
-      //   user: entry.userId ? { id: entry.userId } : undefined
-      // });
+    if (!process.env.SENTRY_DSN) {
+      void entry
+      return
     }
+
+    // Sentry 연동 예시
+    // Sentry.captureException(entry.error || new Error(entry.message), {
+    //   tags: { context: entry.context },
+    //   extra: entry.metadata,
+    //   user: entry.userId ? { id: entry.userId } : undefined
+    // });
   }
 
   // 활동 로그 (DB 저장)
-  async logActivity(action: string, category: string, details?: any, userId?: string, ip?: string) {
+  async logActivity(action: string, category: string, details?: unknown, userId?: string, ip?: string) {
     try {
       // ActivityLog 모델에 저장하는 것은 비즈니스 로직에서 처리
       this.info(`Activity: ${action}`, category, { 
@@ -135,7 +138,7 @@ class Logger {
 export const logger = Logger.getInstance();
 
 // Express 에러 핸들러
-export function errorHandler(error: Error, context?: string, metadata?: Record<string, any>) {
+export function errorHandler(error: Error, context?: string, metadata?: Record<string, unknown>) {
   logger.error(error.message, context, { 
     ...metadata, 
     error,

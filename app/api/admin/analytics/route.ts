@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     // 날짜 범위 계산
     const now = new Date()
-    let startDate = new Date()
+    const startDate = new Date()
     
     switch (range) {
       case '24h':
@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
     }))
 
     // 플랜별 매출 (더미 데이터 - 실제로는 결제 데이터 필요)
-    const revenueMetrics = userMetrics.map((metric, index) => ({
+    const revenueMetrics = userMetrics.map((metric) => ({
       date: metric.date,
       free: 0,
       premium: Math.floor(Math.random() * 500000) + 100000,

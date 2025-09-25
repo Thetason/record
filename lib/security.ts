@@ -57,7 +57,12 @@ export async function withRateLimit(req: NextRequest, identifier: string, limit 
 }
 
 // 입력 검증
-export function validateInput(data: any, rules: Record<string, (value: any) => boolean>) {
+type Validator = (value: unknown) => boolean
+
+export function validateInput(
+  data: Record<string, unknown>,
+  rules: Record<string, Validator>
+) {
   const errors: string[] = []
   
   for (const [field, validator] of Object.entries(rules)) {

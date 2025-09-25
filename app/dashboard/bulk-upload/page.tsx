@@ -4,12 +4,12 @@ import { useState, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import {
   ArrowLeftIcon,
   UploadIcon,
   ImageIcon,
   CheckCircledIcon,
-  CrossCircledIcon,
   ReloadIcon
 } from "@radix-ui/react-icons"
 
@@ -21,13 +21,16 @@ import { useToast } from "@/components/ui/use-toast"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
+type ParsedReview = Partial<ReviewFormState>
+type ReviewInput = Partial<ReviewFormState> & { content: string }
+
 interface OCRResult {
   id: string
   fileName: string
   status: 'pending' | 'processing' | 'success' | 'error'
   progress: number
   text?: string
-  parsed?: any
+  parsed?: ParsedReview
   error?: string
   confidence?: number
   previewUrl?: string
@@ -37,31 +40,11 @@ interface OCRResult {
 
 type ReviewFormState = {
   platform: string
-  rating: number
   business: string
   author: string
   reviewDate: string
   content: string
   link: string
-}
-
-interface BulkUploadResult {
-  success: boolean
-  message?: string
-  total?: number
-  created?: number
-  skipped?: number
-  errors?: string[]
-  validationErrors?: number
-  processingErrors?: number
-  summary?: {
-    totalProcessed: number
-    validReviews: number
-    successfullyCreated: number
-    duplicatesSkipped: number
-    validationErrors: number
-    processingErrors: number
-  }
 }
 
 export default function BulkUploadPage() {
@@ -119,7 +102,6 @@ export default function BulkUploadPage() {
     initialResults.forEach(result => {
       initialEditing[result.id] = {
         platform: '네이버',
-        rating: 5,
         business: '',
         author: '익명',
         reviewDate: defaultDate,
@@ -190,30 +172,52 @@ export default function BulkUploadPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        const json = await response.json() as {
+          success?: boolean
+          data?: {
+            text?: string
+            normalizedText?: string
+            reviewText?: string
+            platform?: string
+            business?: string
+            author?: string
+            date?: string
+            confidence?: number
+            originalUrl?: string
+          }
+        }
+
+        const payload = json.data ?? {}
+        const parsedData: ParsedReview = {
+          platform: payload.platform,
+          business: payload.business,
+          author: payload.author,
+          reviewDate: payload.date,
+          content: payload.reviewText ?? payload.text ?? payload.normalizedText ?? '',
+          link: payload.originalUrl,
+        }
+
         if (progressInterval) clearInterval(progressInterval)
         updateResult(resultId, {
           status: 'success',
           progress: 100,
-          text: data.text,
-          parsed: data.parsed,
-          confidence: data.confidence,
+          text: parsedData.content,
+          parsed: parsedData,
+          confidence: payload.confidence,
         })
 
         setEditingData(prev => {
           const existing = prev[resultId]
-          const parsed = data.parsed || {}
           const defaultDate = existing?.reviewDate || new Date().toISOString().slice(0, 10)
           return {
             ...prev,
             [resultId]: {
-              platform: parsed.platform || existing?.platform || '네이버',
-              rating: parsed.rating || existing?.rating || 5,
-              business: parsed.business || existing?.business || '',
-              author: parsed.author || existing?.author || '익명',
-              reviewDate: (parsed.reviewDate && parsed.reviewDate.slice(0, 10)) || defaultDate,
-              content: data.text || existing?.content || '',
-              link: parsed.link || existing?.link || '',
+              platform: parsedData.platform || existing?.platform || '네이버',
+              business: parsedData.business || existing?.business || '',
+              author: parsedData.author || existing?.author || '익명',
+              reviewDate: parsedData.reviewDate?.slice(0, 10) || defaultDate,
+              content: parsedData.content || existing?.content || '',
+              link: parsedData.link || existing?.link || '',
             },
           }
         })
@@ -224,8 +228,8 @@ export default function BulkUploadPage() {
         // 파싱된 리뷰 저장
         return true
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'OCR 처리 실패')
+        const errorBody = await response.json().catch(() => ({})) as { error?: string }
+        throw new Error(errorBody?.error || 'OCR 처리 실패')
       }
 
     } catch (error) {
@@ -244,20 +248,21 @@ export default function BulkUploadPage() {
   }
 
   // 리뷰 저장
-  const saveReview = async (reviewData: any) => {
+  const saveReview = async (reviewData: ReviewInput) => {
     try {
+      const payload = {
+        platform: reviewData.platform ?? '기타',
+        business: reviewData.business ?? '',
+        content: reviewData.content,
+        author: reviewData.author ?? '고객',
+        reviewDate: reviewData.reviewDate ?? new Date().toISOString(),
+        originalUrl: reviewData.link ?? ''
+      }
+
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform: reviewData.platform || '기타',
-          business: reviewData.business || '',
-          rating: reviewData.rating || 5,
-          content: reviewData.content,
-          author: reviewData.author || '고객',
-          reviewDate: reviewData.reviewDate || new Date().toISOString(),
-          link: reviewData.link || ''
-        })
+        body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
@@ -319,7 +324,7 @@ export default function BulkUploadPage() {
     }
   }
 
-  const updateEditingField = (id: string, field: keyof ReviewFormState, value: string | number) => {
+  const updateEditingField = (id: string, field: keyof ReviewFormState, value: string) => {
     setEditingData(prev => ({
       ...prev,
       [id]: {
@@ -344,7 +349,6 @@ export default function BulkUploadPage() {
       await saveReview({
         platform: form.platform,
         business: form.business,
-        rating: form.rating,
         content: form.content,
         author: form.author,
         reviewDate: form.reviewDate,
@@ -384,26 +388,22 @@ export default function BulkUploadPage() {
   const handlePasteText = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('text')
     if (pastedText) {
-      // 간단한 파싱
-      const lines = pastedText.split('\n').filter(line => line.trim())
-      const reviewData = {
+      const reviewData: ReviewInput = {
         content: pastedText,
-        rating: 5,
         platform: '직접입력',
         author: '고객',
         reviewDate: new Date().toISOString()
       }
 
-      // 평점 찾기
-      const ratingMatch = pastedText.match(/[★⭐]{1,5}/)
-      if (ratingMatch) {
-        reviewData.rating = ratingMatch[0].length
-      }
-
       // 플랫폼 찾기
-      const platformMatch = pastedText.match(/(네이버|카카오|구글|인스타)/)
+      const platformMatch = pastedText.match(/(네이버|카카오|구글|인스타|당근)/)
       if (platformMatch) {
-        reviewData.platform = platformMatch[1]
+        const mapping: Record<string, string> = {
+          '카카오': '카카오맵',
+          '인스타': '인스타그램',
+          '당근': '당근'
+        }
+        reviewData.platform = mapping[platformMatch[1]] || platformMatch[1]
       }
 
       await saveReview(reviewData)
@@ -547,11 +547,13 @@ export default function BulkUploadPage() {
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                               <div className="flex items-start gap-3">
                                 {result.previewUrl ? (
-                                  <div className="hidden sm:block w-16 h-16 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-                                    <img
+                                  <div className="relative hidden h-16 w-16 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 sm:block">
+                                    <Image
                                       src={result.previewUrl}
                                       alt={result.fileName}
-                                      className="w-full h-full object-cover"
+                                      fill
+                                      sizes="64px"
+                                      className="object-cover"
                                     />
                                   </div>
                                 ) : (
@@ -632,11 +634,15 @@ export default function BulkUploadPage() {
                   <div className="space-y-4">
                     <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
                       {activeResult.previewUrl && (
-                        <img
-                          src={activeResult.previewUrl}
-                          alt={activeResult.fileName}
-                          className="w-full object-contain max-h-[420px] bg-white"
-                        />
+                        <div className="relative h-full w-full max-h-[420px]">
+                          <Image
+                            src={activeResult.previewUrl}
+                            alt={activeResult.fileName}
+                            fill
+                            sizes="(min-width: 1024px) 340px, 100vw"
+                            className="object-contain bg-white"
+                          />
+                        </div>
                       )}
                       <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-white/85 text-xs font-medium text-gray-700">
                         원본 이미지
@@ -651,7 +657,7 @@ export default function BulkUploadPage() {
                     <div>
                       <p className="text-xs font-semibold text-gray-600 mb-2">플랫폼</p>
                       <div className="flex flex-wrap gap-2">
-                       {['네이버', '카카오맵', '구글', '인스타그램', '크몽', '기타'].map(option => (
+                       {['네이버', '카카오맵', '구글', '인스타그램', '당근', 'Re:cord', '크몽', '기타'].map(option => (
                          <Button
                             key={option}
                             variant={activeForm.platform === option ? 'default' : 'outline'}
@@ -660,22 +666,6 @@ export default function BulkUploadPage() {
                             onClick={() => activeResultId && updateEditingField(activeResultId, 'platform', option)}
                           >
                             {option}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-2">평점</p>
-                      <div className="flex flex-wrap gap-2">
-                        {[1, 2, 3, 4, 5].map(score => (
-                          <Button
-                            key={score}
-                            variant={activeForm.rating === score ? 'default' : 'outline'}
-                            size="sm"
-                            className={activeForm.rating === score ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
-                            onClick={() => activeResultId && updateEditingField(activeResultId, 'rating', score)}
-                          >
-                            {score}점
                           </Button>
                         ))}
                       </div>

@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
     })
 
     // 모든 사용자에게 알림 생성 (대상에 따라)
-    let userWhere: any = {}
-    if (target !== 'all') {
+    const userWhere: { plan?: string } = {}
+    if (target && target !== 'all') {
       userWhere.plan = target
     }
 

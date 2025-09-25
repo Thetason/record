@@ -66,16 +66,12 @@ export const getCachedStats = unstable_cache(
     const reviews = await prisma.review.findMany({
       where: { userId },
       select: {
-        rating: true,
         platform: true,
         createdAt: true,
       }
     })
 
     const totalReviews = reviews.length
-    const averageRating = totalReviews > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
-      : 0
 
     const platformDistribution = reviews.reduce((acc, review) => {
       acc[review.platform] = (acc[review.platform] || 0) + 1
@@ -97,7 +93,6 @@ export const getCachedStats = unstable_cache(
 
     return {
       totalReviews,
-      averageRating,
       platformDistribution,
       thisMonth,
       thisWeek,

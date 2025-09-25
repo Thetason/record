@@ -9,7 +9,6 @@ import {
   CalendarIcon,
   BarChartIcon,
   QuoteIcon,
-  VercelLogoIcon,
   InstagramLogoIcon,
   Link2Icon
 } from "@radix-ui/react-icons"
@@ -17,14 +16,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { motion } from "framer-motion"
-import { VerificationBadge } from "@/components/ui/verification-badge"
-import { ReportDialog } from "@/components/report-dialog"
 
 interface Review {
   id: string
   platform: string
   business: string
-  rating: number
   content: string
   author: string
   reviewDate: string
@@ -111,18 +107,26 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
 
   const displayedReviews = showAllReviews ? filteredReviews : filteredReviews.slice(0, 9)
 
-  const platformColors: { [key: string]: string } = {
-    "네이버": "from-green-500 to-green-600",
-    "카카오": "from-yellow-400 to-yellow-500",
-    "구글": "from-blue-500 to-blue-600",
-    "인스타": "from-purple-500 to-pink-500"
+  const platformColors: Record<string, string> = {
+    네이버: "from-green-500 to-green-600",
+    카카오: "from-yellow-400 to-yellow-500",
+    카카오맵: "from-yellow-400 to-yellow-500",
+    구글: "from-blue-500 to-blue-600",
+    인스타: "from-purple-500 to-pink-500",
+    인스타그램: "from-purple-500 to-pink-500",
+    당근: "from-orange-400 to-orange-500",
+    'Re:cord': "from-[#FF6B35] to-[#F97316]"
   }
 
-  const platformIcons: { [key: string]: string } = {
-    "네이버": "N",
-    "카카오": "K",
-    "구글": "G",
-    "인스타": "I"
+  const platformIcons: Record<string, string> = {
+    네이버: "N",
+    카카오: "K",
+    카카오맵: "K",
+    구글: "G",
+    인스타: "I",
+    인스타그램: "I",
+    당근: "D",
+    'Re:cord': "R"
   }
 
   return (
@@ -368,14 +372,14 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 <Card className="h-full border border-gray-200 overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-xl">
                   {review.imageUrl && (
                     <div className="relative h-48 overflow-hidden bg-black/5 group">
-                      <div className="absolute inset-0 overflow-auto">
-                        <img
-                          src={review.imageUrl}
-                          alt={`${review.author} 리뷰 이미지`}
-                          className="w-full object-contain"
-                          style={{ maxHeight: '300px' }}
-                        />
-                      </div>
+                      <Image
+                        src={review.imageUrl}
+                        alt={`${review.author} 리뷰 이미지`}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        priority={index < 2}
+                      />
                       <button
                         type="button"
                         onClick={() => {
@@ -392,8 +396,8 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${platformColors[review.platform]} flex items-center justify-center text-white font-bold shadow-lg`}>
-                          {platformIcons[review.platform]}
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${(platformColors[review.platform] ?? 'from-gray-400 to-gray-500')} flex items-center justify-center text-white font-bold shadow-lg`}>
+                          {platformIcons[review.platform] ?? review.platform.charAt(0)}
                         </div>
                         <div>
                           <p className="font-semibold text-sm text-gray-900">{review.business}</p>
@@ -504,8 +508,14 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
             </DialogTitle>
           </DialogHeader>
           {activeImage && (
-            <div className="w-full overflow-hidden rounded-xl border">
-              <img src={activeImage} alt="리뷰 첨부 이미지 확대" className="w-full h-auto" />
+            <div className="relative w-full overflow-hidden rounded-xl border min-h-[320px]">
+              <Image
+                src={activeImage}
+                alt="리뷰 첨부 이미지 확대"
+                fill
+                className="object-contain"
+                sizes="100vw"
+              />
             </div>
           )}
         </DialogContent>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,14 +20,7 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminRole, setAdminRole] = useState<'admin' | 'super_admin' | null>(null)
 
-  useEffect(() => {
-    // 관리자 권한 체크
-    checkAdminAuth()
-    // 통계 데이터 로드
-    fetchStats()
-  }, [])
-
-  const checkAdminAuth = async () => {
+  const checkAdminAuth = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/check-auth', { cache: 'no-store' })
       if (!res.ok) {
@@ -47,9 +40,9 @@ export default function AdminDashboard() {
       console.error('Auth check failed:', error)
       router.push('/login')
     }
-  }
+  }, [router])
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/stats')
       if (res.ok) {
@@ -61,7 +54,12 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    checkAdminAuth()
+    fetchStats()
+  }, [checkAdminAuth, fetchStats])
 
   if (loading) {
     return (

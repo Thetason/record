@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -10,14 +10,10 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Calendar,
-  Filter,
   Download,
   RefreshCw
 } from 'lucide-react'
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -29,8 +25,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Area,
-  AreaChart
+  AreaChart,
+  Area
 } from 'recharts'
 
 interface Analytics {
@@ -79,11 +75,7 @@ export default function AdminAnalyticsPage() {
   const [dateRange, setDateRange] = useState('7d')
   const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    fetchAnalytics()
-  }, [dateRange])
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/admin/analytics?range=${dateRange}`)
@@ -96,7 +88,11 @@ export default function AdminAnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [dateRange])
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [fetchAnalytics])
 
   const refreshData = async () => {
     setRefreshing(true)
@@ -320,7 +316,7 @@ export default function AdminAnalyticsPage() {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">전환 퍼널</h3>
             <div className="space-y-4">
-              {analytics.conversionFunnel.map((stage, index) => (
+              {analytics.conversionFunnel.map((stage) => (
                 <div key={stage.stage}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-medium">{stage.stage}</span>

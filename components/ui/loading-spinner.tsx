@@ -1,3 +1,4 @@
+import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -48,13 +49,18 @@ export function PageLoading({ message = "로딩 중..." }: { message?: string })
 }
 
 // 버튼 로딩 상태
+interface ButtonLoadingProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  isLoading: boolean;
+  loadingText?: string;
+}
+
 export function ButtonLoading({ 
   children,
   isLoading,
   loadingText = "처리 중...",
   className = "",
   ...props 
-}: any) {
+}: ButtonLoadingProps) {
   return (
     <button
       disabled={isLoading}

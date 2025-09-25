@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -28,9 +28,6 @@ export async function GET() {
 
     // 기본 통계
     const totalReviews = reviews.length
-    const averageRating = totalReviews > 0 
-      ? parseFloat((reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews).toFixed(1))
-      : 0
     const platforms = new Set(reviews.map(review => review.platform)).size
 
     // 월별 통계
@@ -48,31 +45,16 @@ export async function GET() {
       new Date(review.reviewDate) >= thisWeek
     ).length
 
-    // 평점 분포
-    const ratingDistribution = {
-      1: reviews.filter(r => r.rating === 1).length,
-      2: reviews.filter(r => r.rating === 2).length,
-      3: reviews.filter(r => r.rating === 3).length,
-      4: reviews.filter(r => r.rating === 4).length,
-      5: reviews.filter(r => r.rating === 5).length,
-    }
-
     // 플랫폼별 통계
     const platformStats = reviews.reduce((acc, review) => {
       if (!acc[review.platform]) {
         acc[review.platform] = {
-          count: 0,
-          totalRating: 0,
-          averageRating: 0
+          count: 0
         }
       }
       acc[review.platform].count++
-      acc[review.platform].totalRating += review.rating
-      acc[review.platform].averageRating = parseFloat(
-        (acc[review.platform].totalRating / acc[review.platform].count).toFixed(1)
-      )
       return acc
-    }, {} as Record<string, { count: number; totalRating: number; averageRating: number }>)
+    }, {} as Record<string, { count: number }>)
 
     // 사용자 정보 및 플랜 정보
     const user = await prisma.user.findUnique({
@@ -108,7 +90,6 @@ export async function GET() {
     const stats = {
       overview: {
         totalReviews,
-        averageRating,
         platforms,
         thisMonth: thisMonthReviews,
         profileViews: user?.profileViews || 0
@@ -132,7 +113,6 @@ export async function GET() {
         monthlyTrend
       },
       distribution: {
-        ratings: ratingDistribution,
         platforms: platformStats
       },
       recent: {
@@ -140,7 +120,6 @@ export async function GET() {
           id: review.id,
           platform: review.platform,
           business: review.business,
-          rating: review.rating,
           content: review.content.slice(0, 100) + (review.content.length > 100 ? '...' : ''),
           author: review.author,
           reviewDate: review.reviewDate,

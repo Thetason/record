@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const base64 = `data:${file.type};base64,${buffer.toString('base64')}`;
 
     // 사용자 프로필 업데이트
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { email: session.user.email },
       data: { avatar: base64 }
     });

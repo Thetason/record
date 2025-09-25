@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeftIcon, EnvelopeClosedIcon, CheckCircledIcon } from "@radix-ui/react-icons"
 
 export default function ForgotPasswordPage() {
-  const router = useRouter()
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -31,9 +29,10 @@ export default function ForgotPasswordPage() {
       }
 
       setIsSuccess(true)
-    } catch (error: any) {
+    } catch (error) {
       console.error("Forgot password error:", error)
-      setError(error.message || "비밀번호 재설정 중 오류가 발생했습니다")
+      const message = error instanceof Error ? error.message : "비밀번호 재설정 중 오류가 발생했습니다"
+      setError(message)
     } finally {
       setIsLoading(false)
     }

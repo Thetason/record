@@ -10,7 +10,7 @@ export default function TestLoginPage() {
   const [username, setUsername] = useState("syb2020")
   const [password, setPassword] = useState("Syb20201234!")
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<unknown>(null)
 
   const handleLogin = async () => {
     setLoading(true)
@@ -38,7 +38,7 @@ export default function TestLoginPage() {
       }
     } catch (error) {
       console.error("❌ 로그인 에러:", error)
-      setResult({ error: error })
+      setResult({ error })
     } finally {
       setLoading(false)
     }

@@ -99,20 +99,27 @@ export class RBACService {
 }
 
 // 권한 검증 데코레이터
+type RoleAwareInstance = {
+  getUserRole?: () => string
+} & Record<string, unknown>
+
 export function requirePermission(permission: Permission) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
-    const method = descriptor.value;
-    
-    descriptor.value = function (this: any, ...args: any[]) {
-      // 실제 구현에서는 요청에서 사용자 정보를 추출해야 함
+  return function (_target: unknown, _propertyName: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value as ((...args: unknown[]) => unknown) | undefined;
+    if (!method) {
+      return descriptor;
+    }
+
+    descriptor.value = function (this: RoleAwareInstance, ...args: unknown[]) {
       const userRole = this.getUserRole?.() || Role.USER;
-      
+
       if (!RBACService.hasPermission(userRole, permission)) {
         throw new Error(`Insufficient permissions. Required: ${permission}`);
       }
-      
+
       return method.apply(this, args);
     };
+    return descriptor;
   };
 }
 

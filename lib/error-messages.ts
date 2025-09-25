@@ -118,7 +118,7 @@ export interface ErrorResponse {
   code?: string;
   category?: ErrorCategory;
   severity?: ErrorSeverity;
-  details?: any;
+  details?: unknown;
   timestamp?: string;
   requestId?: string;
 }

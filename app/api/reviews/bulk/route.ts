@@ -5,6 +5,19 @@ import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
 import { parse } from 'csv-parse/sync'
 
+type ReviewRow = Record<string, unknown>
+
+interface BulkReview {
+  platform: string
+  business: string
+  content: string
+  author: string
+  reviewDate: Date
+  userId: string
+  isVerified: boolean
+  verifiedBy: string
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 인증 체크
@@ -51,7 +64,7 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     
-    let reviews: any[] = []
+    let reviews: ReviewRow[] = []
     
     if (isCSV) {
       // CSV 파싱 - 다양한 인코딩 지원
@@ -64,10 +77,12 @@ export async function POST(req: NextRequest) {
           text = text.slice(1)
         }
       } catch (error) {
+        console.warn('CSV UTF-8 디코딩 실패, 다른 인코딩 시도', error)
         try {
           // EUC-KR 시도 (Node.js 기본 지원하지 않아 대체 방식 사용)
           text = buffer.toString('latin1')
         } catch (fallbackError) {
+          console.warn('CSV latin1 디코딩 실패, UTF-8 재시도 사용', fallbackError)
           text = buffer.toString('utf-8')
         }
       }
@@ -81,7 +96,7 @@ export async function POST(req: NextRequest) {
         trim: true,
         skip_records_with_error: true,
         relax_column_count: true
-      })
+      }) as ReviewRow[]
     } else {
       // Excel 파싱 - 옵션 개선
       const workbook = XLSX.read(buffer, { 
@@ -96,23 +111,38 @@ export async function POST(req: NextRequest) {
         defval: '',
         raw: false,
         dateNF: 'yyyy-mm-dd'
-      })
+      }) as ReviewRow[]
     }
 
     console.log(`파싱된 리뷰 수: ${reviews.length}`)
 
     // 컬럼명 매핑 강화
-    const getColumnValue = (row: any, columnNames: string[]): string | undefined => {
+    const getColumnValue = (row: ReviewRow, columnNames: string[]): unknown => {
       for (const name of columnNames) {
-        if (row[name] !== undefined && row[name] !== null && String(row[name]).trim() !== '') {
-          return String(row[name]).trim()
+        if (Object.prototype.hasOwnProperty.call(row, name)) {
+          const value = row[name]
+          if (value !== undefined && value !== null) {
+            const normalized = typeof value === 'string' ? value.trim() : value
+            if (!(typeof normalized === 'string' && normalized.length === 0)) {
+              return value
+            }
+          }
         }
       }
       return undefined
     }
 
+    const getColumnText = (row: ReviewRow, columnNames: string[]): string | undefined => {
+      const value = getColumnValue(row, columnNames)
+      if (value === undefined || value === null) {
+        return undefined
+      }
+      const text = String(value).trim()
+      return text.length > 0 ? text : undefined
+    }
+
     // 데이터 검증 및 정규화
-    const validReviews = []
+    const validReviews: BulkReview[] = []
     const errors: string[] = []
     const duplicateCheck = new Set<string>()
     
@@ -122,43 +152,29 @@ export async function POST(req: NextRequest) {
       
       try {
         // 필수 필드 추출 - 다양한 컬럼명 지원
-        const platform = getColumnValue(row, [
+        const platform = getColumnText(row, [
           '플랫폼', 'platform', 'Platform', 'PLATFORM',
           '사이트', 'site', 'Site', 'source', 'Source'
         ])
         
-        const business = getColumnValue(row, [
+        const business = getColumnText(row, [
           '업체명', 'business', 'Business', 'BUSINESS',
           '상호', '업체', '사업자명', 'company', 'Company',
           '매장명', 'store', 'Store', 'shop', 'Shop'
         ])
         
-        const content = getColumnValue(row, [
+        const content = getColumnText(row, [
           '내용', 'content', 'Content', 'CONTENT',
           '리뷰내용', '리뷰', 'review', 'Review', 'REVIEW',
           '후기', '평가', 'comment', 'Comment', 'text', 'Text'
         ])
         
-        const author = getColumnValue(row, [
+        const author = getColumnText(row, [
           '작성자', 'author', 'Author', 'AUTHOR',
           '고객명', '이름', 'name', 'Name', 'customer', 'Customer',
           '닉네임', 'nickname', 'user', 'User'
         ]) || '익명'
         
-        // 평점 처리
-        let rating = 5
-        const ratingValue = getColumnValue(row, [
-          '평점', 'rating', 'Rating', 'RATING',
-          '별점', 'star', 'Star', 'score', 'Score'
-        ])
-        
-        if (ratingValue) {
-          const parsed = parseFloat(ratingValue.replace(/[^\d.]/g, ''))
-          if (!isNaN(parsed)) {
-            rating = Math.min(5, Math.max(1, Math.round(parsed)))
-          }
-        }
-
         // 필수 필드 체크
         if (!platform || !business || !content) {
           errors.push(`${rowNumber}행: 필수 정보가 누락되었습니다 (플랫폼: ${platform || '없음'}, 업체명: ${business || '없음'}, 내용: ${content ? '있음' : '없음'})`)
@@ -183,45 +199,41 @@ export async function POST(req: NextRequest) {
           '작성일', '등록일', '리뷰일', 'created', 'createdAt',
           'reviewDate', 'review_date'
         ])
-        
+
         if (dateValue) {
-          // Excel 숫자 날짜 형식 처리
-          if (typeof dateValue === 'number' || !isNaN(Number(dateValue))) {
+          if (dateValue instanceof Date) {
+            reviewDate = dateValue
+          } else if (typeof dateValue === 'number' || (typeof dateValue === 'string' && !Number.isNaN(Number(dateValue)))) {
             const excelDate = Number(dateValue)
-            if (excelDate > 25569) { // 1970-01-01 이후
+            if (!Number.isNaN(excelDate) && excelDate > 25569) {
               reviewDate = new Date((excelDate - 25569) * 86400 * 1000)
             }
-          } else {
-            // 문자열 날짜 파싱
-            const dateStr = String(dateValue).trim()
-            
-            // 다양한 날짜 형식 지원
+          } else if (typeof dateValue === 'string') {
+            const dateStr = dateValue.trim()
             const dateFormats = [
-              /(\d{4})-(\d{1,2})-(\d{1,2})/,  // 2024-01-01
-              /(\d{4})\.(\d{1,2})\.(\d{1,2})/,  // 2024.01.01
-              /(\d{4})\/(\d{1,2})\/(\d{1,2})/,  // 2024/01/01
-              /(\d{1,2})-(\d{1,2})-(\d{4})/,  // 01-01-2024
-              /(\d{1,2})\.(\d{1,2})\.(\d{4})/,  // 01.01.2024
-              /(\d{1,2})\/(\d{1,2})\/(\d{4})/   // 01/01/2024
+              /(\d{4})-(\d{1,2})-(\d{1,2})/,
+              /(\d{4})\.(\d{1,2})\.(\d{1,2})/,
+              /(\d{4})\/(\d{1,2})\/(\d{1,2})/,
+              /(\d{1,2})-(\d{1,2})-(\d{4})/,
+              /(\d{1,2})\.(\d{1,2})\.(\d{4})/,
+              /(\d{1,2})\/(\d{1,2})\/(\d{4})/
             ]
-            
+
             let parsed = false
             for (const format of dateFormats) {
-              const match = dateStr.match(format)
-              if (match) {
+              if (format.test(dateStr)) {
                 const date = new Date(dateStr)
-                if (!isNaN(date.getTime())) {
+                if (!Number.isNaN(date.getTime())) {
                   reviewDate = date
                   parsed = true
                   break
                 }
               }
             }
-            
+
             if (!parsed) {
-              // 마지막 시도: Date 생성자 직접 사용
               const fallbackDate = new Date(dateStr)
-              if (!isNaN(fallbackDate.getTime())) {
+              if (!Number.isNaN(fallbackDate.getTime())) {
                 reviewDate = fallbackDate
               }
             }
@@ -241,7 +253,6 @@ export async function POST(req: NextRequest) {
           business: business.trim(),
           content: content.trim(),
           author: author.trim(),
-          rating,
           reviewDate,
           userId: session.user.id,
           isVerified: false,

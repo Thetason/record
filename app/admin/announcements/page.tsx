@@ -13,8 +13,7 @@ import {
   Eye,
   EyeOff,
   Pin,
-  Calendar,
-  Users
+  Calendar
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'

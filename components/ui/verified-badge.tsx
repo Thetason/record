@@ -1,4 +1,4 @@
-import { Check, Shield, AlertCircle } from 'lucide-react'
+import { Check, Shield } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,

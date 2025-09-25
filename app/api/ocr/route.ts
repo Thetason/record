@@ -7,14 +7,25 @@ import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import sharp from 'sharp';
 import { LRUCache } from 'lru-cache';
-import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal, normalizeWhitespacePunct as normPunct } from '@/lib/text-clean';
+import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal } from '@/lib/text-clean';
 import { improveSpacingViaService } from '@/lib/spacing-service';
 import { rateLimit, getIP, rateLimitResponse, apiLimits } from '@/lib/rate-limit';
-const vision = require('@google-cloud/vision');
+import { ImageAnnotatorClient, protos } from '@google-cloud/vision';
+
+type AnnotateImageResponse = protos.google.cloud.vision.v1.IAnnotateImageResponse;
+type Vertex = protos.google.cloud.vision.v1.IVertex;
+type Word = protos.google.cloud.vision.v1.IWord;
+type Symbol = protos.google.cloud.vision.v1.ISymbol;
+type EntityAnnotation = protos.google.cloud.vision.v1.IEntityAnnotation;
+
+type CleanServiceResponse = {
+  cleaned?: string;
+  text?: string;
+};
 
 // Google Vision API 클라이언트 초기화
-let visionClient: any = null;
-const cache = new LRUCache<string, any>({ max: 500, ttl: 1000 * 60 * 60 * 24 * 7 });
+let visionClient: ImageAnnotatorClient | null = null;
+const cache = new LRUCache<string, Record<string, unknown>>({ max: 500, ttl: 1000 * 60 * 60 * 24 * 7 });
 const enableTesseractFallback = process.env.ENABLE_TESSERACT_FALLBACK === 'true';
 const visionTimeoutMs = Number(process.env.OCR_VISION_TIMEOUT_MS || 18000);
 const limiter = rateLimit({ interval: 60 * 1000, uniqueTokenPerInterval: 500 });
@@ -54,7 +65,7 @@ async function initializeVisionClient() {
       const credentials = JSON.parse(
         Buffer.from(process.env.GOOGLE_VISION_API_KEY, 'base64').toString()
       );
-      visionClient = new vision.ImageAnnotatorClient({
+      visionClient = new ImageAnnotatorClient({
         credentials,
         projectId: credentials.project_id,
       });
@@ -62,7 +73,7 @@ async function initializeVisionClient() {
     // 로컬 JSON 파일 경로가 있는 경우 (개발 환경)
     else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       console.log('로컬 키 파일 사용:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-      visionClient = new vision.ImageAnnotatorClient({
+      visionClient = new ImageAnnotatorClient({
         keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
       });
     }
@@ -196,9 +207,8 @@ export async function POST(req: NextRequest) {
       
       // 개발용 Mock 데이터
       const mockData = {
-        text: '⭐⭐⭐⭐⭐ 5.0\n\n정말 만족스러운 서비스였습니다!\n선생님이 너무 친절하시고 전문적이세요.\n다음에도 꼭 다시 찾고 싶습니다.\n\n2024년 12월 15일\n네이버 리뷰',
+        text: '정말 만족스러운 서비스였습니다!\n선생님이 너무 친절하시고 전문적이세요.\n다음에도 꼭 다시 찾고 싶습니다.\n\n2024년 12월 15일\n네이버 리뷰',
         platform: 'naver',
-        rating: 5,
         date: '2024-12-15',
         confidence: 0.95
       };
@@ -229,7 +239,7 @@ export async function POST(req: NextRequest) {
     // Try Google's assembled text first
     let full = result.fullTextAnnotation?.text?.trim();
     // Fallback to annotations array
-    let detections = result.textAnnotations;
+    let detections = result.textAnnotations as EntityAnnotation[] | undefined;
 
     // Some UI-heavy 이미지에서는 DocumentTextDetection이 텍스트 일부만 반환할 수 있음. 보조 API 호출로 보충
     const needsTextFallback = !full || full.length < Number(process.env.OCR_TEXT_FALLBACK_LENGTH ?? 400);
@@ -288,7 +298,7 @@ export async function POST(req: NextRequest) {
     const rawFullText = (rebuilt || full || detections?.[0]?.description || '').trim();
     // Local cleaning
     const normalization = await normalizeForAnalysis(rawFullText);
-    let baseForCleaner = normalization.baseText;
+    const baseForCleaner = normalization.baseText;
     // External cleaner (optional)
     let cleaned = baseForCleaner;
     let externalApplied = false;
@@ -300,8 +310,8 @@ export async function POST(req: NextRequest) {
         const resp = await fetch(svc, { method: 'POST', body: JSON.stringify({ text: baseForCleaner }), headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal });
         clearTimeout(t);
         if (resp.ok) {
-          const j: any = await resp.json();
-          const external = (j.cleaned || j.text);
+          const j = await resp.json() as CleanServiceResponse;
+          const external = j.cleaned || j.text;
           if (external && typeof external === 'string') {
             cleaned = external;
             externalApplied = true;
@@ -325,7 +335,6 @@ export async function POST(req: NextRequest) {
         category: 'review',
         details: {
           platform: extractedData.platform,
-          rating: extractedData.rating,
           textLength: fullText.length
         }
       }
@@ -337,12 +346,18 @@ export async function POST(req: NextRequest) {
     if (externalApplied) postSteps.push('external');
     postSteps.push('local');
 
+    const detectionsList = Array.isArray(detections) ? detections : [];
+    const topDetectionConfidence =
+      detectionsList.length > 0 && typeof detectionsList[0]?.confidence === 'number'
+        ? detectionsList[0]!.confidence ?? 0.9
+        : 0.9;
+
     const payload = {
       ...extractedData,
       text: cleaned,
       rawText: rawFullText,
       normalizedText: cleaned,
-      confidence: (Array.isArray(detections) && detections[0] && (detections[0] as any).confidence) ? (detections[0] as any).confidence : 0.9,
+      confidence: topDetectionConfidence,
       engine: 'google',
       postprocess: postSteps.join('+'),
       intermediateText: {
@@ -365,7 +380,7 @@ export async function POST(req: NextRequest) {
         const tText = (tess?.data?.text || '').trim();
         if (tText) {
           const normalization = await normalizeForAnalysis(tText);
-          let baseForCleaner = normalization.baseText;
+          const baseForCleaner = normalization.baseText;
           let cleanedT = baseForCleaner;
           let externalApplied = false;
 
@@ -381,8 +396,8 @@ export async function POST(req: NextRequest) {
               });
               clearTimeout(t);
               if (resp.ok) {
-                const j: any = await resp.json();
-                const external = (j.cleaned || j.text);
+                const j = await resp.json() as CleanServiceResponse;
+                const external = j.cleaned || j.text;
                 if (external && typeof external === 'string') {
                   cleanedT = external;
                   externalApplied = true;
@@ -437,18 +452,8 @@ function analyzeReviewText(text: string) {
     platform = 'instagram';
   } else if (text.includes('구글') || text.includes('Google')) {
     platform = 'google';
-  }
-
-  // 평점 추출 (별점 또는 숫자)
-  let rating = 5;
-  const starMatch = cleaned.match(/⭐+/);
-  if (starMatch) {
-    rating = starMatch[0].length;
-  } else {
-    const ratingMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*(?:점|\/\s*5)/);
-    if (ratingMatch) {
-      rating = Math.min(5, Math.max(1, parseFloat(ratingMatch[1])));
-    }
+  } else if (text.includes('당근') || text.toLowerCase().includes('daangn')) {
+    platform = '당근';
   }
 
   // 날짜 추출
@@ -522,7 +527,6 @@ function analyzeReviewText(text: string) {
 
   return {
     platform,
-    rating,
     date,
     author,
     business,
@@ -537,21 +541,6 @@ function normalizeText(s: string): string {
     .replace(/ +/g, ' ')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .trim();
-}
-
-// 공통 UI 노이즈 라인 제거(플랫폼 공통 요소들)
-function stripCommonNoiseLines(text: string): string {
-  const rawLines = text.split('\n').map(l => l.trim());
-  const uiWords = [
-    '팔로우','팔로잉','프로필','번역','공유','신고','접기','더보기','지도보기','길찾기','전화',
-    '좋아요','댓글','메뉴','사장님','사장님 댓글','답글','관심',
-  ];
-  const isSymbolOnly = (s: string) => s.length <= 3 && /^[^\w가-힣]+$/.test(s);
-  const filtered = rawLines.filter(l => l && !uiWords.some(w => l === w || l.includes(w)) && !isSymbolOnly(l));
-  // 상단 고정 헤더 영역 컷(텍스트 상단 10% 가정)
-  // 텍스트 기반 컷이므로 첫 2~3줄에 노이즈가 몰릴 때 제거
-  const startIdx = Math.min(3, Math.floor(filtered.length * 0.1));
-  return filtered.slice(startIdx).join('\n').trim();
 }
 
 function parseNaver(text: string): { author: string; body: string; date: string; business: string } {
@@ -702,72 +691,86 @@ function parseGeneric(text: string): string {
 }
 
 // Heuristic re-ordering using geometry (blocks/paragraphs/words)
-function rebuildReadingOrder(result: any): string | null {
-  // Prefer paragraph-level reconstruction from fullTextAnnotation
-  const pages = result.fullTextAnnotation?.pages || [];
+function rebuildReadingOrder(result: AnnotateImageResponse | null | undefined): string | null {
+  const pages = result?.fullTextAnnotation?.pages ?? [];
   const lines: { x: number; y: number; text: string }[] = [];
 
-  const getCenter = (vertices: any[]) => {
-    const xs = vertices.map((v: any) => v.x || 0);
-    const ys = vertices.map((v: any) => v.y || 0);
-    const x = (Math.min(...xs) + Math.max(...xs)) / 2;
-    const y = (Math.min(...ys) + Math.max(...ys)) / 2;
-    const h = Math.max(...ys) - Math.min(...ys);
-    return { x, y, h };
+  const getCenter = (vertices: Vertex[] = []) => {
+    const xs = vertices.map((v) => v?.x ?? 0);
+    const ys = vertices.map((v) => v?.y ?? 0);
+    if (xs.length === 0 || ys.length === 0) {
+      return { x: 0, y: 0, h: 0 };
+    }
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return {
+      x: (minX + maxX) / 2,
+      y: (minY + maxY) / 2,
+      h: maxY - minY
+    };
   };
 
-  // Estimate page height for y-based trimming
-  let pageMaxY = 0;
   for (const page of pages) {
-    for (const block of page.blocks || []) {
-      for (const para of block.paragraphs || []) {
-        const words = (para.words || []).map((w: any) => (w.symbols || []).map((s: any) => s.text).join(''));
+    for (const block of page?.blocks ?? []) {
+      for (const para of block?.paragraphs ?? []) {
+        const words = (para?.words ?? []).map((word: Word) => (word?.symbols ?? []).map((symbol: Symbol) => symbol?.text ?? '').join(''));
         const text = words.join(' ').trim();
         if (!text) continue;
-        const { x, y } = getCenter(para.boundingBox?.vertices || []);
-        pageMaxY = Math.max(pageMaxY, ...(para.boundingBox?.vertices || []).map((v: any) => v.y || 0));
+        const { x, y } = getCenter(para?.boundingBox?.vertices ?? []);
         lines.push({ x, y, text });
       }
     }
   }
 
-  // Fallback to word annotations if no paragraphs
-  if (lines.length === 0 && Array.isArray(result.textAnnotations)) {
-    const words = result.textAnnotations.slice(1).map((a: any) => {
-      const { x, y, h } = getCenter(a.boundingPoly?.vertices || []);
-      return { x, y, h, text: a.description };
-    });
-    if (words.length === 0) return null;
-    // Group words into lines by similar Y (tolerance relative to word height)
-    words.sort((a: any, b: any) => (a.y === b.y ? a.x - b.x : a.y - b.y));
-    const grouped: { y: number; items: typeof words }[] = [];
-    for (const w of words) {
-      const band = grouped.find(g => Math.abs(g.y - w.y) <= Math.max(8, w.h * 0.6));
+  if (lines.length === 0) {
+    const annotations = result?.textAnnotations as EntityAnnotation[] | undefined;
+    if (!annotations || annotations.length <= 1) {
+      return null;
+    }
+
+    type WordCluster = { x: number; y: number; h: number; text: string };
+    const clusters: WordCluster[] = annotations
+      .slice(1)
+      .map((annotation) => {
+        const { x, y, h } = getCenter(annotation.boundingPoly?.vertices ?? []);
+        return { x, y, h, text: annotation.description ?? '' };
+      })
+      .filter((cluster) => cluster.text.trim().length > 0);
+
+    if (clusters.length === 0) {
+      return null;
+    }
+
+    clusters.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+    const grouped: Array<{ y: number; items: WordCluster[] }> = [];
+    for (const cluster of clusters) {
+      const band = grouped.find((group) => Math.abs(group.y - cluster.y) <= Math.max(8, cluster.h * 0.6));
       if (band) {
-        band.items.push(w);
-        // keep representative y as average for stability
-        band.y = (band.y * (band.items.length - 1) + w.y) / band.items.length;
+        band.items.push(cluster);
+        band.y = (band.y * (band.items.length - 1) + cluster.y) / band.items.length;
       } else {
-        grouped.push({ y: w.y, items: [w] });
+        grouped.push({ y: cluster.y, items: [cluster] });
       }
     }
-    // Sort bands top->bottom, words left->right
+
     grouped.sort((a, b) => a.y - b.y);
-    const rebuiltText = grouped
-      .map(g => g.items.sort((a, b) => a.x - b.x).map(i => i.text).join(' '))
+    const reconstructed = grouped
+      .map((group) => group.items.sort((a, b) => a.x - b.x).map((item) => item.text).join(' ').trim())
+      .filter(Boolean)
       .join('\n');
-    return rebuiltText.trim();
+
+    return reconstructed || null;
   }
 
-  // Simple multi-column handling: split by big x gaps if needed could be added later
-  // Optional: cut fixed header region (top 12% by default)
   const cutRatio = Number(process.env.OCR_TOP_CUT_RATIO || 0.12);
-  const yCut = pageMaxY ? pageMaxY * cutRatio : 0;
-  const filtered = yCut ? lines.filter(l => l.y >= yCut) : lines;
+  const maxY = lines.reduce((acc, line) => Math.max(acc, line.y), 0);
+  const yCut = maxY ? maxY * cutRatio : 0;
+  const filtered = yCut ? lines.filter((line) => line.y >= yCut) : lines;
 
-  // Sort paragraph lines by y then x
   filtered.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
-  return filtered.map(l => l.text).join('\n').trim() || null;
+  return filtered.map((line) => line.text).join('\n').trim() || null;
 }
 
 // Post-OCR spacing refinement for Korean-heavy lines

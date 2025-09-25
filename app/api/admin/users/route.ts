@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,14 +27,20 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || ''
 
     // 필터 조건 설정
-    let where: any = {}
-    
+    const where: Prisma.UserWhereInput = {}
+
     if (search) {
       where.OR = [
         { username: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { name: { contains: search, mode: 'insensitive' } }
       ]
+    }
+
+    if (filter === 'premium') {
+      where.plan = { not: 'free' }
+    } else if (filter === 'free') {
+      where.plan = 'free'
     }
 
     // 사용자 조회
