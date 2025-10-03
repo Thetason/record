@@ -483,6 +483,19 @@ export default function HomePage() {
                                   <p className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                                     {review.content}
                                   </p>
+                                  {review.imageUrl && (
+                                    <div className="mt-3">
+                                      <div className="relative h-44 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                                        <Image
+                                          src={review.imageUrl}
+                                          alt={`${review.platform} 리뷰 이미지`}
+                                          fill
+                                          className="object-cover"
+                                          sizes="(max-width: 768px) 100vw, 480px"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
                                   {review.originalUrl && (
                                     <Link
                                       href={review.originalUrl}
