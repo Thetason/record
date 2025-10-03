@@ -76,12 +76,9 @@ const nextConfig: NextConfig = {
             value: '1; mode=block'
           },
           {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
-          {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self'"
+            // Allow marketing domains to embed the public profile via iframe while keeping other origins blocked.
+            value: "frame-ancestors 'self' https://record-ebon.vercel.app https://www.record-ebon.vercel.app https://re-cord.kr https://www.re-cord.kr"
           },
           {
             key: 'X-Content-Type-Options',
