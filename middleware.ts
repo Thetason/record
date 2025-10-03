@@ -27,13 +27,21 @@ export async function middleware(request: NextRequest) {
   }
   
   // 보안 헤더 추가
-  response.headers.set('X-Frame-Options', 'DENY');
+  // X-Frame-Options is intentionally omitted so CSP controls iframe embedding.
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   
   // CSP (Content Security Policy) 설정
+  const allowedFrameAncestors = [
+    "'self'",
+    'https://record-ebon.vercel.app',
+    'https://www.record-ebon.vercel.app',
+    'https://re-cord.kr',
+    'https://www.re-cord.kr'
+  ].join(' ');
+
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:",
@@ -42,7 +50,7 @@ export async function middleware(request: NextRequest) {
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://api.resend.com",
     "worker-src 'self' blob:",
-    "frame-ancestors 'none'",
+    `frame-ancestors ${allowedFrameAncestors}`,
     "base-uri 'self'",
     "form-action 'self'"
   ].join('; ');
