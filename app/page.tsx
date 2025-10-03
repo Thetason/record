@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 import type { PublicProfile } from "@/lib/profile"
+import ProfileClient from "@/app/[username]/ProfileClient"
 
 // 해시태그 데이터
 const hashtags = [
@@ -45,16 +46,84 @@ const TARGET_AUDIENCES = [
   "사진작가"
 ]
 
+const PROFILE_DEMO_URL = "https://record-ebon.vercel.app/syb2020"
+
+const DEMO_PROFILE: PublicProfile = {
+  id: "demo-setason",
+  username: "demo-setason",
+  name: "세타쓴",
+  profession: "세타쓴 전문가 · 2년차",
+  bio: "고객이 남긴 진짜 리뷰를 한 곳에서 관리하고, 브랜드 신뢰도를 높이는 리뷰 포트폴리오 서비스입니다.",
+  avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=facearea&w=320&h=320&q=80",
+  coverImage: "https://images.unsplash.com/photo-1515165562835-c4c21844a67c?auto=format&fit=crop&w=1600&q=80",
+  totalReviews: 69,
+  platforms: ["네이버", "카카오", "구글", "인스타", "Re:cord"],
+  experience: "리뷰 관리 스페셜리스트",
+  location: "서울 강남구",
+  specialties: ["리뷰 큐레이션", "평판 모니터링", "고객 응대 가이드"],
+  certifications: ["리뷰 케어 전문가 1급", "CX 컨설턴트"],
+  socialLinks: {
+    instagram: "https://instagram.com/record_official",
+    website: "https://re-cord.kr"
+  },
+  theme: "modern",
+  layout: "premium",
+  bgImage: null,
+  bgColor: "#0f172a",
+  accentColor: "#FF6B35",
+  introVideo: null,
+  customCss: null,
+  reviews: [
+    {
+      id: "demo-review-1",
+      platform: "네이버",
+      business: "세타쓴 스튜디오",
+      content: "세타쓴 코치님 수업을 듣고 나서 고객 응대가 한결 수월해졌어요. 리뷰 요청부터 피드백까지 챙겨주셔서 진짜 도움이 됩니다.",
+      author: "강**",
+      reviewDate: "2024-05-22",
+      verified: true,
+      verifiedAt: null,
+      verifiedBy: "naver",
+      originalUrl: null,
+      imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      id: "demo-review-2",
+      platform: "카카오",
+      business: "세타쓴 클래식",
+      content: "리뷰 데이터를 기반으로 상담까지 연결해주시는 부분이 최고예요. 고객이 남긴 이야기들을 빠르게 확인할 수 있어서 좋아요.",
+      author: "윤**",
+      reviewDate: "2024-04-18",
+      verified: true,
+      verifiedAt: null,
+      verifiedBy: "kakao",
+      originalUrl: null,
+      imageUrl: "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      id: "demo-review-3",
+      platform: "Re:cord",
+      business: "세타쓴 리뷰 요청",
+      content: "리뷰 요청 링크가 깔끔해서 고객들도 부담 없이 남겨줘요. 모아진 리뷰를 카드처럼 보여주는 뷰가 가장 마음에 듭니다.",
+      author: "정**",
+      reviewDate: "2024-03-30",
+      verified: false,
+      verifiedAt: null,
+      verifiedBy: null,
+      originalUrl: null,
+      imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80"
+    }
+  ]
+}
+
 export default function HomePage() {
   const { data: session, status } = useSession()
   const [reviewCount, setReviewCount] = useState(0)
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
-  const [demoProfile, setDemoProfile] = useState<PublicProfile | null>(null)
-  const [demoLoading, setDemoLoading] = useState(true)
-  const [demoError, setDemoError] = useState("")
+  const demoProfile = DEMO_PROFILE
 
   useEffect(() => {
-    const targetReviews = demoProfile?.totalReviews ?? 69
+    const targetReviews = demoProfile.totalReviews
 
     setReviewCount(0)
 
@@ -79,45 +148,9 @@ export default function HomePage() {
       clearTimeout(timer)
       clearInterval(targetTimer)
     }
-  }, [demoProfile?.totalReviews])
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadProfile = async () => {
-      try {
-        setDemoLoading(true)
-        setDemoError("")
-        const res = await fetch('/api/profile/syb2020?increment=false', { cache: 'no-store' })
-        if (!res.ok) {
-          throw new Error('failed to load demo profile')
-        }
-        const data = (await res.json()) as PublicProfile
-        if (!cancelled) {
-          setDemoProfile(data)
-        }
-      } catch (error) {
-        console.error('Failed to load demo profile:', error)
-        if (!cancelled) {
-          setDemoError('데모 프로필을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
-          setDemoProfile(null)
-        }
-      } finally {
-        if (!cancelled) {
-          setDemoLoading(false)
-        }
-      }
-    }
-
-    loadProfile()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  }, [demoProfile.totalReviews])
 
   const platformDisplay = useMemo(() => {
-    if (!demoProfile) return [] as Array<{ name: string; count: number }>
     const counts = demoProfile.reviews.reduce<Record<string, number>>((acc, review) => {
       acc[review.platform] = (acc[review.platform] || 0) + 1
       return acc
@@ -343,92 +376,58 @@ export default function HomePage() {
               실제 <span className="text-[#FF6B35]">Re:cord</span> 사용 화면
             </h2>
             <p className="text-gray-600 text-lg">
-              {demoProfile
-                ? `${demoProfile.totalReviews}개 리뷰를 가진 ${demoProfile.name} ${demoProfile.profession}님의 프로필`
-                : '실제 공개 프로필 데이터를 그대로 불러와 살펴보세요.'}
+              {`${demoProfile.totalReviews}개 리뷰를 가진 ${demoProfile.name}님의 공개 프로필 화면을 미리 확인해보세요.`}
             </p>
           </div>
-          
-          {/* 실제 데모 화면 */}
-          <div className="max-w-4xl mx-auto">
-            <Card className="p-8 border-2 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-[#FF6B35] text-white px-3 py-1 rounded-bl-lg text-sm font-bold">
-                LIVE DEMO
-              </div>
-              
-              <div className="bg-slate-950">
-                {demoLoading ? (
-                  <div className="flex h-[720px] items-center justify-center gap-3 bg-slate-900">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/40 border-t-transparent" />
-                    <p className="text-sm text-white/70">데모 화면을 불러오는 중입니다...</p>
-                  </div>
-                ) : demoProfile ? (
-                  <iframe
-                    src={`/${demoProfile.username}`}
-                    title="Re:cord 라이브 데모"
-                    className="h-[1100px] w-full border-0 bg-white"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-[420px] items-center justify-center bg-white text-sm text-gray-500">
-                    {demoError || '데모 데이터를 불러오지 못했습니다.'}
-                  </div>
-                )}
-              </div>
 
-              {(demoProfile || demoError) && (
-                <div className="space-y-6 border-t border-gray-100 bg-white px-6 py-6">
-                  {demoProfile ? (
-                    <>
-                      <div className="grid gap-6 md:grid-cols-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-500">총 리뷰</p>
-                          <p className="mt-1 text-3xl font-semibold text-gray-900">{demoProfile.totalReviews}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-500">검증 완료</p>
-                          <p className="mt-1 text-3xl font-semibold text-gray-900">{demoProfile.reviews.filter((r) => r.verified).length}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-500">주요 플랫폼</p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {platformDisplay.slice(0, 4).map(({ name, count }) => (
-                              <span key={name} className={`${getPlatformBadgeStyle(name)} px-3 py-1 rounded-full text-xs font-medium`}>
-                                {formatPlatformLabel(name, count)}
-                              </span>
-                            ))}
-                            {platformDisplay.length === 0 && (
-                              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500">데이터 준비 중</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+          <div className="max-w-5xl mx-auto space-y-6">
+            <div className="rounded-[32px] border border-slate-800 bg-slate-950 shadow-2xl">
+              <div className="demo-profile max-h-[1100px] overflow-y-auto">
+                <ProfileClient profile={demoProfile} />
+              </div>
+            </div>
 
-                      <div className="flex flex-col gap-3 md:flex-row">
-                        <Link href="/signup" className="flex-1">
-                          <Button className="h-12 w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
-                            나도 만들기
-                          </Button>
-                        </Link>
-                        <Link href={`/${demoProfile.username}`} target="_blank" rel="noreferrer" className="flex-1">
-                          <Button variant="outline" className="h-12 w-full">
-                            실제 공개 프로필 보기
-                          </Button>
-                        </Link>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <p className="text-sm text-gray-500">{demoError || '데모 데이터를 불러오지 못했습니다.'}</p>
-                      <Link href="https://record-ebon.vercel.app/syb2020" target="_blank" rel="noreferrer">
-                        <Button variant="outline">공개 프로필 새 탭으로 열기</Button>
-                      </Link>
-                    </div>
-                  )}
+            <div className="space-y-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
+              <div className="grid gap-6 md:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">총 리뷰</p>
+                  <p className="mt-1 text-3xl font-semibold text-gray-900">{demoProfile.totalReviews}</p>
                 </div>
-              )}
-            </Card>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">검증 완료</p>
+                  <p className="mt-1 text-3xl font-semibold text-gray-900">{demoProfile.reviews.filter((r) => r.verified).length}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">주요 플랫폼</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {platformDisplay.slice(0, 4).map(({ name, count }) => (
+                      <span key={name} className={`${getPlatformBadgeStyle(name)} px-3 py-1 rounded-full text-xs font-medium`}>
+                        {formatPlatformLabel(name, count)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row">
+                <Link href="/signup" className="flex-1">
+                  <Button className="h-12 w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
+                    나도 만들기
+                  </Button>
+                </Link>
+                <Link href={PROFILE_DEMO_URL} target="_blank" rel="noreferrer" className="flex-1">
+                  <Button variant="outline" className="h-12 w-full">
+                    실제 공개 프로필 보기
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
+
+          <style jsx global>{`
+            .demo-profile header { position: sticky !important; top: 0; }
+            .demo-profile .min-h-screen { min-height: auto !important; }
+          `}</style>
         </div>
       </section>
 
