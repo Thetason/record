@@ -8,7 +8,7 @@ import { Shield } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
-import type { PublicProfile, PublicReview } from "@/lib/profile"
+import type { PublicProfile } from "@/lib/profile"
 
 // 해시태그 데이터
 const hashtags = [
@@ -49,7 +49,6 @@ export default function HomePage() {
   const { data: session, status } = useSession()
   const [reviewCount, setReviewCount] = useState(0)
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
-  const [visibleReviews, setVisibleReviews] = useState(3)
   const [demoProfile, setDemoProfile] = useState<PublicProfile | null>(null)
   const [demoLoading, setDemoLoading] = useState(true)
   const [demoError, setDemoError] = useState("")
@@ -117,11 +116,6 @@ export default function HomePage() {
     }
   }, [])
 
-  const displayedDemoReviews = useMemo(() => {
-    if (!demoProfile) return [] as PublicReview[]
-    return demoProfile.reviews.slice(0, visibleReviews)
-  }, [demoProfile, visibleReviews])
-
   const platformDisplay = useMemo(() => {
     if (!demoProfile) return [] as Array<{ name: string; count: number }>
     const counts = demoProfile.reviews.reduce<Record<string, number>>((acc, review) => {
@@ -159,17 +153,6 @@ export default function HomePage() {
       default:
         return 'bg-gray-100 text-gray-600'
     }
-  }
-
-  const formatReviewDate = (review: PublicReview) => {
-    const parsed = new Date(review.reviewDate)
-    if (Number.isNaN(parsed.getTime())) {
-      return review.reviewDate
-    }
-    const year = parsed.getFullYear()
-    const month = String(parsed.getMonth() + 1).padStart(2, '0')
-    const day = String(parsed.getDate()).padStart(2, '0')
-    return `${year}.${month}.${day}`
   }
 
   return (
@@ -373,181 +356,77 @@ export default function HomePage() {
                 LIVE DEMO
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* 왼쪽: 프로필 */}
-                <div>
-                  {demoLoading ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-3">
-                      <div className="h-20 w-20 animate-pulse rounded-full bg-gray-200" />
-                      <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
-                      <div className="h-3 w-40 animate-pulse rounded bg-gray-100" />
-                    </div>
-                  ) : demoProfile ? (
-                    <div>
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-pink-400 text-white flex items-center justify-center text-2xl font-bold">
-                          {demoProfile.avatar ? (
-                            <Image src={demoProfile.avatar} alt={demoProfile.name} fill className="object-cover" />
-                          ) : (
-                            demoProfile.name.charAt(0)
-                          )}
+              <div className="bg-slate-950">
+                {demoLoading ? (
+                  <div className="flex h-[720px] items-center justify-center gap-3 bg-slate-900">
+                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/40 border-t-transparent" />
+                    <p className="text-sm text-white/70">데모 화면을 불러오는 중입니다...</p>
+                  </div>
+                ) : demoProfile ? (
+                  <iframe
+                    src={`/${demoProfile.username}`}
+                    title="Re:cord 라이브 데모"
+                    className="h-[1100px] w-full border-0 bg-white"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-[420px] items-center justify-center bg-white text-sm text-gray-500">
+                    {demoError || '데모 데이터를 불러오지 못했습니다.'}
+                  </div>
+                )}
+              </div>
+
+              {(demoProfile || demoError) && (
+                <div className="space-y-6 border-t border-gray-100 bg-white px-6 py-6">
+                  {demoProfile ? (
+                    <>
+                      <div className="grid gap-6 md:grid-cols-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-gray-500">총 리뷰</p>
+                          <p className="mt-1 text-3xl font-semibold text-gray-900">{demoProfile.totalReviews}</p>
                         </div>
                         <div>
-                          <h3 className="font-bold text-xl">{demoProfile.name}</h3>
-                          <p className="text-gray-600">{demoProfile.profession}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#FF6B35] bg-[#FF6B35]/10 rounded-full">
-                              ⚡ 리뷰 자동 아카이빙
-                            </span>
-                            {demoProfile.experience && (
-                              <span className="text-xs text-gray-500">{demoProfile.experience}</span>
+                          <p className="text-xs uppercase tracking-wide text-gray-500">검증 완료</p>
+                          <p className="mt-1 text-3xl font-semibold text-gray-900">{demoProfile.reviews.filter((r) => r.verified).length}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-gray-500">주요 플랫폼</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {platformDisplay.slice(0, 4).map(({ name, count }) => (
+                              <span key={name} className={`${getPlatformBadgeStyle(name)} px-3 py-1 rounded-full text-xs font-medium`}>
+                                {formatPlatformLabel(name, count)}
+                              </span>
+                            ))}
+                            {platformDisplay.length === 0 && (
+                              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500">데이터 준비 중</span>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-[#FF6B35]">{reviewCount}</div>
-                          <div className="text-xs text-gray-600">총 리뷰</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-[#FF6B35]">{platformDisplay.length}</div>
-                          <div className="text-xs text-gray-600">연동 플랫폼</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-[#FF6B35]">{demoProfile.reviews.filter((r) => r.verified).length}</div>
-                          <div className="text-xs text-gray-600">검증 리뷰</div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {platformDisplay.map(({ name, count }) => (
-                          <span key={name} className={`${getPlatformBadgeStyle(name)} px-3 py-1 rounded-full text-xs`}>
-                            {formatPlatformLabel(name, count)}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="mt-6">
-                        <Button asChild variant="outline" className="w-full justify-center">
-                          <Link href="https://record-ebon.vercel.app/syb2020" target="_blank" rel="noreferrer">
+                      <div className="flex flex-col gap-3 md:flex-row">
+                        <Link href="/signup" className="flex-1">
+                          <Button className="h-12 w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
+                            나도 만들기
+                          </Button>
+                        </Link>
+                        <Link href={`/${demoProfile.username}`} target="_blank" rel="noreferrer" className="flex-1">
+                          <Button variant="outline" className="h-12 w-full">
                             실제 공개 프로필 보기
-                          </Link>
-                        </Button>
+                          </Button>
+                        </Link>
                       </div>
-                    </div>
+                    </>
                   ) : (
-                    <div className="rounded-lg border border-dashed border-gray-200 bg-white p-6 text-sm text-gray-500">
-                      {demoError || '데모 데이터를 불러오지 못했습니다.'}
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <p className="text-sm text-gray-500">{demoError || '데모 데이터를 불러오지 못했습니다.'}</p>
+                      <Link href="https://record-ebon.vercel.app/syb2020" target="_blank" rel="noreferrer">
+                        <Button variant="outline">공개 프로필 새 탭으로 열기</Button>
+                      </Link>
                     </div>
                   )}
                 </div>
-
-                {/* 오른쪽: 최근 리뷰 */}
-                <div>
-                  <h4 className="font-bold mb-3">최근 리뷰</h4>
-                  {demoLoading ? (
-                    <div className="flex h-48 items-center justify-center text-sm text-gray-500">
-                      데모 데이터를 불러오는 중입니다...
-                    </div>
-                  ) : demoProfile ? (
-                    <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                      <div className="space-y-3 pr-2">
-                        {displayedDemoReviews.map((review) => (
-                          <div key={review.id} className="bg-white border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-600 font-medium">출처: {review.platform}</span>
-                                {review.verified && (
-                                  <div className="flex items-center gap-1">
-                                    <Shield className="w-3 h-3 text-blue-600" />
-                                    <span className="text-blue-600">인증됨</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="p-4">
-                              <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600">
-                                  {review.author.charAt(0)}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1 text-sm text-gray-900">
-                                    <span className="font-medium">{review.author}</span>
-                                    <span className="text-xs text-gray-500">{formatReviewDate(review)}</span>
-                                  </div>
-                                  {review.business && (
-                                    <p className="text-xs text-gray-500">{review.business}</p>
-                                  )}
-                                  <p className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                                    {review.content}
-                                  </p>
-                                  {review.imageUrl && (
-                                    <div className="mt-3">
-                                      <div className="relative h-44 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
-                                        <Image
-                                          src={review.imageUrl}
-                                          alt={`${review.platform} 리뷰 이미지`}
-                                          fill
-                                          className="object-cover"
-                                          sizes="(max-width: 768px) 100vw, 480px"
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-                                  {review.originalUrl && (
-                                    <Link
-                                      href={review.originalUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="mt-3 inline-flex items-center gap-1 text-xs text-[#FF6B35] hover:underline"
-                                    >
-                                      원본 리뷰 보기
-                                      <ArrowRightIcon className="h-3 w-3" />
-                                    </Link>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-dashed border-gray-200 bg-white p-6 text-sm text-gray-500">
-                      {demoError || '데모 데이터를 불러오지 못했습니다.'}
-                    </div>
-                  )}
-
-                  {demoProfile && displayedDemoReviews.length < demoProfile.reviews.length && (
-                    <button
-                      onClick={() => setVisibleReviews((v) => v + 3)}
-                      className="mt-4 w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-                    >
-                      더 보기
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mt-6 pt-6 border-t flex gap-3">
-                <Link href="/signup" className="flex-1">
-                  <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
-                    나도 만들기
-                  </Button>
-                </Link>
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => {
-                    const section = document.getElementById('how-it-works')
-                    section?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                >
-                  더 알아보기
-                </Button>
-              </div>
+              )}
             </Card>
           </div>
         </div>
