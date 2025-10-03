@@ -6,8 +6,11 @@ export async function GET(
   { params }: { params: { username: string } }
 ) {
   try {
+    const incrementView = _req.nextUrl.searchParams.get('increment') !== 'false'
+
     const result = await fetchPublicProfile(params.username, {
-      incrementView: true
+      incrementView,
+      includeDemoFallback: true
     })
 
     if (!result.ok) {

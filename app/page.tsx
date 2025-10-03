@@ -4,10 +4,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowRightIcon, CheckIcon } from "@radix-ui/react-icons"
-import { Shield, Camera } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Shield } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
+import type { PublicProfile, PublicReview } from "@/lib/profile"
 
 // 해시태그 데이터
 const hashtags = [
@@ -49,135 +50,127 @@ export default function HomePage() {
   const [reviewCount, setReviewCount] = useState(0)
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
   const [visibleReviews, setVisibleReviews] = useState(3)
+  const [demoProfile, setDemoProfile] = useState<PublicProfile | null>(null)
+  const [demoLoading, setDemoLoading] = useState(true)
+  const [demoError, setDemoError] = useState("")
 
   useEffect(() => {
-    // 리뷰 카운트 애니메이션
+    const targetReviews = demoProfile?.totalReviews ?? 69
+
+    setReviewCount(0)
+
     const timer = setTimeout(() => {
       let count = 0
       const interval = setInterval(() => {
-        if (count <= 69) {
+        if (count <= targetReviews) {
           setReviewCount(count)
-          count += 2
+          count += Math.max(1, Math.round(targetReviews / 30))
         } else {
           clearInterval(interval)
-          setReviewCount(69)
+          setReviewCount(targetReviews)
         }
       }, 30)
-    }, 500)
+    }, 300)
 
-    // 타겟 오디언스 순환 애니메이션
     const targetTimer = setInterval(() => {
       setCurrentTargetIndex((prev) => (prev + 1) % TARGET_AUDIENCES.length)
-    }, 800) // 0.8초마다 변경
+    }, 800)
 
     return () => {
       clearTimeout(timer)
       clearInterval(targetTimer)
     }
+  }, [demoProfile?.totalReviews])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadProfile = async () => {
+      try {
+        setDemoLoading(true)
+        setDemoError("")
+        const res = await fetch('/api/profile/syb2020?increment=false', { cache: 'no-store' })
+        if (!res.ok) {
+          throw new Error('failed to load demo profile')
+        }
+        const data = (await res.json()) as PublicProfile
+        if (!cancelled) {
+          setDemoProfile(data)
+        }
+      } catch (error) {
+        console.error('Failed to load demo profile:', error)
+        if (!cancelled) {
+          setDemoError('데모 프로필을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+          setDemoProfile(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setDemoLoading(false)
+        }
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const demoReviews = [
-    {
-      platform: "네이버",
-      business: "비너스필라테스",
-      content: "수업 때마다 컨디션에 맞게 진행해주시기 때문에 무리하지 않는 선에서 운동할 수 있어서 좋아요. 동작할 때 꼼꼼히 봐주시고, 제가 불편하거나 자극이 없어서 아쉬운 부분이 있다고 말씀드리면 바로 수정도 해주셔서 좋아요. 최고입니다!",
-      author: "헤이지오니",
-      date: "5.22.목",
-      reviewCount: "리뷰 497",
-      visitCount: "사진 22",
-      isNaverReview: true,
-      verified: true
-    },
-    {
-      platform: "네이버",
-      business: "서영빈 선생님",
-      content: "선생님이 늘 친절하시고, 꼼꼼하시고, 정말 열정적으로 잘 가르쳐주십니다. 저에게 필요했던 부분을 잘 지도해주셔서, 요즘 노래부르는 게 더 재밌어졌어요~ 감사합니다 :)",
-      author: "20221001",
-      date: "22.6.4",
-      reviewCount: "리뷰 716",
-      visitCount: "사진 27",
-      isNaverReview: true,
-      verified: true
-    },
-    {
-      platform: "네이버",
-      business: "서영빈 선생님",
-      content: "친구 축가를 부르기 위해 배우게 되었는데요... 사실 음치 박치라 반쯤 포기하고 시작했는데, 쌤이 포기하지 않고 이끌어나가주고 있습니다. 항상 용기를 가득 채워주고, 열정을 가지고 가르쳐 주세요. 중간에 포기할 뻔한 순간도 있었지만, 그때마다 진심으로 할 수 있다고 말씀해주시고 좋은 말도 많이해주셔서 용기를 얻고 있습니다!",
-      author: "ho****",
-      date: "22.12.1",
-      reviewCount: "리뷰 69",
-      visitCount: "사진 79",
-      isNaverReview: true,
-      verified: true
-    },
-    {
-      platform: "네이버",
-      business: "서영빈 선생님",
-      content: "이전에도 취미로 노래를 배웠었지만 뜻대로 되지않아 자신감만 떨어지던 날날을 보내던 중에 쾌라우디 뮤직, 그리고 영빈쌤을 만났어요! 멘탈관리도 보컬레슨에 있어서 중요한 영역이라고 말씀하시는 선생님께... 학생 수업 때마다 칭찬감에 가득주십니다...",
-      author: "cod****",
-      date: "22.12.2",
-      reviewCount: "리뷴 7",
-      visitCount: "사진 6",
-      isNaverReview: true,
-      verified: true
-    },
-    {
-      platform: "네이버",
-      business: "서영빈 선생님",
-      content: "평소에 음악 듣는 것도 좋아하고 노래 부르는 것도 좋아했었는데, 꾼을 이쯀으로 정해서 학원을 찾던 도중 쾌라우디뮤직, 영빈쌤을 만났어요!! 수업을 받으지는 한 달 정도 지났는데, 한 달 전에 제가 불러본 것과 현재 부르는 게 조금씩 변하고 있다는 게 너무 신기하고 재밌어요!! 그냥 힐링 그 자체입니다",
-      author: "aki****",
-      date: "23.4.6",
-      reviewCount: "리뷴 12",
-      visitCount: "사진 4",
-      isNaverReview: true,
-      verified: true
-    },
-    {
-      platform: "카카오",
-      business: "빈 보컬 스튜디오",
-      content: "복식호흡이 뭔지도 몰랐는데 이제는 자연스럽게 돼요! 일상생활에서도 활용할 수 있는 발성팁도 알려주셔서 목이 편해졌어요.",
-      author: "조**",
-      date: "2024.08.02",
-      imageUrl: "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=400&h=300&fit=crop",
-      verified: true
-    },
-    {
-      platform: "네이버",
-      business: "YB 보컬 아카데미",
-      content: "영빈선생님께 3개월째 레슨 받고 있는데 음정, 박자감이 확실히 좋아졌어요. 친구들이 노래 잘한다고 칭찬해줘요!",
-      author: "최**",
-      date: "2024.08.01",
-      imageUrl: null,
-      verified: true
-    },
-    {
-      platform: "인스타",
-      business: "서영빈 보컬 클래스",
-      content: "취미로 시작했는데 이제는 버스킹도 해요! 영빈쌤과 함께하면서 무대 자신감도 생기고 실력도 늘었어요. 최고의 선생님!",
-      author: "서**",
-      date: "2024.07.31",
-      imageUrl: "https://images.unsplash.com/photo-1516924962500-2b4b3b99ea02?w=400&h=300&fit=crop",
-      verified: false
-    },
-    {
-      platform: "네이버",
-      business: "빈 뮤직 스튜디오",
-      content: "상담부터 레슨까지 모든 과정이 체계적이에요. 개인별 맞춤 커리큘럼으로 진행해주셔서 실력이 빠르게 늘어요!",
-      author: "이**",
-      date: "2024.07.30",
-      imageUrl: "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=400&h=300&fit=crop",
-      verified: true
-    },
-    {
-      platform: "카카오",
-      business: "YB 보컬 트레이닝",
-      content: "목이 쉽게 아팠는데 올바른 발성법을 배우고 나서는 3시간 노래해도 멀쩡해요! 보컬 건강까지 챙겨주시는 선생님이세요.",
-      author: "손**",
-      date: "2024.07.29",
-      imageUrl: null,
-      verified: true
+  const displayedDemoReviews = useMemo(() => {
+    if (!demoProfile) return [] as PublicReview[]
+    return demoProfile.reviews.slice(0, visibleReviews)
+  }, [demoProfile, visibleReviews])
+
+  const platformDisplay = useMemo(() => {
+    if (!demoProfile) return [] as Array<{ name: string; count: number }>
+    const counts = demoProfile.reviews.reduce<Record<string, number>>((acc, review) => {
+      acc[review.platform] = (acc[review.platform] || 0) + 1
+      return acc
+    }, {})
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }))
+  }, [demoProfile])
+
+  const formatPlatformLabel = (platform: string, count: number) => {
+    if (platform === 'Re:cord') {
+      return `${platform} 요청 ${count}건`
     }
-  ]
+    return `${platform} ${count}개`
+  }
+
+  const getPlatformBadgeStyle = (platform: string) => {
+    switch (platform) {
+      case '네이버':
+        return 'bg-green-50 text-green-700'
+      case '카카오':
+      case '카카오맵':
+        return 'bg-yellow-50 text-yellow-700'
+      case '구글':
+        return 'bg-blue-50 text-blue-700'
+      case '인스타':
+      case '인스타그램':
+        return 'bg-purple-50 text-purple-700'
+      case '당근':
+        return 'bg-orange-50 text-orange-700'
+      case 'Re:cord':
+        return 'bg-[#FF6B35]/10 text-[#FF6B35]'
+      default:
+        return 'bg-gray-100 text-gray-600'
+    }
+  }
+
+  const formatReviewDate = (review: PublicReview) => {
+    const parsed = new Date(review.reviewDate)
+    if (Number.isNaN(parsed.getTime())) {
+      return review.reviewDate
+    }
+    const year = parsed.getFullYear()
+    const month = String(parsed.getMonth() + 1).padStart(2, '0')
+    const day = String(parsed.getDate()).padStart(2, '0')
+    return `${year}.${month}.${day}`
+  }
 
   return (
     <main className="min-h-screen bg-white">
@@ -366,7 +359,11 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               실제 <span className="text-[#FF6B35]">Re:cord</span> 사용 화면
             </h2>
-            <p className="text-gray-600 text-lg">69개 리뷰를 가진 김서연 필라테스 강사님의 프로필</p>
+            <p className="text-gray-600 text-lg">
+              {demoProfile
+                ? `${demoProfile.totalReviews}개 리뷰를 가진 ${demoProfile.name} ${demoProfile.profession}님의 프로필`
+                : '실제 공개 프로필 데이터를 그대로 불러와 살펴보세요.'}
+            </p>
           </div>
           
           {/* 실제 데모 화면 */}
@@ -379,222 +376,145 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* 왼쪽: 프로필 */}
                 <div>
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                      김
+                  {demoLoading ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-3">
+                      <div className="h-20 w-20 animate-pulse rounded-full bg-gray-200" />
+                      <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+                      <div className="h-3 w-40 animate-pulse rounded bg-gray-100" />
                     </div>
+                  ) : demoProfile ? (
                     <div>
-                      <h3 className="font-bold text-xl">김서연</h3>
-                      <p className="text-gray-600">필라테스 강사</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#FF6B35] bg-[#FF6B35]/10 rounded-full">
-                          ⚡ 리뷰 자동 아카이빙
-                        </span>
-                        <span className="text-xs text-gray-500">평균 처리 45초</span>
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-pink-400 text-white flex items-center justify-center text-2xl font-bold">
+                          {demoProfile.avatar ? (
+                            <Image src={demoProfile.avatar} alt={demoProfile.name} fill className="object-cover" />
+                          ) : (
+                            demoProfile.name.charAt(0)
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xl">{demoProfile.name}</h3>
+                          <p className="text-gray-600">{demoProfile.profession}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#FF6B35] bg-[#FF6B35]/10 rounded-full">
+                              ⚡ 리뷰 자동 아카이빙
+                            </span>
+                            {demoProfile.experience && (
+                              <span className="text-xs text-gray-500">{demoProfile.experience}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 mb-6">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-[#FF6B35]">{reviewCount}</div>
+                          <div className="text-xs text-gray-600">총 리뷰</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-[#FF6B35]">{platformDisplay.length}</div>
+                          <div className="text-xs text-gray-600">연동 플랫폼</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-[#FF6B35]">{demoProfile.reviews.filter((r) => r.verified).length}</div>
+                          <div className="text-xs text-gray-600">검증 리뷰</div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {platformDisplay.map(({ name, count }) => (
+                          <span key={name} className={`${getPlatformBadgeStyle(name)} px-3 py-1 rounded-full text-xs`}>
+                            {formatPlatformLabel(name, count)}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="mt-6">
+                        <Button asChild variant="outline" className="w-full justify-center">
+                          <Link href="https://record-ebon.vercel.app/syb2020" target="_blank" rel="noreferrer">
+                            실제 공개 프로필 보기
+                          </Link>
+                        </Button>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-[#FF6B35]">{reviewCount}</div>
-                      <div className="text-xs text-gray-600">총 리뷰</div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-white p-6 text-sm text-gray-500">
+                      {demoError || '데모 데이터를 불러오지 못했습니다.'}
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-[#FF6B35]">45초</div>
-                      <div className="text-xs text-gray-600">자동 아카이빙</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-[#FF6B35]">98%</div>
-                      <div className="text-xs text-gray-600">추천율</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">네이버 33개</span>
-                    <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs">카카오 21개</span>
-                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">인스타 15개</span>
-                    <span className="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-xs">당근 8개</span>
-                    <span className="bg-[#FF6B35]/10 text-[#FF6B35] px-3 py-1 rounded-full text-xs">Re:cord 요청 12건</span>
-                  </div>
+                  )}
                 </div>
-                
+
                 {/* 오른쪽: 최근 리뷰 */}
                 <div>
                   <h4 className="font-bold mb-3">최근 리뷰</h4>
-                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    <div className="space-y-3 pr-2">
-                      {demoReviews.slice(0, visibleReviews).map((review, i) => (
-                        <div key={i} className="bg-white border rounded-lg overflow-hidden animate-slideIn hover:shadow-md transition-shadow" 
-                             style={{ animationDelay: `${1000 + i * 200}ms` }}>
-                          
-                          {/* 리뷰 UI - 법률적으로 안전한 독립 디자인 */}
-                          {review.isNaverReview ? (
-                            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                              {/* 플랫폼 표시 - 텍스트로만 */}
-                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-600 font-medium">출처: 네이버</span>
-                                  {review.verified && (
-                                    <div className="flex items-center gap-1">
-                                      <Shield className="w-3 h-3 text-blue-600" />
-                                      <span className="text-xs text-blue-600">인증됨</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {/* 리뷰 본문 */}
-                              <div className="p-4">
-                                <div className="flex items-start gap-3">
-                                  {/* 프로필 */}
-                                  <div className="flex-shrink-0">
-                                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                      <span className="text-sm font-medium text-white">
-                                        {review.author.charAt(0)}
-                                      </span>
-                                    </div>
+                  {demoLoading ? (
+                    <div className="flex h-48 items-center justify-center text-sm text-gray-500">
+                      데모 데이터를 불러오는 중입니다...
+                    </div>
+                  ) : demoProfile ? (
+                    <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                      <div className="space-y-3 pr-2">
+                        {displayedDemoReviews.map((review) => (
+                          <div key={review.id} className="bg-white border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-600 font-medium">출처: {review.platform}</span>
+                                {review.verified && (
+                                  <div className="flex items-center gap-1">
+                                    <Shield className="w-3 h-3 text-blue-600" />
+                                    <span className="text-blue-600">인증됨</span>
                                   </div>
-                                  
-                                  {/* 내용 */}
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium text-sm text-gray-900">{review.author}</span>
-                                      <span className="text-xs text-gray-500">· {review.date}</span>
-                                    </div>
-                                    
-                                    {/* 자동 아카이빙 배지 */}
-                                    <div className="flex items-center gap-2 mb-2 text-xs text-[#FF6B35]">
-                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#FF6B35]/10 rounded-full">
-                                        ⚡ 자동 아카이빙 완료
-                                      </span>
-                                    </div>
-                                    
-                                    {/* 리뷰 텍스트 */}
-                                    <p className="text-sm text-gray-700 leading-relaxed">
-                                      {review.content}
-                                    </p>
-                                    
-                                    {/* 메타 정보 */}
-                                    <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
-                                      <span>{review.reviewCount}</span>
-                                      <span>·</span>
-                                      <span>{review.visitCount}</span>
-                                    </div>
-                                  </div>
-                                </div>
+                                )}
                               </div>
                             </div>
-                          ) : review.isKakaoReview ? (
-                            /* 카카오맵 리뷰 스타일 */
-                            <div className="p-4 bg-white border border-gray-200 rounded-lg">
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="w-5 h-5 bg-yellow-400 rounded flex items-center justify-center">
-                                  <span className="text-black text-xs font-bold">K</span>
-                                </div>
-                                <span className="text-sm font-medium text-gray-900">카카오맵 리뷰</span>
-                              </div>
-                              
-                              <div className="flex items-start gap-3 mb-3">
-                                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <span className="text-xs font-medium text-yellow-700">
-                                    {review.author.charAt(0)}
-                                  </span>
+                            <div className="p-4">
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600">
+                                  {review.author.charAt(0)}
                                 </div>
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-medium text-gray-900">{review.author}</span>
-                                    <span className="text-xs text-[#FF6B35] font-medium bg-[#FF6B35]/10 px-2 py-0.5 rounded-full">자동 아카이빙</span>
+                                  <div className="flex items-center gap-2 mb-1 text-sm text-gray-900">
+                                    <span className="font-medium">{review.author}</span>
+                                    <span className="text-xs text-gray-500">{formatReviewDate(review)}</span>
                                   </div>
-                                  <p className="text-xs text-gray-500">{review.date}</p>
+                                  {review.business && (
+                                    <p className="text-xs text-gray-500">{review.business}</p>
+                                  )}
+                                  <p className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                                    {review.content}
+                                  </p>
+                                  {review.originalUrl && (
+                                    <Link
+                                      href={review.originalUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="mt-3 inline-flex items-center gap-1 text-xs text-[#FF6B35] hover:underline"
+                                    >
+                                      원본 리뷰 보기
+                                      <ArrowRightIcon className="h-3 w-3" />
+                                    </Link>
+                                  )}
                                 </div>
-                              </div>
-                              
-                              <p className="text-sm text-gray-800 leading-relaxed mb-3">
-                                {review.content}
-                              </p>
-                              
-                              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                                <div className="flex items-center gap-3">
-                                  <button className="flex items-center gap-1 text-xs text-gray-500">
-                                    👍 도움됨 2
-                                  </button>
-                                  <button className="text-xs text-gray-500">
-                                    댓글
-                                  </button>
-                                </div>
-                                <span className="text-xs text-gray-400">{review.business}</span>
                               </div>
                             </div>
-                          ) : (
-                            /* 기존 리뷰 스타일 */
-                            <>
-                              {/* 리뷰 이미지 */}
-                              {review.imageUrl && (
-                                <div className="relative h-32 bg-gray-100">
-                                  <Image 
-                                    src={review.imageUrl} 
-                                    alt={`${review.platform} 리뷰 이미지`}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                  {review.verified && (
-                                    <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
-                                      <Shield className="w-3 h-3" />
-                                      검증됨
-                                    </div>
-                                  )}
-                                  <div className="absolute top-2 left-2 bg-white/90 px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
-                                    <Camera className="w-3 h-3" />
-                                    스크린샷
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <div className="p-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    review.platform === "네이버" ? "bg-green-100 text-green-700" :
-                                    review.platform === "카카오" ? "bg-yellow-100 text-yellow-700" :
-                                    review.platform === "인스타" ? "bg-purple-100 text-purple-700" :
-                                    "bg-blue-100 text-blue-700"
-                                  }`}>
-                                    {review.platform}
-                                  </span>
-                                  {review.verified && !review.imageUrl && (
-                                    <Shield className="w-3 h-3 text-green-600" />
-                                  )}
-                                  <span className="ml-auto inline-flex items-center gap-1 text-xs text-[#FF6B35] bg-[#FF6B35]/10 px-2 py-0.5 rounded-full">
-                                    ⚡ 자동 아카이빙
-                                  </span>
-                                </div>
-                                <p className="text-sm text-gray-700 line-clamp-2">{review.content}</p>
-                                <div className="flex items-center justify-between mt-2">
-                                  <p className="text-xs text-gray-500">{review.author} · {review.date}</p>
-                                  <p className="text-xs text-gray-400">{review.business}</p>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                      
-                      {visibleReviews < demoReviews.length && (
-                        <button
-                          onClick={() => setVisibleReviews(prev => Math.min(prev + 3, demoReviews.length))}
-                          className="w-full p-3 text-center text-[#FF6B35] hover:bg-orange-50 rounded-lg transition-colors border-2 border-dashed border-gray-200 hover:border-[#FF6B35]"
-                        >
-                          더 많은 리뷰 보기 ({demoReviews.length - visibleReviews}개 남음)
-                        </button>
-                      )}
-                      
-                      {visibleReviews >= demoReviews.length && (
-                        <div className="text-center p-3 text-gray-500 text-sm">
-                          총 {demoReviews.length}개 리뷰를 모두 확인했습니다! ✨
-                        </div>
-                      )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-white p-6 text-sm text-gray-500">
+                      {demoError || '데모 데이터를 불러오지 못했습니다.'}
+                    </div>
+                  )}
+
+                  {demoProfile && displayedDemoReviews.length < demoProfile.reviews.length && (
+                    <button
+                      onClick={() => setVisibleReviews((v) => v + 3)}
+                      className="mt-4 w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      더 보기
+                    </button>
+                  )}
                 </div>
               </div>
               
