@@ -247,8 +247,9 @@ export default function BulkUploadPage() {
         throw new Error('리뷰 내용은 최소 10자 이상이어야 합니다.')
       }
       
+      // 업체명이 비어있으면 기본값 설정
       if (!reviewData.business || reviewData.business.trim() === '') {
-        throw new Error('업체명을 입력해주세요.')
+        reviewData.business = '업체명 미확인'
       }
 
       const payload = {
@@ -578,9 +579,10 @@ export default function BulkUploadPage() {
                         }
 
                         const colors = getCardColors()
-                        // offset을 크게 늘려서 각 카드가 잘 보이도록
+                        // 아래로 쌓이되 윗부분이 보이도록
                         const offset = index * 70
                         const scale = 1 - (index * 0.03)
+                        // zIndex는 1번이 가장 높아야 위에 있음
                         const zIndex = ocrResults.length - index
 
                         return (
@@ -592,7 +594,7 @@ export default function BulkUploadPage() {
                             style={{
                               transform: isActive 
                                 ? 'translateY(0) scale(1)' 
-                                : `translateY(-${offset}px) scale(${scale})`,
+                                : `translateY(${offset}px) scale(${scale})`,
                               zIndex: isActive ? 9999 : zIndex,
                               transformStyle: 'preserve-3d',
                             }}
