@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const MAX_BODY_SIZE_BYTES = Number(process.env.API_BODY_LIMIT_BYTES ?? 1_048_576); // 1MB 기본값
+const MAX_BODY_SIZE_BYTES = Number(process.env.API_BODY_LIMIT_BYTES ?? 10_485_760); // 10MB 기본값 (이미지 OCR용)
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export async function middleware(request: NextRequest) {

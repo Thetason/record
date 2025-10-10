@@ -523,7 +523,7 @@ export default function BulkUploadPage() {
                   </div>
 
                   {/* 3D 스택 카드 컨테이너 */}
-                  <div className="relative" style={{ perspective: '1500px', minHeight: '500px' }}>
+                  <div className="relative" style={{ perspective: '1500px', minHeight: `${Math.max(600, ocrResults.length * 80)}px` }}>
                     <div className="relative w-full max-w-md mx-auto">
                       {ocrResults.slice().reverse().map((result, reverseIndex) => {
                         const index = ocrResults.length - 1 - reverseIndex
@@ -567,8 +567,9 @@ export default function BulkUploadPage() {
                         }
 
                         const colors = getCardColors()
-                        const offset = index * 12
-                        const scale = 1 - (index * 0.05)
+                        // offset을 크게 늘려서 각 카드가 잘 보이도록
+                        const offset = index * 70
+                        const scale = 1 - (index * 0.03)
                         const zIndex = ocrResults.length - index
 
                         return (
