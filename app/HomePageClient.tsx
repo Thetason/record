@@ -314,14 +314,9 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto space-y-6">
-            <div className="rounded-[32px] border border-slate-800 bg-slate-950 shadow-2xl">
-              <div className="demo-profile max-h-[1100px] overflow-y-auto">
-                <ProfileClient profile={demoProfile} />
-              </div>
-            </div>
-
-            <div className="space-y-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
+          {/* 통계 정보 - 데모 위에 배치 */}
+          <div className="max-w-5xl mx-auto mb-6">
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
               <div className="grid gap-6 md:grid-cols-3">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-500">총 리뷰</p>
@@ -342,7 +337,19 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
 
+          {/* 라이브 데모 화면 */}
+          <div className="max-w-5xl mx-auto space-y-6">
+            <div className="rounded-[32px] border border-slate-800 bg-slate-950 shadow-2xl">
+              <div className="demo-profile max-h-[1100px] overflow-y-auto">
+                <ProfileClient profile={demoProfile} />
+              </div>
+            </div>
+
+            {/* CTA 버튼 */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl">
               <div className="flex flex-col gap-3 md:flex-row">
                 <Link href="/signup" className="flex-1">
                   <Button className="h-12 w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
