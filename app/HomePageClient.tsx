@@ -54,7 +54,12 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
   const { data: session, status } = useSession()
   const [reviewCount, setReviewCount] = useState(0)
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
+  const [mounted, setMounted] = useState(false)
   const demoProfile = initialProfile
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const targetReviews = demoProfile.totalReviews
@@ -221,8 +226,8 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
             {/* 타겟 오디언스 박스 - 자동 변경 */}
             <div className="flex justify-center mb-8">
               <div className="inline-block bg-white border-2 border-gray-200 rounded-full px-8 py-3">
-                <span className="text-2xl md:text-3xl font-bold text-[#FF6B35] transition-all duration-300">
-                  {TARGET_AUDIENCES[currentTargetIndex]}
+                <span className="text-2xl md:text-3xl font-bold text-[#FF6B35] transition-all duration-300" suppressHydrationWarning>
+                  {mounted ? TARGET_AUDIENCES[currentTargetIndex] : TARGET_AUDIENCES[0]}
                 </span>
               </div>
             </div>
@@ -477,7 +482,7 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
                     </div>
                     <div>
                       <p className="font-medium text-sm">김서연 강사님</p>
-                      <p className="text-xs text-gray-600">리뷰 {reviewCount}개 · 자동 아카이빙 45초</p>
+                      <p className="text-xs text-gray-600" suppressHydrationWarning>리뷰 {mounted ? reviewCount : 0}개 · 자동 아카이빙 45초</p>
                     </div>
                   </div>
                   <p className="text-xs text-gray-700 italic">
