@@ -276,12 +276,12 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
       </section>
 
       {/* Specialties & Certifications */}
-      <section className="py-12 bg-white">
+      <section className="py-6 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Specialties */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
                 <BarChartIcon className="w-5 h-5 text-[#FF6B35]" />
                 전문 분야
               </h3>
@@ -299,7 +299,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
 
             {/* Certifications */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
                 <CheckIcon className="w-5 h-5 text-green-600" />
                 자격 & 인증
               </h3>
@@ -319,24 +319,24 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
       </section>
 
       {/* Reviews Section */}
-      <section className="py-16 bg-gradient-to-b from-gray-50 to-white">
+      <section className="py-8 bg-gradient-to-b from-gray-50 to-white">
         <div className="container mx-auto px-4">
           {/* Section Header */}
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
               고객이 남긴 <span className="text-[#FF6B35]">진짜 리뷰</span>
             </h2>
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 text-base">
               {profile.totalReviews}개의 리뷰가 실력을 증명합니다
             </p>
           </div>
 
           {/* Platform Filter */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6">
             <div className="inline-flex bg-white rounded-full shadow-lg p-1">
               <button
                 onClick={() => setSelectedPlatform("all")}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
                   selectedPlatform === "all"
                     ? "bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] text-white"
                     : "text-gray-600 hover:text-gray-900"
@@ -348,7 +348,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 <button
                   key={platform}
                   onClick={() => setSelectedPlatform(platform)}
-                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
                     selectedPlatform === platform
                       ? "bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] text-white"
                       : "text-gray-600 hover:text-gray-900"
@@ -361,7 +361,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
           </div>
 
           {/* Reviews Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayedReviews.map((review, index) => (
               <motion.div
                 key={review.id}
@@ -371,7 +371,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
               >
                 <Card className="h-full border border-gray-200 overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-xl">
                   {review.imageUrl && (
-                    <div className="relative h-48 overflow-hidden bg-black/5 group">
+                    <div className="relative h-40 overflow-hidden bg-black/5 group">
                       <Image
                         src={review.imageUrl}
                         alt={`${review.author} 리뷰 이미지`}
@@ -393,7 +393,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                     </div>
                   )}
 
-                  <CardContent className="p-5 space-y-4">
+                  <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${(platformColors[review.platform] ?? 'from-gray-400 to-gray-500')} flex items-center justify-center text-white font-bold shadow-lg`}>
