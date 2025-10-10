@@ -73,7 +73,6 @@ export default function BulkUploadPage() {
 
   // 이미지 파일 선택 처리
   const initializeImageFiles = (imageFiles: File[]) => {
-    // 기존 미리보기 URL 정리
     ocrResults.forEach(result => {
       if (result.previewUrl) {
         URL.revokeObjectURL(result.previewUrl)
@@ -112,7 +111,7 @@ export default function BulkUploadPage() {
 
     setOcrResults(initialResults)
     setEditingData(initialEditing)
-    setActiveResultId(initialResults[0]?.id ?? null)
+    setActiveResultId(null)
   }
 
   const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,7 +131,6 @@ export default function BulkUploadPage() {
     initializeImageFiles(imageFiles)
   }
 
-  // 드래그 앤 드롭 처리
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const droppedFiles = Array.from(e.dataTransfer.files)
@@ -151,7 +149,6 @@ export default function BulkUploadPage() {
     e.preventDefault()
   }
 
-  // Google Vision API를 사용한 OCR
   const performOCR = async (file: File, resultId: string) => {
     let progressInterval: NodeJS.Timeout | null = null
     try {
@@ -221,11 +218,7 @@ export default function BulkUploadPage() {
             },
           }
         })
-        if (!activeResultId) {
-          setActiveResultId(resultId)
-        }
 
-        // 파싱된 리뷰 저장
         return true
       } else {
         const errorBody = await response.json().catch(() => ({})) as { error?: string }
@@ -247,7 +240,6 @@ export default function BulkUploadPage() {
     }
   }
 
-  // 리뷰 저장
   const saveReview = async (reviewData: ReviewInput) => {
     try {
       const payload = {
@@ -273,7 +265,6 @@ export default function BulkUploadPage() {
     }
   }
 
-  // 일괄 OCR 처리
   const processAllFiles = async () => {
     if (files.length === 0) return
 
@@ -307,22 +298,6 @@ export default function BulkUploadPage() {
   const activeResult = activeResultId ? ocrResults.find(r => r.id === activeResultId) : undefined
   const activeIndex = activeResult ? ocrResults.findIndex(r => r.id === activeResult.id) : -1
   const activeForm = activeResultId ? editingData[activeResultId] : undefined
-
-  const getStatusBadge = (result: OCRResult) => {
-    if (result.saved) {
-      return { label: '저장 완료', className: 'border-green-200 bg-green-50 text-green-600' }
-    }
-    switch (result.status) {
-      case 'success':
-        return { label: '인식 완료', className: 'border-blue-200 bg-blue-50 text-blue-600' }
-      case 'processing':
-        return { label: '인식 중', className: 'border-orange-200 bg-orange-50 text-orange-600 animate-pulse' }
-      case 'error':
-        return { label: '재확인 필요', className: 'border-red-200 bg-red-50 text-red-600' }
-      default:
-        return { label: '대기 중', className: 'border-gray-200 bg-gray-50 text-gray-500' }
-    }
-  }
 
   const updateEditingField = (id: string, field: keyof ReviewFormState, value: string) => {
     setEditingData(prev => ({
@@ -365,6 +340,8 @@ export default function BulkUploadPage() {
       const nextIndex = ocrResults.findIndex(r => r.id === activeResultId) + 1
       if (nextIndex < ocrResults.length) {
         goToResultIndex(nextIndex)
+      } else {
+        setActiveResultId(null)
       }
     } catch (error) {
       console.error('리뷰 저장 실패:', error)
@@ -384,7 +361,6 @@ export default function BulkUploadPage() {
     }
   }
 
-  // 텍스트 직접 붙여넣기 처리
   const handlePasteText = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('text')
     if (pastedText) {
@@ -395,7 +371,6 @@ export default function BulkUploadPage() {
         reviewDate: new Date().toISOString()
       }
 
-      // 플랫폼 찾기
       const platformMatch = pastedText.match(/(네이버|카카오|구글|인스타|당근)/)
       if (platformMatch) {
         const mapping: Record<string, string> = {
@@ -413,7 +388,6 @@ export default function BulkUploadPage() {
         description: "텍스트가 성공적으로 저장되었습니다",
       })
 
-      // 텍스트 영역 초기화
       if (e.currentTarget) {
         e.currentTarget.value = ''
       }
@@ -430,30 +404,476 @@ export default function BulkUploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* 헤더 */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <Link href="/dashboard">
               <Button variant="ghost" size="sm">
                 <ArrowLeftIcon className="mr-2" />
-                대시보드로 돌아가기
+                대시보드
               </Button>
             </Link>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900">리뷰 일괄 업로드</h1>
-          <p className="text-gray-600 mt-2">
-            여러 플랫폼에서 받은 리뷰 스크린샷을 한 번에 업로드하고 AI OCR로 즉시 저장하세요.
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">리뷰 대량 업로드</h1>
+          <p className="text-gray-600 text-lg">
+            한 번에 여러 리뷰를 업로드하고 AI OCR로 즉시 처리하세요 ✨
           </p>
         </div>
 
         {/* 탭 선택 */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-8">
           <Button
             variant={selectedTab === 'image' ? 'default' : 'outline'}
             onClick={() => setSelectedTab('image')}
+            className={selectedTab === 'image' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
+          >
+            <ImageIcon className="mr-2" />
+            이미지 OCR
+          </Button>
+          <Button
+            variant={selectedTab === 'paste' ? 'default' : 'outline'}
+            onClick={() => setSelectedTab('paste')}
+            className={selectedTab === 'paste' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
+          >
+            직접 입력
+          </Button>
+        </div>
+
+        {selectedTab === 'image' ? (
+          <>
+            {/* 업로드 영역 */}
+            {files.length === 0 ? (
+              <Card className="mb-6 border-2 border-dashed hover:border-[#FF6B35] transition-all duration-300">
+                <CardContent className="p-12">
+                  <div
+                    className="text-center cursor-pointer"
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 mb-6">
+                      <UploadIcon className="w-10 h-10 text-[#FF6B35]" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-3 text-gray-900">
+                      리뷰 스크린샷을 드래그하세요
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                      또는 클릭하여 파일을 선택하세요
+                    </p>
+                    <Button className="bg-[#FF6B35] hover:bg-[#E55A2B] text-lg px-8 py-6">
+                      파일 선택하기
+                    </Button>
+                    <p className="text-xs text-gray-400 mt-4">
+                      PNG, JPG, JPEG 지원 · 최대 10MB
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageFileSelect}
+                      className="hidden"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* 3D 스택 카드 영역 */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        업로드된 리뷰 <span className="text-[#FF6B35]">{ocrResults.length}</span>개
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1">
+                        카드를 클릭하여 리뷰를 확인하고 저장하세요
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {isProcessing && (
+                        <div className="flex items-center gap-3">
+                          <ReloadIcon className="w-5 h-5 text-[#FF6B35] animate-spin" />
+                          <span className="text-sm font-semibold text-[#FF6B35]">
+                            {Math.round(currentProgress)}%
+                          </span>
+                        </div>
+                      )}
+                      <Button
+                        onClick={processAllFiles}
+                        disabled={isProcessing}
+                        className="bg-[#FF6B35] hover:bg-[#E55A2B] text-lg px-6"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <ReloadIcon className="mr-2 animate-spin" />
+                            처리 중...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircledIcon className="mr-2" />
+                            OCR 시작
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* 3D 스택 카드 컨테이너 */}
+                  <div className="relative" style={{ perspective: '1500px', minHeight: '500px' }}>
+                    <div className="relative w-full max-w-md mx-auto">
+                      {ocrResults.slice().reverse().map((result, reverseIndex) => {
+                        const index = ocrResults.length - 1 - reverseIndex
+                        const isActive = activeResultId === result.id
+                        
+                        // 상태별 색상
+                        const getCardColors = () => {
+                          if (result.saved) {
+                            return {
+                              bg: 'from-emerald-500 to-green-600',
+                              text: 'text-white',
+                              border: 'border-emerald-400'
+                            }
+                          }
+                          switch (result.status) {
+                            case 'processing':
+                              return {
+                                bg: 'from-orange-400 to-orange-600',
+                                text: 'text-white',
+                                border: 'border-orange-300'
+                              }
+                            case 'success':
+                              return {
+                                bg: 'from-blue-400 to-blue-600',
+                                text: 'text-white',
+                                border: 'border-blue-300'
+                              }
+                            case 'error':
+                              return {
+                                bg: 'from-red-400 to-red-600',
+                                text: 'text-white',
+                                border: 'border-red-300'
+                              }
+                            default:
+                              return {
+                                bg: 'from-gray-100 to-gray-200',
+                                text: 'text-gray-700',
+                                border: 'border-gray-300'
+                              }
+                          }
+                        }
+
+                        const colors = getCardColors()
+                        const offset = index * 12
+                        const scale = 1 - (index * 0.05)
+                        const zIndex = ocrResults.length - index
+
+                        return (
+                          <div
+                            key={result.id}
+                            className={`absolute top-0 left-0 w-full transition-all duration-500 cursor-pointer ${
+                              isActive ? 'scale-105 shadow-2xl z-50' : ''
+                            }`}
+                            style={{
+                              transform: isActive 
+                                ? 'translateY(0) scale(1)' 
+                                : `translateY(${offset}px) scale(${scale})`,
+                              zIndex: isActive ? 9999 : zIndex,
+                              transformStyle: 'preserve-3d',
+                            }}
+                            onClick={() => setActiveResultId(result.id)}
+                          >
+                            <div
+                              className={`relative bg-gradient-to-br ${colors.bg} rounded-3xl border-2 ${colors.border} overflow-hidden transition-all duration-300 ${
+                                result.status === 'processing' ? 'animate-pulse' : ''
+                              }`}
+                              style={{
+                                boxShadow: isActive 
+                                  ? '0 20px 60px -10px rgba(0,0,0,0.3)' 
+                                  : `0 ${8 + index * 2}px ${20 + index * 4}px -${5 + index}px rgba(0,0,0,0.15)`
+                              }}
+                            >
+                              {/* 카드 내용 */}
+                              <div className="p-6">
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-12 h-12 rounded-full ${colors.text === 'text-white' ? 'bg-white/20' : 'bg-gray-300'} flex items-center justify-center font-bold text-lg ${colors.text}`}>
+                                      {result.order}
+                                    </div>
+                                    <div>
+                                      <p className={`font-bold text-lg ${colors.text} truncate max-w-[200px]`}>
+                                        {result.fileName}
+                                      </p>
+                                      <p className={`text-sm ${colors.text} opacity-90`}>
+                                        {result.saved ? '✓ 저장 완료' :
+                                         result.status === 'processing' ? '처리 중...' :
+                                         result.status === 'success' ? '인식 완료' :
+                                         result.status === 'error' ? '오류 발생' :
+                                         '대기 중'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* 미리보기 이미지 */}
+                                {result.previewUrl && (
+                                  <div className="relative w-full h-48 rounded-xl overflow-hidden bg-white/10 mb-4">
+                                    <Image
+                                      src={result.previewUrl}
+                                      alt={result.fileName}
+                                      fill
+                                      sizes="400px"
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                )}
+
+                                {/* 진행률 바 */}
+                                {result.status !== 'pending' && (
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                      <span className={colors.text}>진행률</span>
+                                      <span className={`font-bold ${colors.text}`}>
+                                        {Math.round(result.progress)}%
+                                      </span>
+                                    </div>
+                                    <div className="h-3 bg-white/20 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-white rounded-full transition-all duration-500"
+                                        style={{ width: `${result.progress}%` }}
+                                      />
+                                    </div>
+                                    {typeof result.confidence === 'number' && (
+                                      <p className={`text-xs ${colors.text} opacity-80`}>
+                                        신뢰도: {Math.round(result.confidence * 100)}%
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
+                                {result.error && (
+                                  <p className="text-sm text-white/90 mt-2 bg-black/20 p-2 rounded">
+                                    {result.error}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 리뷰 편집 영역 */}
+                {activeResult && activeForm && (
+                  <Card className="mb-6 border-2 border-[#FF6B35]">
+                    <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-2xl text-gray-900">리뷰 검토 및 수정</CardTitle>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {activeIndex + 1} / {ocrResults.length} · OCR 결과를 확인하고 수정하세요
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => goToResultIndex(activeIndex - 1)} 
+                            disabled={activeIndex <= 0}
+                          >
+                            ← 이전
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => goToResultIndex(activeIndex + 1)} 
+                            disabled={activeIndex >= ocrResults.length - 1}
+                          >
+                            다음 →
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid gap-6 lg:grid-cols-2">
+                        {/* 원본 이미지 */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 mb-3">원본 이미지</p>
+                          <div className="relative overflow-hidden rounded-2xl border-2 border-gray-200 bg-gray-50">
+                            {activeResult.previewUrl && (
+                              <div className="relative w-full h-[400px]">
+                                <Image
+                                  src={activeResult.previewUrl}
+                                  alt={activeResult.fileName}
+                                  fill
+                                  sizes="(min-width: 1024px) 50vw, 100vw"
+                                  className="object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 폼 필드 */}
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-600 mb-2">플랫폼</p>
+                            <div className="flex flex-wrap gap-2">
+                              {['네이버', '카카오맵', '구글', '인스타그램', '당근', 'Re:cord', '크몽', '기타'].map(option => (
+                                <Button
+                                  key={option}
+                                  variant={activeForm.platform === option ? 'default' : 'outline'}
+                                  size="sm"
+                                  className={activeForm.platform === option ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
+                                  onClick={() => activeResultId && updateEditingField(activeResultId, 'platform', option)}
+                                >
+                                  {option}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">업체명</p>
+                              <Input
+                                value={activeForm.business}
+                                onChange={(e) => activeResultId && updateEditingField(activeResultId, 'business', e.target.value)}
+                                placeholder="업체명"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">작성자</p>
+                              <Input
+                                value={activeForm.author}
+                                onChange={(e) => activeResultId && updateEditingField(activeResultId, 'author', e.target.value)}
+                                placeholder="작성자"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">작성일</p>
+                              <Input
+                                type="date"
+                                value={activeForm.reviewDate}
+                                onChange={(e) => activeResultId && updateEditingField(activeResultId, 'reviewDate', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">원본 링크</p>
+                              <Input
+                                value={activeForm.link}
+                                onChange={(e) => activeResultId && updateEditingField(activeResultId, 'link', e.target.value)}
+                                placeholder="https://"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-semibold text-gray-600 mb-2">리뷰 내용</p>
+                            <Textarea
+                              value={activeForm.content}
+                              onChange={(e) => activeResultId && updateEditingField(activeResultId, 'content', e.target.value)}
+                              rows={8}
+                              className="resize-none"
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-3 pt-4">
+                            <Button variant="ghost" onClick={handleSkipCurrent}>
+                              건너뛰기
+                            </Button>
+                            <Button 
+                              className="bg-[#FF6B35] hover:bg-[#E55A2B] px-8"
+                              onClick={handleSaveActiveReview}
+                            >
+                              <CheckCircledIcon className="mr-2" />
+                              저장하고 다음으로
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+
+            {/* OCR 안내 */}
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">✨</span>
+                  Google Vision AI OCR
+                </CardTitle>
+                <CardDescription className="text-blue-900/70">
+                  업계 최고 수준의 이미지 인식 기술
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🎯</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">95%+ 정확도</p>
+                    <p className="text-sm text-gray-600">한글 리뷰 인식 최적화</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">스마트 자동 파싱</p>
+                    <p className="text-sm text-gray-600">플랫폼, 업체명, 작성자, 날짜 자동 추출</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">⚡</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">초고속 처리</p>
+                    <p className="text-sm text-gray-600">이미지 1장당 평균 2-3초</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          /* 텍스트 직접 입력 */
+          <Card>
+            <CardHeader>
+              <CardTitle>텍스트 직접 입력</CardTitle>
+              <CardDescription>
+                리뷰 텍스트를 복사해서 붙여넣으세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                className="w-full h-64 p-4 border-2 border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35] transition-all"
+                placeholder="리뷰 텍스트를 여기에 붙여넣으세요...
+
+예시:
+⭐⭐⭐⭐⭐
+김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고...
+- 정** 님, 2024.08.07"
+                onPaste={handlePasteText}
+              />
+              <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-sm text-orange-900">
+                  💡 <strong>팁:</strong> 플랫폼, 평점, 작성자, 날짜 정보가 포함되면 자동으로 인식됩니다
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}
             className={selectedTab === 'image' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
           >
             <ImageIcon className="mr-2" />
