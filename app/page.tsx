@@ -14,9 +14,9 @@ export default async function HomePage() {
   const demoProfile: PublicProfile = result.ok ? result.profile : {
     id: "demo-syb2020",
     username: "syb2020",
-    name: "서영빈",
-    profession: "프리랜서 개발자",
-    bio: "풀스택 개발자로 활동하고 있습니다.",
+    name: "세타쓴",
+    profession: "보컬트레이닝 전문가 · 9년차",
+    bio: "음악을 사랑하는 모든 이들에게 최고의 보컬 레슨을 제공합니다.",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&w=320&h=320&q=80",
     coverImage: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1600&q=80",
     totalReviews: 0,
