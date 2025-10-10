@@ -118,7 +118,19 @@ export default function HomePage() {
   const { data: session, status } = useSession()
   const [reviewCount, setReviewCount] = useState(0)
   const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
-  const demoProfile = DEMO_PROFILE
+  const [demoProfile, setDemoProfile] = useState<PublicProfile>(DEMO_PROFILE)
+
+  useEffect(() => {
+    // syb2020 프로필 데이터를 실제로 가져오기
+    fetch('/api/profile/syb2020')
+      .then(res => res.json())
+      .then(data => {
+        if (data.profile) {
+          setDemoProfile(data.profile)
+        }
+      })
+      .catch(err => console.error('Failed to load demo profile:', err))
+  }, [])
 
   useEffect(() => {
     const targetReviews = demoProfile.totalReviews
