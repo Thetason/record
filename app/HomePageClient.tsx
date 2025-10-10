@@ -1,42 +1,87 @@
-import { fetchPublicProfile } from '@/lib/profile'
-import HomePageClient from './HomePageClient'
+'use client'
 
-// Server Component - SSR로 syb2020 프로필 데이터 미리 가져오기
-export default async function HomePage() {
-  // syb2020 프로필을 서버에서 미리 fetch
-  const result = await fetchPublicProfile('syb2020', {
-    incrementView: false,
-    includeDemoFallback: true
-  })
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { ArrowRightIcon, CheckIcon } from "@radix-ui/react-icons"
+import { useState, useEffect, useMemo } from "react"
+import { useSession } from "next-auth/react"
+import type { PublicProfile } from "@/lib/profile"
+import ProfileClient from "@/app/[username]/ProfileClient"
 
-  // 실패하면 기본 프로필 사용
-  const demoProfile = result.ok ? result.profile : {
-    id: "demo-syb2020",
-    username: "syb2020",
-    name: "서영빈",
-    profession: "프리랜서 개발자",
-    bio: "풀스택 개발자로 활동하고 있습니다.",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&w=320&h=320&q=80",
-    coverImage: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1600&q=80",
-    totalReviews: 0,
-    platforms: [],
-    experience: "",
-    location: "",
-    specialties: [],
-    certifications: [],
-    socialLinks: {},
-    theme: "modern",
-    layout: "premium",
-    bgImage: null,
-    bgColor: "#0f172a",
-    accentColor: "#FF6B35",
-    introVideo: null,
-    customCss: null,
-    reviews: []
-  }
+// 해시태그 데이터
+const hashtags = [
+  "#노래교실_회원관리", "#필라테스_전문강사", "#보컬코치_프리랜서",
+  "#뷰티컬_입시지도", "#음치교정_전문", "#발성교정_전문가", 
+  "#녹음실습_지도", "#버스킹_코칭", "#가요_레슨",
+  "#보컬코치_프리랜서", "#네일샵_단골관리", "#미용실_독립준비",
+  "#PT트레이너_창업", "#요가강사_프리랜서", "#속눈썹_고객관리",
+  "#왁싱샵_리뷰관리", "#마사지샵_단골", "#메이크업_포트폴리오",
+  "#헤어디자이너_독립", "#피부관리_고객", "#네일아트_리뷰",
+  "#반영구_시술리뷰", "#타투이스트_포트폴리오", "#퍼스널컬러_진단",
+  "#스포츠마사지_회원", "#필라테스_독립", "#크로스핏_회원관리",
+  "#카페사장_단골관리", "#베이커리_리뷰", "#플로리스트_포트폴리오",
+  "#웨딩플래너_고객", "#포토그래퍼_리뷰", "#비즈니스_코칭"
+]
 
-  return <HomePageClient initialProfile={demoProfile} />
+const TARGET_AUDIENCES = [
+  "보컬트레이너",
+  "미용사",
+  "강사",
+  "네일샵 사장님",
+  "자영업자",
+  "필라테스 강사",
+  "요가 선생님",
+  "트레이너",
+  "헤어디자이너",
+  "네일아티스트",
+  "메이크업 아티스트",
+  "카페 사장님",
+  "레스토랑 셰프",
+  "바리스타",
+  "플로리스트",
+  "인테리어 디자이너",
+  "사진작가"
+]
+
+const PROFILE_DEMO_URL = "https://record-ebon.vercel.app/syb2020"
+
+interface HomePageClientProps {
+  initialProfile: PublicProfile
 }
+
+export default function HomePageClient({ initialProfile }: HomePageClientProps) {
+  const { data: session, status } = useSession()
+  const [reviewCount, setReviewCount] = useState(0)
+  const [currentTargetIndex, setCurrentTargetIndex] = useState(0)
+  const demoProfile = initialProfile
+
+  useEffect(() => {
+    const targetReviews = demoProfile.totalReviews
+
+    setReviewCount(0)
+
+    const timer = setTimeout(() => {
+      let count = 0
+      const interval = setInterval(() => {
+        if (count <= targetReviews) {
+          setReviewCount(count)
+          count += Math.max(1, Math.round(targetReviews / 30))
+        } else {
+          clearInterval(interval)
+          setReviewCount(targetReviews)
+        }
+      }, 30)
+    }, 300)
+
+    const targetTimer = setInterval(() => {
+      setCurrentTargetIndex((prev) => (prev + 1) % TARGET_AUDIENCES.length)
+    }, 800)
+
+    return () => {
+      clearTimeout(timer)
+      clearInterval(targetTimer)
+    }
   }, [demoProfile.totalReviews])
 
   const platformDisplay = useMemo(() => {
