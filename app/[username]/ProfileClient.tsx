@@ -275,49 +275,6 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
         </div>
       </section>
 
-      {/* Specialties & Certifications */}
-      <section className="py-6 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Specialties */}
-            <div>
-              <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
-                <BarChartIcon className="w-5 h-5 text-[#FF6B35]" />
-                전문 분야
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {profile.specialties.map((specialty, i) => (
-                  <span
-                    key={i}
-                    className="px-4 py-2 bg-gradient-to-r from-orange-50 to-red-50 text-[#FF6B35] rounded-full text-sm font-medium border border-orange-100"
-                  >
-                    {specialty}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Certifications */}
-            <div>
-              <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
-                <CheckIcon className="w-5 h-5 text-green-600" />
-                자격 & 인증
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {profile.certifications.map((cert, i) => (
-                  <span
-                    key={i}
-                    className="px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 rounded-full text-sm font-medium border border-green-100"
-                  >
-                    {cert}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Reviews Section */}
       <section className="py-8 bg-gradient-to-b from-gray-50 to-white">
         <div className="container mx-auto px-4">
@@ -458,6 +415,49 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
               </Button>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Specialties & Certifications */}
+      <section className="py-6 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Specialties */}
+            <div>
+              <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                <BarChartIcon className="w-5 h-5 text-[#FF6B35]" />
+                전문 분야
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.specialties.map((specialty, i) => (
+                  <span
+                    key={i}
+                    className="px-4 py-2 bg-gradient-to-r from-orange-50 to-red-50 text-[#FF6B35] rounded-full text-sm font-medium border border-orange-100"
+                  >
+                    {specialty}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Certifications */}
+            <div>
+              <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                <CheckIcon className="w-5 h-5 text-green-600" />
+                자격 & 인증
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.certifications.map((cert, i) => (
+                  <span
+                    key={i}
+                    className="px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 rounded-full text-sm font-medium border border-green-100"
+                  >
+                    {cert}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
