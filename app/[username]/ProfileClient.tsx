@@ -164,7 +164,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
       </header>
 
       {/* Hero Section with Parallax */}
-      <section className="relative h-[48vh] md:h-[60vh] overflow-hidden">
+      <section className="relative h-[35vh] md:h-[45vh] overflow-hidden">
         {/* Cover Image with Gradient Overlay */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/70 z-10" />
@@ -183,7 +183,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
         </div>
 
         {/* Profile Content */}
-        <div className="relative z-20 h-full flex items-end pb-8 md:pb-12">
+        <div className="relative z-20 h-full flex items-center pb-4 md:pb-6">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-center md:items-end gap-6">
               {/* Avatar */}

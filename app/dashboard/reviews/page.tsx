@@ -60,55 +60,6 @@ export default function ReviewsPage() {
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login")
-    }
-  }, [status, router])
-
-  useEffect(() => {
-    fetchReviews()
-  }, [fetchReviews])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const username = session?.user?.username
-    if (!username) return
-    setShareLink(`${window.location.origin}/${username}/review-request`)
-  }, [session?.user?.username])
-
-  useEffect(() => {
-    // 필터링 및 정렬 적용
-    const filtered = reviews.filter(review => {
-      const matchesSearch = 
-        review.business.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.author.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesPlatform = filterPlatform === "all" || review.platform === filterPlatform
-      
-      return matchesSearch && matchesPlatform
-    })
-
-    // 정렬 적용
-    filtered.sort((a, b) => {
-      let comparison = 0
-      
-      switch (sortBy) {
-        case "date":
-          comparison = new Date(a.reviewDate).getTime() - new Date(b.reviewDate).getTime()
-          break
-        case "business":
-          comparison = a.business.localeCompare(b.business)
-          break
-      }
-      
-      return sortOrder === "asc" ? comparison : -comparison
-    })
-    
-    setFilteredReviews(filtered)
-    setCurrentPage(1) // 필터 변경 시 첫 페이지로 이동
-  }, [reviews, searchTerm, filterPlatform, sortBy, sortOrder])
-
   const fetchReviews = useCallback(async () => {
     if (!session) return
 
@@ -157,6 +108,55 @@ export default function ReviewsPage() {
       setIsLoading(false)
     }
   }, [session])
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login")
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    fetchReviews()
+  }, [fetchReviews])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const username = session?.user?.username
+    if (!username) return
+    setShareLink(`${window.location.origin}/${username}/review-request`)
+  }, [session?.user?.username])
+
+  useEffect(() => {
+    // 필터링 및 정렬 적용
+    const filtered = reviews.filter(review => {
+      const matchesSearch =
+        review.business.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        review.author.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesPlatform = filterPlatform === "all" || review.platform === filterPlatform
+
+      return matchesSearch && matchesPlatform
+    })
+
+    // 정렬 적용
+    filtered.sort((a, b) => {
+      let comparison = 0
+
+      switch (sortBy) {
+        case "date":
+          comparison = new Date(a.reviewDate).getTime() - new Date(b.reviewDate).getTime()
+          break
+        case "business":
+          comparison = a.business.localeCompare(b.business)
+          break
+      }
+
+      return sortOrder === "asc" ? comparison : -comparison
+    })
+
+    setFilteredReviews(filtered)
+    setCurrentPage(1) // 필터 변경 시 첫 페이지로 이동
+  }, [reviews, searchTerm, filterPlatform, sortBy, sortOrder])
 
   const handleCopyLink = async () => {
     if (!shareLink) return
