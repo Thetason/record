@@ -2,6 +2,9 @@ import { fetchPublicProfile } from '@/lib/profile'
 import HomePageClient from './HomePageClient'
 import type { PublicProfile } from '@/lib/profile'
 
+// Force dynamic rendering to avoid build-time database connection
+export const dynamic = 'force-dynamic'
+
 // Server Component - SSR로 syb2020 프로필 데이터 미리 가져오기
 export default async function HomePage() {
   // syb2020 프로필을 서버에서 미리 fetch
