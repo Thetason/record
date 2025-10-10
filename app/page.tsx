@@ -50,16 +50,16 @@ const DEMO_PROFILE: PublicProfile = {
   id: "demo-setason",
   username: "demo-setason",
   name: "세타쓴",
-  profession: "세타쓴 전문가 · 2년차",
-  bio: "고객이 남긴 진짜 리뷰를 한 곳에서 관리하고, 브랜드 신뢰도를 높이는 리뷰 포트폴리오 서비스입니다.",
-  avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=facearea&w=320&h=320&q=80",
-  coverImage: "https://images.unsplash.com/photo-1515165562835-c4c21844a67c?auto=format&fit=crop&w=1600&q=80",
+  profession: "보컬 트레이너 · 8년차",
+  bio: "음악을 사랑하는 모든 이들에게 최고의 보컬 레슨을 제공합니다. 초보부터 전문가까지, 각자의 목소리를 찾아드립니다.",
+  avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&w=320&h=320&q=80",
+  coverImage: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1600&q=80",
   totalReviews: 69,
   platforms: ["네이버", "카카오", "구글", "인스타", "Re:cord"],
-  experience: "리뷰 관리 스페셜리스트",
+  experience: "보컬 트레이닝 전문가",
   location: "서울 강남구",
-  specialties: ["리뷰 큐레이션", "평판 모니터링", "고객 응대 가이드"],
-  certifications: ["리뷰 케어 전문가 1급", "CX 컨설턴트"],
+  specialties: ["발성 교정", "음역대 확장", "무대 매너 코칭"],
+  certifications: ["실용음악 보컬 지도자 1급", "재즈 보컬 전문 과정"],
   socialLinks: {
     instagram: "https://instagram.com/record_official",
     website: "https://re-cord.kr"
@@ -75,41 +75,41 @@ const DEMO_PROFILE: PublicProfile = {
     {
       id: "demo-review-1",
       platform: "네이버",
-      business: "세타쓴 스튜디오",
-      content: "세타쓴 코치님 수업을 듣고 나서 고객 응대가 한결 수월해졌어요. 리뷰 요청부터 피드백까지 챙겨주셔서 진짜 도움이 됩니다.",
-      author: "강**",
+      business: "세타쓴 보컬 스튜디오",
+      content: "세타쓴 선생님께 3개월간 레슨 받고 노래방 점수가 60점대에서 90점대로 올랐어요! 발성부터 차근차근 알려주셔서 정말 감사합니다.",
+      author: "김**",
       reviewDate: "2024-05-22",
       verified: true,
       verifiedAt: null,
       verifiedBy: "naver",
       originalUrl: null,
-      imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80"
+      imageUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80"
     },
     {
       id: "demo-review-2",
       platform: "카카오",
-      business: "세타쓴 클래식",
-      content: "리뷰 데이터를 기반으로 상담까지 연결해주시는 부분이 최고예요. 고객이 남긴 이야기들을 빠르게 확인할 수 있어서 좋아요.",
-      author: "윤**",
+      business: "세타쓴 보컬 레슨",
+      content: "오디션 준비하면서 고음이 안 올라가서 고민이었는데, 선생님 덕분에 음역대가 넓어졌어요. 무대 매너까지 코칭해주셔서 합격했습니다!",
+      author: "박**",
       reviewDate: "2024-04-18",
       verified: true,
       verifiedAt: null,
       verifiedBy: "kakao",
       originalUrl: null,
-      imageUrl: "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=800&q=80"
+      imageUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80"
     },
     {
       id: "demo-review-3",
       platform: "Re:cord",
-      business: "세타쓴 리뷰 요청",
-      content: "리뷰 요청 링크가 깔끔해서 고객들도 부담 없이 남겨줘요. 모아진 리뷰를 카드처럼 보여주는 뷰가 가장 마음에 듭니다.",
-      author: "정**",
+      business: "세타쓴 보컬 클래스",
+      content: "음치였던 제가 이제 회식 때 노래 부를 수 있게 됐어요 ㅋㅋ 선생님이 정말 친절하시고 맞춤형으로 가르쳐주셔서 자신감이 생겼습니다!",
+      author: "이**",
       reviewDate: "2024-03-30",
       verified: false,
       verifiedAt: null,
       verifiedBy: null,
       originalUrl: null,
-      imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80"
+      imageUrl: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?auto=format&fit=crop&w=800&q=80"
     }
   ]
 }
