@@ -12,6 +12,8 @@ interface ExtendedUser {
   role?: string | null
 }
 
+const USERNAME_MAX_LENGTH = 20
+
 function extractUserMeta(candidate: unknown): ExtendedUser {
   if (!candidate || typeof candidate !== 'object') {
     return {}
@@ -29,19 +31,21 @@ async function findAvailableUsername(base: string): Promise<string> {
     .replace(/[^a-z0-9_-]/g, '')
     .replace(/_{2,}/g, '_')
     .replace(/-{2,}/g, '-')
-    .slice(0, 20)
+    .slice(0, USERNAME_MAX_LENGTH)
     || 'user'
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const suffix = attempt === 0 ? '' : `_${Math.random().toString(36).slice(2, 6)}`
-    const candidate = `${sanitizedBase}${suffix}`.slice(0, 20)
+    const candidate = `${sanitizedBase}${suffix}`.slice(0, USERNAME_MAX_LENGTH)
     const existing = await prisma.user.findUnique({ where: { username: candidate } })
     if (!existing) {
       return candidate
     }
   }
 
-  return `${sanitizedBase.slice(0, 10)}_${Date.now()}`
+  const timestampSuffix = Date.now().toString(36).slice(-6)
+  const prefix = sanitizedBase.slice(0, Math.max(1, USERNAME_MAX_LENGTH - timestampSuffix.length))
+  return `${prefix}${timestampSuffix}`.slice(0, USERNAME_MAX_LENGTH)
 }
 
 export const authOptions: NextAuthOptions = {

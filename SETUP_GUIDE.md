@@ -159,11 +159,8 @@ npm run dev
 
 ### Prisma 에러
 ```bash
-# Prisma Client 재생성
-npx prisma generate
-
-# 스키마 동기화
-npx prisma db push
+# Prisma Client 재생성 + 스키마 동기화 (로컬 SQLite)
+npm run db:push:dev
 ```
 
 ### Supabase 연결 에러

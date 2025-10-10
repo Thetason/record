@@ -94,8 +94,13 @@ export function validateAndNormalizeUsername(
   let truncated = false;
 
   if (trimmed.length > maxLength) {
-    normalized = trimmed.slice(0, maxLength);
     truncated = true;
+
+    const suffixBudget = Math.min(6, Math.max(1, maxLength - minLength));
+    const suffix = trimmed.slice(-suffixBudget);
+    const prefix = trimmed.slice(0, maxLength - suffix.length);
+
+    normalized = `${prefix}${suffix}`;
   }
 
   const reservedSet = new Set(

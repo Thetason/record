@@ -43,12 +43,16 @@ npm install
 cp .env.example .env.local
 # .env.local 파일을 편집하여 필요한 환경 변수 설정
 
-# 데이터베이스 초기화
-npx prisma db push
+# 데이터베이스 초기화 (로컬 SQLite)
+npm run db:push:dev
 
 # 개발 서버 실행
 npm run dev
 ```
+
+> ℹ️ `npm run dev` 실행 시 `prisma/schema.dev.prisma`를 기반으로 Prisma Client가 자동으로 재생성되어 로컬 SQLite 데이터베이스(`prisma/dev.db`)와 바로 연결됩니다. 프로덕션 빌드(`npm run build`, `npm run start`)에서는 기본 `prisma/schema.prisma`(PostgreSQL 설정)를 사용합니다.
+
+> ℹ️ `npm run db:push:dev` 스크립트는 로컬 SQLite 데이터베이스를 최신 스키마로 동기화하고 Prisma Client를 같이 재생성합니다.
 
 ## 🔐 환경 변수 설정
 

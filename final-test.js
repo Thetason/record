@@ -1,12 +1,37 @@
+const BASE_URL = 'http://localhost:3001';
+
 async function runTests() {
   console.log('🔍 Re:cord 최종 테스트 시작...\n');
   let passed = 0;
   let failed = 0;
   const timestamp = Date.now();
 
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  async function waitForServer() {
+    for (let attempt = 1; attempt <= 10; attempt++) {
+      try {
+        const health = await fetch(`${BASE_URL}/api/health`);
+        if (health.ok) {
+          return true;
+        }
+      } catch (error) {
+        // ignore and retry
+      }
+      await wait(2000);
+    }
+    return false;
+  }
+
+  const serverReady = await waitForServer();
+  if (!serverReady) {
+    console.log('❌ 서버가 준비되지 않았습니다. /api/health 확인 필요');
+    return;
+  }
+
   // 1. 홈페이지 접속
   try {
-    const res = await fetch('http://localhost:3001');
+    const res = await fetch(BASE_URL);
     if (res.ok) {
       console.log('✅ 홈페이지 접속 성공');
       passed++;
@@ -21,22 +46,23 @@ async function runTests() {
 
   // 2. 회원가입 API
   try {
-    const res = await fetch('http://localhost:3001/api/auth/signup', {
+    const res = await fetch(`${BASE_URL}/api/auth/signup`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         email: 'test' + timestamp + '@test.com',
         username: 'test' + timestamp,
-        password: 'Test1234\!',
+        password: 'Test1234!',
         name: 'Test User'
       })
     });
-    const data = await res.json();
+    const text = await res.text();
+    const data = res.headers.get('content-type')?.includes('application/json') ? JSON.parse(text) : null;
     if (data.success) {
       console.log('✅ 회원가입 API 작동');
       passed++;
     } else {
-      console.log('❌ 회원가입 실패:', data.error);
+      console.log('❌ 회원가입 실패:', data?.error || text);
       failed++;
     }
   } catch (e) {
@@ -46,7 +72,7 @@ async function runTests() {
 
   // 3. 로그인 페이지
   try {
-    const res = await fetch('http://localhost:3001/login');
+    const res = await fetch(`${BASE_URL}/login`);
     if (res.ok) {
       console.log('✅ 로그인 페이지 접속 성공');
       passed++;
@@ -61,9 +87,9 @@ async function runTests() {
 
   // 4. 대시보드 (인증 필요)
   try {
-    const res = await fetch('http://localhost:3001/dashboard');
+    const res = await fetch(`${BASE_URL}/dashboard`);
     // 리다이렉트되면 정상 (로그인 필요)
-    if (\!res.ok || res.redirected) {
+    if (!res.ok || res.redirected) {
       console.log('✅ 대시보드 보호 작동 (로그인 필요)');
       passed++;
     } else {
@@ -77,7 +103,7 @@ async function runTests() {
 
   // 5. 결제 API 확인
   try {
-    const res = await fetch('http://localhost:3001/api/payments/subscribe', {
+    const res = await fetch(`${BASE_URL}/api/payments/subscribe`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({})
@@ -97,7 +123,7 @@ async function runTests() {
 
   // 6. 공개 프로필
   try {
-    const res = await fetch('http://localhost:3001/testuser');
+    const res = await fetch(`${BASE_URL}/testuser`);
     if (res.ok || res.status === 404) {
       console.log('✅ 공개 프로필 라우트 작동');
       passed++;
@@ -117,7 +143,7 @@ async function runTests() {
   console.log('=============================');
   
   if (failed === 0) {
-    console.log('\n🎉 모든 테스트 통과\! 런칭 준비 완료\!');
+    console.log('\n🎉 모든 테스트 통과! 런칭 준비 완료!');
   } else {
     console.log('\n⚠️ 일부 테스트 실패. 확인 필요.');
   }

@@ -2,7 +2,28 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+const MAX_BODY_SIZE_BYTES = Number(process.env.API_BODY_LIMIT_BYTES ?? 1_048_576); // 1MB 기본값
+const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 export async function middleware(request: NextRequest) {
+  if (
+    request.nextUrl.pathname.startsWith('/api') &&
+    METHODS_WITH_BODY.has(request.method)
+  ) {
+    const contentLength = request.headers.get('content-length');
+    const bodySize = contentLength ? Number(contentLength) : 0;
+
+    if (!Number.isNaN(bodySize) && bodySize > MAX_BODY_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          error: '요청 본문이 허용된 용량을 초과했습니다.',
+          limit: MAX_BODY_SIZE_BYTES
+        },
+        { status: 413 }
+      );
+    }
+  }
+
   const response = NextResponse.next();
   
   // CORS 헤더 설정

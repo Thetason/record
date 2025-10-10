@@ -5,6 +5,40 @@ import { sendEmail } from '@/lib/email';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
 import { rateLimit, getIP, rateLimitResponse, apiLimits } from '@/lib/rate-limit';
 
+const USERNAME_MAX_LENGTH = 20;
+
+function buildRandomSuffix(length = 4) {
+  return Math.random().toString(36).slice(2, 2 + length);
+}
+
+async function generateAvailableUsername(base: string, attempts = 8): Promise<string> {
+  const safeBase = base.slice(0, USERNAME_MAX_LENGTH);
+  let candidate = safeBase;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const suffixLength = Math.min(5, USERNAME_MAX_LENGTH - 3);
+    const suffix = buildRandomSuffix(suffixLength);
+    const prefix = safeBase.slice(0, USERNAME_MAX_LENGTH - suffix.length);
+    candidate = `${prefix}${suffix}`;
+
+    const existing = await prisma.user.findUnique({ where: { username: candidate } });
+    if (!existing) {
+      return candidate;
+    }
+  }
+
+  const timestampSuffix = Date.now().toString(36).slice(-6);
+  const prefix = safeBase.slice(0, USERNAME_MAX_LENGTH - timestampSuffix.length);
+  const fallback = `${prefix}${timestampSuffix}`.slice(0, USERNAME_MAX_LENGTH);
+
+  const fallbackExists = await prisma.user.findUnique({ where: { username: fallback } });
+  if (!fallbackExists) {
+    return fallback;
+  }
+
+  throw new Error('UNABLE_TO_GENERATE_UNIQUE_USERNAME');
+}
+
 const limiter = rateLimit({
   interval: 60 * 1000,
   uniqueTokenPerInterval: 300,
@@ -31,9 +65,11 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedUsername = usernameValidation.value;
+    let finalUsername = normalizedUsername;
+    let usernameAdjusted = false;
 
     // 입력값 검증
-    if (!normalizedUsername || !email || !password) {
+    if (!finalUsername || !email || !password) {
       return NextResponse.json(
         { error: '필수 정보를 모두 입력해주세요.' },
         { status: 400 }
@@ -57,25 +93,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 중복 확인
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { username: normalizedUsername },
-          { email }
-        ]
-      }
+    const existingEmail = await prisma.user.findUnique({
+      where: { email }
     });
 
-    if (existingUser) {
-      if (existingUser.username === normalizedUsername) {
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: '이미 가입된 이메일입니다.' },
+        { status: 400 }
+      );
+    }
+
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: finalUsername }
+    });
+
+    if (existingUsername) {
+      if (!usernameValidation.truncated) {
         return NextResponse.json(
           { error: '이미 사용 중인 아이디입니다.' },
           { status: 400 }
         );
       }
+
+      finalUsername = await generateAvailableUsername(finalUsername);
+      usernameAdjusted = finalUsername !== normalizedUsername;
+    }
+
+    if (!finalUsername) {
       return NextResponse.json(
-        { error: '이미 가입된 이메일입니다.' },
+        { error: '아이디를 다시 확인해주세요.' },
         { status: 400 }
       );
     }
@@ -92,12 +139,12 @@ export async function POST(req: NextRequest) {
     // 사용자 생성
     const user = await prisma.user.create({
       data: {
-        username: normalizedUsername,
+        username: finalUsername,
         email,
         password: hashedPassword,
-        name: name || normalizedUsername,
+        name: name || finalUsername,
         avatar:
-          name?.charAt(0).toUpperCase() || normalizedUsername.charAt(0).toUpperCase(),
+          name?.charAt(0).toUpperCase() || finalUsername.charAt(0).toUpperCase(),
         plan: 'free',
         reviewLimit: 50,
         role: assignedRole
@@ -105,7 +152,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 환영 이메일 발송 (비동기로 처리)
-    sendEmail(email, 'welcome', { name: name || normalizedUsername }).catch(err => {
+    sendEmail(email, 'welcome', { name: name || finalUsername }).catch(err => {
       console.error('환영 이메일 발송 실패:', err);
     });
 
@@ -122,8 +169,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: '회원가입이 완료되었습니다.',
-      username: normalizedUsername,
-      truncated: usernameValidation.truncated,
+      username: finalUsername,
+      truncated: usernameValidation.truncated || usernameAdjusted,
+      adjusted: usernameAdjusted,
       role: assignedRole
     });
 

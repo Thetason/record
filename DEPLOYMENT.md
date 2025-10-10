@@ -38,6 +38,12 @@ NEXTAUTH_URL=http://localhost:3000
 DATABASE_URL=file:./prisma/dev.db
 ```
 
+로컬 DB를 생성/동기화할 때는 다음 스크립트를 사용하세요:
+
+```bash
+npm run db:push:dev
+```
+
 ### 4. 배포 체크리스트
 
 - [ ] 환경 변수 설정 완료

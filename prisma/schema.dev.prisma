@@ -1,0 +1,297 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String   // 비밀번호 필드 추가
+  name      String
+  bio       String?
+  location  String?
+  website   String?
+  phone     String?
+  avatar    String?
+  
+  // 권한 관리
+  role      String   @default("user") // user, admin, super_admin
+  
+  // 비밀번호 재설정
+  resetToken String?
+  resetTokenExpiry DateTime?
+  
+  // 프로필 설정
+  isPublic  Boolean  @default(true)
+  
+  // 프로필 커스터마이징
+  theme     String   @default("default") // default, dark, blue, purple, green
+  layout    String   @default("grid") // grid, list, card, magazine
+  bgImage   String?  // 배경 이미지 URL
+  bgColor   String   @default("#ffffff") // 배경 색상
+  accentColor String @default("#FF6B35") // 강조 색상
+  introVideo String? // 유튜브/비메오 URL
+  customCss String?  // 커스텀 CSS (프로 플랜)
+  
+  // 구독 플랜
+  plan      String   @default("free") // free, premium, pro
+  planExpiry DateTime? // 프리미엄 플랜 만료일
+  reviewLimit Int    @default(50) // 무료: 50개, 프리미엄: 무제한(-1)
+  
+  // 통계
+  profileViews Int     @default(0)
+  
+  // 타임스탬프
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 관계
+  reviews   Review[]
+  sessions  Session[]
+  accounts  Account[]
+  payments  Payment[]
+  tickets   Ticket[]
+  notifications Notification[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  platform    String   // 네이버, 카카오맵, 구글, 크몽 등
+  business    String   // 업체명
+  content     String   // 리뷰 내용
+  author      String   // 리뷰 작성자 (익명화된 이름)
+  reviewDate  DateTime // 실제 리뷰 작성일
+  
+  // 메타데이터
+  isVerified  Boolean  @default(false) // 검증 여부
+  isPublic    Boolean  @default(true)  // 공개 여부
+  
+  // 검증 관련
+  originalUrl String?  // 원본 리뷰 링크
+  verifiedAt  DateTime? // 검증 완료 시간
+  verifiedBy  String?  // 검증 방법 (manual, screenshot, api)
+  
+  // 검증 상태
+  verificationStatus String @default("pending") // pending, approved, rejected, flagged
+  verificationNote String? // 관리자 메모
+
+  // 이미지 (OCR용)
+  imageUrl    String?
+  
+  // 소유자
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 신고
+  reports     Report[]
+  
+  // 타임스탬프
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("reviews")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reviewId    String
+  review      Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  
+  reason      String   // fake, duplicate, inappropriate, copyright, other
+  description String?  // 상세 설명
+  reporterIp  String   // 신고자 IP
+  reporterEmail String? // 신고자 이메일
+  status      String   @default("pending") // pending, resolved, rejected
+  resolvedBy  String?  // 처리한 관리자 ID
+  resolvedAt  DateTime? // 처리 시간
+  resolution  String?  // 처리 결과 메모
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("reports")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  userId      String?
+  userEmail   String
+  userName    String?
+  
+  category    String   // bug, feature, payment, account, review, other
+  priority    String   @default("normal") // low, normal, high, urgent
+  status      String   @default("open") // open, in_progress, resolved, closed
+  
+  subject     String
+  description String
+  
+  assignedTo  String?  // 관리자 ID
+  resolvedBy  String?  // 해결한 관리자 ID
+  resolvedAt  DateTime?
+  
+  // 대화 내역
+  messages    TicketMessage[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  authorId    String?  // null이면 시스템 메시지
+  authorName  String
+  authorRole  String   // user, admin, system
+  
+  content     String
+  attachments String?  // 첨부파일 URL (JSON string)
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("ticket_messages")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String   // email, push, in_app
+  category    String   // review_approved, review_rejected, plan_upgrade, payment_success, etc
+  
+  title       String
+  content     String
+  
+  isRead      Boolean  @default(false)
+  isSent      Boolean  @default(false)
+  sentAt      DateTime?
+  readAt      DateTime?
+  
+  metadata    Json?    // 추가 데이터
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?  // null이면 시스템 액션
+  userEmail   String?
+  
+  action      String   // login, logout, review_upload, review_delete, plan_upgrade, etc
+  category    String   // auth, review, payment, admin, system
+  
+  details     Json?    // 상세 내용
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  
+  title       String
+  content     String
+  type        String   // info, warning, success, error
+  target      String   @default("all") // all, free, premium, pro
+  
+  isActive    Boolean  @default(true)
+  isPinned    Boolean  @default(false)
+  
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  viewCount   Int      @default(0)
+  
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("announcements")
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 결제 정보
+  paymentId     String   @unique // 토스페이먼츠 결제 ID
+  orderId       String   @unique // 주문 ID
+  amount        Int      // 결제 금액
+  method        String   // 결제 수단 (카드, 계좌이체 등)
+  status        String   // 결제 상태 (DONE, CANCELED, PARTIAL_CANCELED 등)
+  
+  // 구독 정보
+  plan          String   // premium, pro
+  period        String   // monthly, yearly
+  billingCycle  DateTime // 다음 결제일
+  
+  // 타임스탬프
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("payments")
+}

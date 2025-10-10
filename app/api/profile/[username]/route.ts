@@ -15,12 +15,17 @@ export async function GET(
 
     if (!result.ok) {
       return NextResponse.json(
-        { error: result.message },
+        { error: result.message, code: result.status === 404 ? 'PROFILE_NOT_FOUND' : 'INVALID_USERNAME' },
         { status: result.status }
       )
     }
 
-    return NextResponse.json(result.profile)
+    return NextResponse.json({
+      profile: result.profile,
+      user: result.profile,
+      username: result.normalizedUsername,
+      truncated: result.truncated
+    })
   } catch (error) {
     console.error('Profile fetch error:', error)
     return NextResponse.json(

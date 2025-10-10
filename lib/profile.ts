@@ -2,6 +2,42 @@ import prisma from '@/lib/prisma';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
 
 const POSSIBLE_ID_LENGTH = 16;
+const PROFILE_REVIEW_LIMIT = 32;
+
+const REVIEW_SELECT = {
+  id: true,
+  platform: true,
+  business: true,
+  content: true,
+  author: true,
+  reviewDate: true,
+  verifiedAt: true,
+  verifiedBy: true,
+  originalUrl: true,
+  imageUrl: true
+} as const;
+
+const USER_SELECT = {
+  id: true,
+  username: true,
+  name: true,
+  bio: true,
+  avatar: true,
+  bgImage: true,
+  location: true,
+  website: true,
+  theme: true,
+  layout: true,
+  bgColor: true,
+  accentColor: true,
+  introVideo: true,
+  customCss: true,
+  reviews: {
+    orderBy: { reviewDate: 'desc' },
+    take: PROFILE_REVIEW_LIMIT,
+    select: REVIEW_SELECT
+  }
+} as const;
 
 async function buildSuccessResult(
   user: UserWithReviews,
@@ -10,14 +46,18 @@ async function buildSuccessResult(
   fallbackUsername?: string
 ): Promise<FetchPublicProfileSuccess> {
   if (incrementView) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        profileViews: {
-          increment: 1
+    prisma.user
+      .update({
+        where: { id: user.id },
+        data: {
+          profileViews: {
+            increment: 1
+          }
         }
-      }
-    });
+      })
+      .catch(error => {
+        console.warn('Public profile view increment failed', { userId: user.id, error });
+      });
   }
 
   const profile = buildProfilePayload(user, options.includeDemoFallback);
@@ -295,18 +335,11 @@ export async function fetchPublicProfile(
     };
   }
 
-  const include = {
-    reviews: {
-      orderBy: { reviewDate: 'desc' },
-      take: 50
-    }
-  } as const;
-
   // 1) 사용자 ID 기반 조회 (username이 아직 설정되지 않은 계정 공유 대비)
   if (input.length >= POSSIBLE_ID_LENGTH) {
     const userById = await prisma.user.findUnique({
       where: { id: input },
-      include
+      select: USER_SELECT
     });
 
     if (userById) {
@@ -329,7 +362,7 @@ export async function fetchPublicProfile(
 
   const user = await prisma.user.findUnique({
     where: { username: validation.value },
-    include
+    select: USER_SELECT
   });
 
   if (!user) {
