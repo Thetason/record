@@ -242,10 +242,19 @@ export default function BulkUploadPage() {
 
   const saveReview = async (reviewData: ReviewInput) => {
     try {
+      // 필수 필드 검증
+      if (!reviewData.content || reviewData.content.trim().length < 10) {
+        throw new Error('리뷰 내용은 최소 10자 이상이어야 합니다.')
+      }
+      
+      if (!reviewData.business || reviewData.business.trim() === '') {
+        throw new Error('업체명을 입력해주세요.')
+      }
+
       const payload = {
         platform: reviewData.platform ?? '기타',
-        business: reviewData.business ?? '',
-        content: reviewData.content,
+        business: reviewData.business.trim(),
+        content: reviewData.content.trim(),
         author: reviewData.author ?? '고객',
         reviewDate: reviewData.reviewDate ?? new Date().toISOString(),
         originalUrl: reviewData.link ?? ''
@@ -258,10 +267,12 @@ export default function BulkUploadPage() {
       })
 
       if (!response.ok) {
-        throw new Error('리뷰 저장 실패')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || '리뷰 저장 실패')
       }
     } catch (error) {
       console.error('리뷰 저장 에러:', error)
+      throw error // 에러를 다시 throw해서 상위 함수가 처리할 수 있도록
     }
   }
 
@@ -347,7 +358,7 @@ export default function BulkUploadPage() {
       console.error('리뷰 저장 실패:', error)
       toast({
         title: '저장 실패',
-        description: '리뷰 저장 중 문제가 발생했습니다. 다시 시도해주세요.',
+        description: error instanceof Error ? error.message : '리뷰 저장 중 문제가 발생했습니다. 업체명과 리뷰 내용을 확인해주세요.',
         variant: 'destructive',
       })
     }
@@ -581,7 +592,7 @@ export default function BulkUploadPage() {
                             style={{
                               transform: isActive 
                                 ? 'translateY(0) scale(1)' 
-                                : `translateY(${offset}px) scale(${scale})`,
+                                : `translateY(-${offset}px) scale(${scale})`,
                               zIndex: isActive ? 9999 : zIndex,
                               transformStyle: 'preserve-3d',
                             }}
