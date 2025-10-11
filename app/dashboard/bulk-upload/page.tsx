@@ -36,6 +36,7 @@ interface OCRResult {
   previewUrl?: string
   saved?: boolean
   order: number
+  file?: File
 }
 
 type ReviewFormState = {
@@ -94,6 +95,7 @@ export default function BulkUploadPage() {
         progress: 0,
         previewUrl,
         order: idx + 1,
+        file: file, // 원본 파일 저장
       }
     })
 
@@ -240,11 +242,19 @@ export default function BulkUploadPage() {
     }
   }
 
-  const saveReview = async (reviewData: ReviewInput) => {
+  const saveReview = async (reviewData: ReviewInput & { imageFile?: File }) => {
     try {
       // 필수 필드 검증
       if (!reviewData.content || reviewData.content.trim().length < 10) {
         throw new Error('리뷰 내용은 최소 10자 이상이어야 합니다.')
+      }
+
+      // 이미지를 base64로 변환 (있는 경우)
+      let imageUrl = ''
+      if (reviewData.imageFile) {
+        const bytes = await reviewData.imageFile.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        imageUrl = `data:${reviewData.imageFile.type};base64,${buffer.toString('base64')}`
       }
 
       const payload = {
@@ -255,10 +265,11 @@ export default function BulkUploadPage() {
         content: reviewData.content.trim(),
         author: reviewData.author ?? '고객',
         reviewDate: reviewData.reviewDate ?? new Date().toISOString(),
-        originalUrl: reviewData.link ?? ''
+        originalUrl: reviewData.link ?? '',
+        imageUrl: imageUrl || undefined
       }
 
-      console.log('💾 저장 시도:', payload)
+      console.log('💾 저장 시도:', { ...payload, imageUrl: imageUrl ? `[${imageUrl.length}자 base64]` : 'none' })
 
       const response = await fetch('/api/reviews', {
         method: 'POST',
@@ -366,6 +377,7 @@ export default function BulkUploadPage() {
         author: form.author,
         reviewDate: form.reviewDate,
         link: form.link,
+        imageFile: activeResult.file, // 원본 이미지 파일 포함
       })
 
       updateResult(activeResultId, { saved: true })
