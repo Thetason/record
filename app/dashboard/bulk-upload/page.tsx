@@ -329,6 +329,25 @@ export default function BulkUploadPage() {
     const form = editingData[activeResultId]
     if (!form) return
 
+    // 저장 전 필수 필드 검증 및 사용자 알림
+    if (!form.content || form.content.trim().length === 0) {
+      toast({
+        title: '⚠️ 리뷰 내용이 비어있어요',
+        description: 'OCR로 텍스트를 인식하지 못했습니다. 리뷰 내용을 직접 입력해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (form.content.trim().length < 10) {
+      toast({
+        title: '⚠️ 리뷰 내용이 너무 짧아요',
+        description: `현재 ${form.content.trim().length}자입니다. 최소 10자 이상 입력해주세요.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       await saveReview({
         platform: form.platform,
@@ -342,8 +361,8 @@ export default function BulkUploadPage() {
       updateResult(activeResultId, { saved: true })
 
       toast({
-        title: '리뷰 저장 완료',
-        description: `${activeResult.fileName} 리뷰가 저장되었습니다.`,
+        title: '✅ 리뷰 저장 완료',
+        description: `${activeResult.fileName} 리뷰가 성공적으로 저장되었습니다.`,
       })
 
       const nextIndex = ocrResults.findIndex(r => r.id === activeResultId) + 1
@@ -355,8 +374,8 @@ export default function BulkUploadPage() {
     } catch (error) {
       console.error('리뷰 저장 실패:', error)
       toast({
-        title: '저장 실패',
-        description: error instanceof Error ? error.message : '리뷰 저장 중 문제가 발생했습니다. 업체명과 리뷰 내용을 확인해주세요.',
+        title: '❌ 저장 실패',
+        description: error instanceof Error ? error.message : '리뷰 저장 중 문제가 발생했습니다. 다시 시도해주세요.',
         variant: 'destructive',
       })
     }
