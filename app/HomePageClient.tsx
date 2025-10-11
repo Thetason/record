@@ -69,6 +69,11 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
   const [mounted, setMounted] = useState(false)
   const demoProfile = initialProfile
 
+  // 해시태그 랜덤 섞기
+  const shuffledHashtags = useMemo(() => {
+    return [...hashtags].sort(() => Math.random() - 0.5)
+  }, [])
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -404,7 +409,7 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
         {/* 해시태그 무한 스크롤 - 한 줄 (왼쪽에서 오른쪽으로) */}
         <div className="relative overflow-hidden">
           <div className="flex gap-4 animate-scroll-left-to-right" style={{ width: '200%' }}>
-            {[...hashtags, ...hashtags].map((tag, i) => (
+            {[...shuffledHashtags, ...shuffledHashtags].map((tag, i) => (
               <div
                 key={i}
                 className="flex-shrink-0 px-6 py-3 bg-gray-100 rounded-full text-gray-700 font-medium whitespace-nowrap"
