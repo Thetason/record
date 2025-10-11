@@ -105,7 +105,7 @@
   }
 
   .animate-scroll-left-to-right {
-    animation: scroll-left-to-right 60s linear infinite;
+    animation: scroll-left-to-right 50s linear infinite;
     will-change: transform;
   }
 
