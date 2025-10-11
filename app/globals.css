@@ -100,12 +100,12 @@
       transform: translateX(0%);
     }
     to {
-      transform: translateX(33.33%);
+      transform: translateX(16.67%);
     }
   }
 
   .animate-scroll-left-to-right {
-    animation: scroll-left-to-right 40s linear infinite;
+    animation: scroll-left-to-right 25s linear infinite;
   }
 
   /* 해시태그 마퀴 애니메이션 - 오른쪽에서 왼쪽으로 (표준) */
