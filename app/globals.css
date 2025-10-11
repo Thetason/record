@@ -96,16 +96,17 @@
 
   /* 해시태그 마퀴 애니메이션 - 왼쪽에서 오른쪽으로 */
   @keyframes scroll-left-to-right {
-    from {
-      transform: translateX(0%);
+    0% {
+      transform: translateX(-50%);
     }
-    to {
-      transform: translateX(16.67%);
+    100% {
+      transform: translateX(0%);
     }
   }
 
   .animate-scroll-left-to-right {
-    animation: scroll-left-to-right 25s linear infinite;
+    animation: scroll-left-to-right 60s linear infinite;
+    will-change: transform;
   }
 
   /* 해시태그 마퀴 애니메이션 - 오른쪽에서 왼쪽으로 (표준) */

@@ -201,6 +201,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                       width={160}
                       height={160}
                       className="object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white text-4xl md:text-5xl font-bold">
@@ -385,6 +386,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                         className="object-contain"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         priority={index < 2}
+                        unoptimized
                       />
                       <button
                         type="button"
@@ -521,6 +523,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 fill
                 className="object-contain"
                 sizes="100vw"
+                unoptimized
               />
             </div>
           )}
