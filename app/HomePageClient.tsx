@@ -389,9 +389,9 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
           </div>
         </div>
         
-        {/* 해시태그 무한 스크롤 - 한 줄 (오른쪽에서 왼쪽으로) */}
+        {/* 해시태그 무한 스크롤 - 한 줄 (왼쪽에서 오른쪽으로) */}
         <div className="relative overflow-hidden">
-          <div className="flex gap-4 animate-scroll-right-to-left">
+          <div className="flex gap-4 animate-scroll-left-to-right">
             {[...hashtags, ...hashtags, ...hashtags].map((tag, i) => (
               <div
                 key={i}

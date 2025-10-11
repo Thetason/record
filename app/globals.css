@@ -94,6 +94,34 @@
     animation: scale-in 0.2s ease-out;
   }
 
+  /* 해시태그 마퀴 애니메이션 - 왼쪽에서 오른쪽으로 */
+  @keyframes scroll-left-to-right {
+    from {
+      transform: translateX(0%);
+    }
+    to {
+      transform: translateX(33.33%);
+    }
+  }
+
+  .animate-scroll-left-to-right {
+    animation: scroll-left-to-right 40s linear infinite;
+  }
+
+  /* 해시태그 마퀴 애니메이션 - 오른쪽에서 왼쪽으로 (표준) */
+  @keyframes scroll-right-to-left {
+    from {
+      transform: translateX(0%);
+    }
+    to {
+      transform: translateX(-33.33%);
+    }
+  }
+
+  .animate-scroll-right-to-left {
+    animation: scroll-right-to-left 40s linear infinite;
+  }
+
   /* 스켈레톤 로딩 효과 */
   @keyframes shimmer {
     0% {
