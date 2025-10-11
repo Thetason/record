@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('📦 요청 본문:', JSON.stringify(body, null, 2))
     
-    const { platform, business, content, author, reviewDate, imageUrl, originalUrl, verifiedBy } = body
+    const { platform, business, content, author, rating, reviewDate, imageUrl, originalUrl, verifiedBy } = body
 
     // 입력 검증
     const missingFields = []
@@ -157,6 +157,7 @@ export async function POST(request: NextRequest) {
         business,
         content,
         author,
+        rating: rating ? parseInt(rating) : null,
         reviewDate: parsedDate,
         imageUrl,
         originalUrl,
