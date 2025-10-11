@@ -375,8 +375,20 @@ export default function BulkUploadPage() {
         description: `${activeResult.fileName} 리뷰가 성공적으로 저장되었습니다.`,
       })
 
+      // 모든 리뷰를 저장한 경우 리뷰 관리 페이지로 이동
       const nextIndex = ocrResults.findIndex(r => r.id === activeResultId) + 1
-      if (nextIndex < ocrResults.length) {
+      const allSaved = ocrResults.filter(r => r.saved || r.id === activeResultId).length === ocrResults.length
+      
+      if (allSaved) {
+        // 모두 저장 완료 - 리뷰 관리 페이지로 이동
+        toast({
+          title: '🎉 전체 저장 완료!',
+          description: '모든 리뷰가 저장되었습니다. 리뷰 관리 페이지로 이동합니다.',
+        })
+        setTimeout(() => {
+          router.push('/dashboard/reviews')
+        }, 1500)
+      } else if (nextIndex < ocrResults.length) {
         goToResultIndex(nextIndex)
       } else {
         setActiveResultId(null)
