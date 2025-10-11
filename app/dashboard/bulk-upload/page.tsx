@@ -258,19 +258,29 @@ export default function BulkUploadPage() {
         originalUrl: reviewData.link ?? ''
       }
 
+      console.log('💾 저장 시도:', payload)
+
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        credentials: 'include' // 쿠키 포함
       })
+
+      console.log('📡 응답 상태:', response.status, response.statusText)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || '리뷰 저장 실패')
+        console.error('❌ 서버 에러:', errorData)
+        throw new Error(errorData.message || `서버 오류 (${response.status}): ${response.statusText}`)
       }
+
+      const result = await response.json()
+      console.log('✅ 저장 성공:', result)
+      return result
     } catch (error) {
-      console.error('리뷰 저장 에러:', error)
-      throw error // 에러를 다시 throw해서 상위 함수가 처리할 수 있도록
+      console.error('🔥 리뷰 저장 에러:', error)
+      throw error
     }
   }
 
