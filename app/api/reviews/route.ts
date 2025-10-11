@@ -67,16 +67,22 @@ export async function GET(request: NextRequest) {
 // POST /api/reviews - 새 리뷰 생성
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔵 POST /api/reviews 시작')
+    
     const session = await getServerSession(authOptions)
+    console.log('🔐 세션 확인:', session ? `User ID: ${session.user?.id}` : '세션 없음')
     
     if (!session?.user?.id) {
+      console.log('❌ 인증 실패')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // 플랜 리뷰 제한 확인
+    console.log('📊 리뷰 쿼터 확인 중...')
     const canAdd = await canAddReview(session.user.id)
     if (!canAdd) {
       const reviewCount = await getUserReviewCount(session.user.id)
+      console.log(`⚠️ 리뷰 제한 도달: ${reviewCount}/50`)
       return NextResponse.json({ 
         error: 'Review limit reached', 
         message: `무료 플랜은 최대 50개의 리뷰만 등록할 수 있습니다. 현재 ${reviewCount}개를 사용 중입니다.`,
@@ -86,6 +92,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('📦 요청 본문:', JSON.stringify(body, null, 2))
+    
     const { platform, business, content, author, reviewDate, imageUrl, originalUrl, verifiedBy } = body
 
     // 입력 검증
@@ -97,6 +105,7 @@ export async function POST(request: NextRequest) {
     if (!reviewDate) missingFields.push('reviewDate')
 
     if (missingFields.length > 0) {
+      console.log('❌ 필수 필드 누락:', missingFields)
       return NextResponse.json({ 
         error: 'Missing required fields',
         message: `다음 필드가 필요합니다: ${missingFields.join(', ')}`,
@@ -105,8 +114,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 날짜 검증
+    console.log('📅 날짜 파싱 중:', reviewDate)
     const parsedDate = new Date(reviewDate)
     if (isNaN(parsedDate.getTime())) {
+      console.log('❌ 잘못된 날짜 형식')
       return NextResponse.json({
         error: 'Invalid date',
         message: '올바른 날짜 형식이 아닙니다.'
@@ -115,6 +126,7 @@ export async function POST(request: NextRequest) {
 
     // 미래 날짜 방지
     if (parsedDate > new Date()) {
+      console.log('❌ 미래 날짜')
       return NextResponse.json({
         error: 'Invalid date',
         message: '리뷰 작성일은 오늘 이후일 수 없습니다.'
@@ -123,6 +135,7 @@ export async function POST(request: NextRequest) {
 
     // 컨텐츠 길이 검증
     if (content.length < 10) {
+      console.log(`❌ 내용 너무 짧음: ${content.length}자`)
       return NextResponse.json({
         error: 'Invalid content',
         message: '리뷰 내용은 최소 10자 이상이어야 합니다.'
@@ -130,12 +143,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (content.length > 2000) {
+      console.log(`❌ 내용 너무 김: ${content.length}자`)
       return NextResponse.json({
         error: 'Invalid content', 
         message: '리뷰 내용은 최대 2000자까지만 가능합니다.'
       }, { status: 400 })
     }
 
+    console.log('💾 Prisma 리뷰 생성 시작...')
     const review = await prisma.review.create({
       data: {
         platform,
@@ -159,9 +174,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.log('✅ 리뷰 생성 성공:', review.id)
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
-    console.error('Error creating review:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('🔥 리뷰 생성 중 에러 발생:')
+    console.error('에러 타입:', error?.constructor?.name)
+    console.error('에러 메시지:', error instanceof Error ? error.message : String(error))
+    console.error('에러 스택:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('전체 에러 객체:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : '리뷰 생성 중 오류가 발생했습니다.',
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
+    }, { status: 500 })
   }
 }
