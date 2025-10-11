@@ -246,15 +246,12 @@ export default function BulkUploadPage() {
       if (!reviewData.content || reviewData.content.trim().length < 10) {
         throw new Error('리뷰 내용은 최소 10자 이상이어야 합니다.')
       }
-      
-      // 업체명이 비어있으면 기본값 설정
-      if (!reviewData.business || reviewData.business.trim() === '') {
-        reviewData.business = '업체명 미확인'
-      }
 
       const payload = {
         platform: reviewData.platform ?? '기타',
-        business: reviewData.business.trim(),
+        business: reviewData.business && reviewData.business.trim() !== '' 
+          ? reviewData.business.trim() 
+          : '업체명 미확인',
         content: reviewData.content.trim(),
         author: reviewData.author ?? '고객',
         reviewDate: reviewData.reviewDate ?? new Date().toISOString(),
