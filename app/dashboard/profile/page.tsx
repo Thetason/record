@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import type { PublicProfile } from "@/lib/profile"
+import ProfileClient from "@/app/[username]/ProfileClient"
 
 interface ProfileStats {
   totalReviews: number
@@ -379,7 +380,7 @@ export default function ProfilePage() {
                 <div className="bg-slate-100">
                   <div className="mx-auto w-full max-w-[1280px] px-4 pb-8">
                     <div className="max-h-[720px] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
-                      <CompactProfilePreview profile={previewProfile} />
+                      <ProfileClient profile={previewProfile} />
                     </div>
                   </div>
                 </div>
@@ -675,118 +676,4 @@ function NavItem({
   )
 }
 
-function CompactProfilePreview({ profile }: { profile: PublicProfile }) {
-  const topReviews = profile.reviews.slice(0, 3)
-  const cover = profile.coverImage
 
-  const platformClass = (platform: string) => {
-    const colors: Record<string, string> = {
-      네이버: 'bg-green-100 text-green-700',
-      카카오: 'bg-yellow-100 text-yellow-700',
-      카카오맵: 'bg-yellow-100 text-yellow-700',
-      구글: 'bg-blue-100 text-blue-700',
-      인스타: 'bg-pink-100 text-pink-700',
-      인스타그램: 'bg-pink-100 text-pink-700',
-      당근: 'bg-orange-100 text-orange-700',
-      'Re:cord': 'bg-orange-100 text-orange-700',
-    }
-    return colors[platform] || 'bg-gray-100 text-gray-600'
-  }
-
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="relative h-48 overflow-hidden rounded-2xl border border-slate-200">
-        {cover ? (
-          <Image src={cover} alt="프로필 배경" fill className="object-cover" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-slate-700 to-slate-900" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/60" />
-        <div className="absolute inset-x-0 bottom-0 flex items-center gap-4 p-5">
-          <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white bg-white">
-            {profile.avatar ? (
-              <Image src={profile.avatar} alt={profile.name} fill className="object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-slate-600">
-                {profile.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-          <div className="text-white">
-            <p className="text-xl font-semibold">{profile.name}</p>
-            <p className="text-sm text-white/80">{profile.profession}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-[260px,1fr]">
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-500">기본 정보</p>
-            <p className="mt-2 whitespace-pre-line text-sm text-gray-700">
-              {profile.bio || '소개 문구를 작성해보세요.'}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
-            <div>
-              <p className="text-xs text-gray-500">총 리뷰</p>
-              <p className="text-base font-semibold text-gray-900">{profile.totalReviews}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">주요 플랫폼</p>
-              <p className="truncate text-base font-semibold text-gray-900">
-                {profile.platforms.slice(0, 2).join(', ') || '없음'}
-              </p>
-            </div>
-            {profile.location && (
-              <div>
-                <p className="text-xs text-gray-500">지역</p>
-                <p className="text-base font-semibold text-gray-900">{profile.location}</p>
-              </div>
-            )}
-            {profile.socialLinks.website && (
-              <div>
-                <p className="text-xs text-gray-500">웹사이트</p>
-                <p className="truncate text-base font-semibold text-[#FF6B35]">
-                  {profile.socialLinks.website}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-gray-900">최근 리뷰</h4>
-            <span className="text-xs text-gray-500">상위 3개</span>
-          </div>
-          {topReviews.length === 0 ? (
-            <div className="rounded-lg bg-slate-50 p-6 text-center text-sm text-gray-500">
-              아직 리뷰가 없습니다. 공개 프로필에서 리뷰를 수집해보세요.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {topReviews.map((review) => (
-                <div key={review.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                  <div className="mb-2 flex items-center gap-2 text-xs font-medium">
-                    <span className={`rounded-full px-2 py-0.5 ${platformClass(review.platform)}`}>
-                      {review.platform}
-                    </span>
-                    <span className="text-gray-400">
-                      {new Date(review.reviewDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="line-clamp-3 text-sm text-gray-700">{review.content}</p>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                    <QuoteIcon className="h-4 w-4 text-gray-300" />
-                    {review.author}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
