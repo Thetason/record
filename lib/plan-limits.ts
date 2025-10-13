@@ -84,7 +84,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     bestFor: '리뷰를 자산으로 활용하는 전문가 · 크리에이터',
     marketingHighlights: [
       '월 100개 리뷰 등록',
-      'HTML 임베드 위젯 & 워드프레스 연동',
+      '내 웹사이트에 리뷰 자동연동해서 바로 보여주기',
       '워터마크 제거 & 프로필 커스터마이징'
     ],
     features: {

@@ -54,7 +54,7 @@ const PLAN_COPY: Record<PlanType, {
     accent: 'highlight',
     bullets: [
       '월 100개 리뷰 등록 & 고급 통계',
-      'HTML 임베드 위젯 (워드프레스/티스토리)',
+      '내 웹사이트에 리뷰 자동연동해서 바로 보여주기',
       '워터마크 제거 & 프로필 커스터마이징',
     ],
   },
