@@ -36,37 +36,37 @@ const PLAN_COPY: Record<PlanType, {
 }> = {
   free: {
     title: '무료 체험',
-    subtitle: '가입 즉시 50개의 리뷰를 정리할 수 있는 기본 기능',
+    subtitle: '가입 즉시 20개의 리뷰를 정리할 수 있는 기본 기능',
     emphasis: '무료 0원',
     cta: '무료로 시작하기',
     accent: 'default',
     bullets: [
-      '리뷰 50개까지 저장',
-      '기본 프로필 공개 페이지',
+      '리뷰 20개까지 저장',
+      '공개 프로필 페이지 (워터마크 포함)',
       '플랫폼별 리뷰 자동 분류',
     ],
   },
   premium: {
-    title: '라이트',
-    subtitle: '전문가와 크리에이터를 위한 브랜드 강화 기능',
+    title: '프리미엄',
+    subtitle: '개인 전문가와 크리에이터를 위한 브랜드 강화 기능',
     emphasis: '가장 인기 있는 선택',
-    cta: '라이트 플랜 시작하기',
+    cta: '프리미엄 플랜 시작하기',
     accent: 'highlight',
     bullets: [
-      '리뷰 무제한 등록 & 고급 통계',
-      '프로필 커스터마이징 · 위젯 제공',
-      '워터마크 제거와 우선 지원',
+      '월 100개 리뷰 등록 & 고급 통계',
+      'HTML 임베드 위젯 (워드프레스/티스토리)',
+      '워터마크 제거 & 프로필 커스터마이징',
     ],
   },
   pro: {
     title: '비즈니스',
-    subtitle: '팀 단위 협업과 고급 통합이 필요한 브랜드용',
-    cta: '비즈니스 플랜 상담하기',
+    subtitle: '전문 스튜디오와 에이전시를 위한 무제한 플랜',
+    cta: '비즈니스 플랜 시작하기',
     accent: 'default',
     bullets: [
-      'API · 커스텀 도메인 · 커스텀 CSS',
-      '팀 멤버 초대 (최대 5명) · 데이터 내보내기',
-      '전담 매니저와 우선 대응',
+      '리뷰 무제한 등록 & 자동 백업',
+      '브랜드 로고 업로드 & 고급 테마 (10종)',
+      'Business 배지 & 우선 지원',
     ],
   },
 }
@@ -90,26 +90,23 @@ export default function PricingPage() {
 
     setLoadingPlan(planId)
     try {
-      const productId = `${planId}_${billingPeriod}` as ProductId
-      const res = await fetch('/api/payments/subscribe', {
+      // Polar Checkout 생성
+      const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: productId, period: billingPeriod })
+        body: JSON.stringify({ plan: planId }) // 'premium' or 'pro'
       })
 
       const data = await res.json()
 
-      if (data.success) {
-        if (data.paymentUrl) {
-          window.location.href = data.paymentUrl
-        } else {
-          router.push(`/payment/process?id=${data.subscriptionId}&status=demo`)
-        }
+      if (data.checkoutUrl) {
+        // Polar Checkout 페이지로 이동
+        window.location.href = data.checkoutUrl
       } else {
-        alert(data.error || '결제 요청에 실패했습니다.')
+        alert(data.error || '결제 페이지 생성에 실패했습니다.')
       }
     } catch (error) {
-      console.error('Payment error:', error)
+      console.error('Checkout error:', error)
       alert('결제 처리 중 오류가 발생했습니다.')
     } finally {
       setLoadingPlan(null)

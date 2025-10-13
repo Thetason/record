@@ -43,7 +43,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     name: '무료',
     description: '개인 사용자를 위한 기본 플랜',
     highlight: '기본 리뷰 관리 기능을 비용 부담 없이 경험해 보세요.',
-    reviewLimit: 50,
+    reviewLimit: 20,
     pricing: {
       monthly: 0,
       yearlyDiscountPercent: 0,
@@ -51,8 +51,8 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     supportLevel: '기본 이메일 지원',
     bestFor: '리뷰를 처음 정리해 보는 개인 사용자',
     marketingHighlights: [
-      '리뷰 50개까지 저장',
-      '기본 프로필 페이지 제공',
+      '리뷰 20개까지 저장',
+      '공개 프로필 페이지 (Powered by Re:cord)',
       '플랫폼별 리뷰 관리와 기본 통계'
     ],
     features: {
@@ -75,7 +75,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     description: '전문가와 인플루언서를 위한 확장 플랜',
     badge: '인기',
     highlight: '브랜드 신뢰도를 높이는 고급 리뷰 운영 기능 제공',
-    reviewLimit: -1,
+    reviewLimit: 100,
     pricing: {
       monthly: 9900,
       yearlyDiscountPercent: 20,
@@ -83,9 +83,9 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
     supportLevel: '우선 이메일 지원',
     bestFor: '리뷰를 자산으로 활용하는 전문가 · 크리에이터',
     marketingHighlights: [
-      '리뷰 무제한 저장 및 고급 통계',
-      '프로필 커스터마이징과 위젯 기능',
-      '리뷰 검증 배지와 워터마크 제거'
+      '월 100개 리뷰 등록',
+      'HTML 임베드 위젯 & 워드프레스 연동',
+      '워터마크 제거 & 프로필 커스터마이징'
     ],
     features: {
       basicProfile: true,
@@ -103,33 +103,33 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
   },
   pro: {
     id: 'pro',
-    name: '프로',
-    description: '팀과 비즈니스를 위한 엔터프라이즈 플랜',
-    highlight: '브랜드 일관성과 팀 협업을 위한 모든 기능을 제공합니다.',
+    name: '비즈니스',
+    description: '전문 스튜디오와 에이전시를 위한 무제한 플랜',
+    highlight: '무제한 리뷰와 브랜드 강화 기능으로 비즈니스를 확장하세요.',
     reviewLimit: -1,
     pricing: {
       monthly: 19900,
       yearlyDiscountPercent: 20,
     },
-    supportLevel: '전담 매니저 및 우선 지원',
-    bestFor: '팀 단위 운영과 커스텀 통합이 필요한 비즈니스',
+    supportLevel: '우선 지원 (24시간 내 응답)',
+    bestFor: '무제한 리뷰와 브랜드 강화가 필요한 전문 스튜디오',
     marketingHighlights: [
-      'API · 커스텀 도메인 · 커스텀 CSS 제공',
-      '팀 멤버 최대 5명 협업',
-      '데이터 내보내기와 고급 보안 옵션'
+      '리뷰 무제한 등록 & 자동 백업',
+      '브랜드 로고 업로드 & 고급 테마 (10종)',
+      'Business 배지 & 우선 지원'
     ],
     features: {
       basicProfile: true,
       basicStats: true,
       customTheme: true,
-      customDomain: true,
+      customDomain: false,
       advancedAnalytics: true,
-      apiAccess: true,
+      apiAccess: false,
       prioritySupport: true,
       removeWatermark: true,
-      customCss: true,
+      customCss: false,
       exportData: true,
-      teamMembers: 5,
+      teamMembers: 0,
     }
   }
 }
