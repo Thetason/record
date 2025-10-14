@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import { polar, POLAR_CONFIG } from '@/lib/polar'
+import { getPolar, getPolarConfig } from '@/lib/polar'
 
 // POST /api/checkout - Polar Checkout URL 생성
 export async function POST(request: NextRequest) {
@@ -23,8 +23,10 @@ export async function POST(request: NextRequest) {
     const polarPlan = plan === 'pro' ? 'business' : plan
 
     // Polar Checkout 생성
+    const polar = getPolar()
+    const config = getPolarConfig()
     const checkout = await polar.checkouts.custom.create({
-      productPriceId: POLAR_CONFIG.products[polarPlan as 'premium' | 'business'],
+      productPriceId: config.products[polarPlan as 'premium' | 'business'],
       successUrl: `${process.env.NEXT_PUBLIC_URL}/dashboard?success=true&plan=${plan}`,
       customerEmail: session.user.email,
       customerName: session.user.name || undefined,
