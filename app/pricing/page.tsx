@@ -35,10 +35,10 @@ const PLAN_COPY: Record<PlanType, {
   bullets: string[]
 }> = {
   free: {
-    title: '무료 체험',
+    title: '프리 플랜',
     subtitle: '가입 즉시 20개의 리뷰를 정리할 수 있는 기본 기능',
     emphasis: '무료 0원',
-    cta: '무료로 시작하기',
+    cta: '프리 플랜 시작하기',
     accent: 'default',
     bullets: [
       '리뷰 20개까지 저장',
@@ -47,7 +47,7 @@ const PLAN_COPY: Record<PlanType, {
     ],
   },
   premium: {
-    title: '프리미엄',
+    title: '프리미엄 플랜',
     subtitle: '개인 전문가와 크리에이터를 위한 브랜드 강화 기능',
     emphasis: '가장 인기 있는 선택',
     cta: '프리미엄 플랜 시작하기',
@@ -59,7 +59,7 @@ const PLAN_COPY: Record<PlanType, {
     ],
   },
   pro: {
-    title: '비즈니스',
+    title: '비즈니스 플랜',
     subtitle: '전문 스튜디오와 에이전시를 위한 무제한 플랜',
     cta: '비즈니스 플랜 시작하기',
     accent: 'default',
@@ -214,7 +214,7 @@ export default function PricingPage() {
                     </ul>
                   </CardContent>
 
-                  <CardFooter className="pt-0 flex-col">
+                  <CardFooter className="pt-0 flex-col items-start">
                     <Button
                       variant={copy.accent === 'highlight' ? 'default' : 'outline'}
                       className={`w-full ${copy.accent === 'highlight' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : 'border-gray-300 text-gray-800'}`}
@@ -230,7 +230,7 @@ export default function PricingPage() {
                       )}
                     </Button>
 
-                    {!isFree && (
+                    {!isFree ? (
                       <div className="w-full mt-4 pt-4 border-t border-gray-100">
                         <div className="flex items-center justify-center gap-2 text-xs">
                           <span className="px-3 py-1.5 bg-gray-50 rounded-full text-gray-700 font-medium">
@@ -246,6 +246,12 @@ export default function PricingPage() {
                             연간 결제 시 ₩{formatCurrency(savings)} 절약
                           </p>
                         )}
+                      </div>
+                    ) : (
+                      <div className="w-full mt-4 pt-4 border-t border-gray-100 h-[60px]">
+                        <p className="text-center text-xs text-gray-500">
+                          무료로 시작하고 언제든 업그레이드하세요
+                        </p>
                       </div>
                     )}
                   </CardFooter>

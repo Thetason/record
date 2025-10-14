@@ -40,7 +40,7 @@ type PlanDefinition = {
 export const PLANS: Record<PlanType, PlanDefinition> = {
   free: {
     id: 'free',
-    name: '무료',
+    name: '프리 플랜',
     description: '개인 사용자를 위한 기본 플랜',
     highlight: '기본 리뷰 관리 기능을 비용 부담 없이 경험해 보세요.',
     reviewLimit: 20,
@@ -71,7 +71,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
   },
   premium: {
     id: 'premium',
-    name: '프리미엄',
+    name: '프리미엄 플랜',
     description: '전문가와 인플루언서를 위한 확장 플랜',
     badge: '인기',
     highlight: '브랜드 신뢰도를 높이는 고급 리뷰 운영 기능 제공',
@@ -103,7 +103,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
   },
   pro: {
     id: 'pro',
-    name: '비즈니스',
+    name: '비즈니스 플랜',
     description: '전문 스튜디오와 에이전시를 위한 무제한 플랜',
     highlight: '무제한 리뷰와 브랜드 강화 기능으로 비즈니스를 확장하세요.',
     reviewLimit: -1,
