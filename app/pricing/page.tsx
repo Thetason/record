@@ -214,7 +214,7 @@ export default function PricingPage() {
                     </ul>
                   </CardContent>
 
-                  <CardFooter className="pt-0">
+                  <CardFooter className="pt-0 flex-col">
                     <Button
                       variant={copy.accent === 'highlight' ? 'default' : 'outline'}
                       className={`w-full ${copy.accent === 'highlight' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : 'border-gray-300 text-gray-800'}`}
@@ -230,11 +230,24 @@ export default function PricingPage() {
                       )}
                     </Button>
 
-                    <div className="mt-4 text-xs text-gray-500 space-y-1">
-                      {!isFree && (
-                        <p>월 ₩{formatCurrency(monthlyAmount)} • 연간 ₩{formatCurrency(yearlyAmount)}</p>
-                      )}
-                    </div>
+                    {!isFree && (
+                      <div className="w-full mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-center justify-center gap-2 text-xs">
+                          <span className="px-3 py-1.5 bg-gray-50 rounded-full text-gray-700 font-medium">
+                            월간 ₩{formatCurrency(monthlyAmount)}
+                          </span>
+                          <span className="text-gray-400">·</span>
+                          <span className="px-3 py-1.5 bg-green-50 rounded-full text-green-700 font-medium">
+                            연간 ₩{formatCurrency(yearlyAmount)}
+                          </span>
+                        </div>
+                        {savings > 0 && (
+                          <p className="text-center text-xs text-green-600 mt-2">
+                            연간 결제 시 ₩{formatCurrency(savings)} 절약
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </CardFooter>
                 </Card>
               )
