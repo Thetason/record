@@ -115,13 +115,6 @@ export async function POST(request: NextRequest) {
         currentPlan: userPlan,
         upgradePlan
       }, { status: 403 })
-    }/50`)
-      return NextResponse.json({ 
-        error: 'Review limit reached', 
-        message: `무료 플랜은 최대 50개의 리뷰만 등록할 수 있습니다. 현재 ${reviewCount}개를 사용 중입니다.`,
-        reviewCount,
-        limit: 50
-      }, { status: 403 })
     }
 
     const body = await request.json()
