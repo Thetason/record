@@ -79,10 +79,43 @@ export async function POST(request: NextRequest) {
 
     // 플랜 리뷰 제한 확인
     console.log('📊 리뷰 쿼터 확인 중...')
-    const canAdd = await canAddReview(session.user.id)
-    if (!canAdd) {
-      const reviewCount = await getUserReviewCount(session.user.id)
-      console.log(`⚠️ 리뷰 제한 도달: ${reviewCount}/50`)
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { plan: true, reviewLimit: true, _count: { select: { reviews: true } } }
+    })
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const reviewCount = user._count.reviews
+    const reviewLimit = user.reviewLimit
+    const userPlan = user.plan as 'free' | 'premium' | 'pro'
+
+    // 무제한(-1)이 아닌 경우 한도 체크
+    if (reviewLimit !== -1 && reviewCount >= reviewLimit) {
+      console.log(`⚠️ 리뷰 제한 도달: ${reviewCount}/${reviewLimit}`)
+      
+      let upgradeMessage = ''
+      let upgradePlan = ''
+      
+      if (userPlan === 'free') {
+        upgradeMessage = '프리 플랜은 최대 20개의 리뷰만 등록할 수 있습니다. 프리미엄 플랜으로 업그레이드하면 월 100개까지 등록 가능합니다.'
+        upgradePlan = 'premium'
+      } else if (userPlan === 'premium') {
+        upgradeMessage = '프리미엄 플랜은 월 100개의 리뷰를 등록할 수 있습니다. 비즈니스 플랜으로 업그레이드하면 무제한 등록이 가능합니다.'
+        upgradePlan = 'pro'
+      }
+      
+      return NextResponse.json({ 
+        error: 'Review limit reached', 
+        message: upgradeMessage,
+        reviewCount,
+        limit: reviewLimit,
+        currentPlan: userPlan,
+        upgradePlan
+      }, { status: 403 })
+    }/50`)
       return NextResponse.json({ 
         error: 'Review limit reached', 
         message: `무료 플랜은 최대 50개의 리뷰만 등록할 수 있습니다. 현재 ${reviewCount}개를 사용 중입니다.`,

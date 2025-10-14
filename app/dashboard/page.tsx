@@ -333,49 +333,117 @@ export default function DashboardPage() {
 
           {/* Subscription Status Card */}
           {stats?.subscription && (
-            <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <Card className="mb-6 border-[#FF6B35]/30 bg-gradient-to-r from-orange-50 to-red-50">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      현재 플랜: {
-                        stats.subscription.plan === 'free' ? '무료' :
-                        stats.subscription.plan === 'premium' ? '프리미엄' : '프로'
-                      }
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-gray-600">
-                        리뷰 사용: {stats.subscription.reviewsUsed} / {
-                          stats.subscription.reviewLimit === -1 ? '무제한' : stats.subscription.reviewLimit
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {
+                          stats.subscription.plan === 'free' ? '프리 플랜' :
+                          stats.subscription.plan === 'premium' ? '프리미엄 플랜' : 
+                          stats.subscription.plan === 'pro' ? '비즈니스 플랜' : '플랜'
                         }
+                      </h3>
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                        stats.subscription.plan === 'free' ? 'bg-gray-100 text-gray-700' :
+                        stats.subscription.plan === 'premium' ? 'bg-blue-100 text-blue-700' :
+                        'bg-purple-100 text-purple-700'
+                      }`}>
+                        {stats.subscription.plan === 'free' ? 'FREE' : 
+                         stats.subscription.plan === 'premium' ? 'PREMIUM' : 'BUSINESS'}
                       </span>
-                      {stats.subscription.plan === 'free' && (
-                        <span className="text-orange-600 font-medium">
-                          {stats.subscription.reviewsRemaining === 'unlimited' 
-                            ? '무제한' 
-                            : `${stats.subscription.reviewsRemaining}개 남음`}
-                        </span>
-                      )}
                     </div>
-                    {stats.subscription.planExpiry && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        만료일: {new Date(stats.subscription.planExpiry).toLocaleDateString('ko-KR')}
-                      </p>
-                    )}
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-gray-900">
+                          {stats.subscription.reviewsUsed}
+                        </span>
+                        <span className="text-gray-500">/</span>
+                        <span className="text-lg font-semibold text-gray-700">
+                          {stats.subscription.reviewLimit === -1 ? '∞' : stats.subscription.reviewLimit}
+                        </span>
+                        <span className="text-sm text-gray-600">리뷰 사용 중</span>
+                      </div>
+                      
+                      {stats.subscription.reviewLimit !== -1 && (
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className={`h-2.5 rounded-full transition-all ${
+                              (stats.subscription.reviewsUsed / stats.subscription.reviewLimit) >= 0.9 
+                                ? 'bg-red-500' 
+                                : (stats.subscription.reviewsUsed / stats.subscription.reviewLimit) >= 0.7
+                                ? 'bg-orange-500'
+                                : 'bg-green-500'
+                            }`}
+                            style={{ 
+                              width: `${Math.min((stats.subscription.reviewsUsed / stats.subscription.reviewLimit) * 100, 100)}%` 
+                            }}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-4 text-sm">
+                        {stats.subscription.reviewLimit !== -1 ? (
+                          <span className={`font-medium ${
+                            stats.subscription.reviewsRemaining === 0 ? 'text-red-600' :
+                            Number(stats.subscription.reviewsRemaining) <= 5 ? 'text-orange-600' :
+                            'text-green-600'
+                          }`}>
+                            {stats.subscription.reviewsRemaining === 'unlimited' 
+                              ? '무제한' 
+                              : `${stats.subscription.reviewsRemaining}개 남음`}
+                          </span>
+                        ) : (
+                          <span className="text-green-600 font-medium">무제한 리뷰 등록</span>
+                        )}
+                        
+                        {stats.subscription.planExpiry && (
+                          <span className="text-gray-500">
+                            만료: {new Date(stats.subscription.planExpiry).toLocaleDateString('ko-KR')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                  
                   {stats.subscription.plan === 'free' && (
-                    <Button 
-                      onClick={() => router.push('/pricing')}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                    >
-                      업그레이드
-                    </Button>
+                    <div className="md:text-right">
+                      <Button 
+                        onClick={() => router.push('/pricing')}
+                        size="lg"
+                        className="bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] hover:from-[#E55A2B] hover:to-[#D54A1B] text-white shadow-lg w-full md:w-auto"
+                      >
+                        프리미엄으로 업그레이드 →
+                      </Button>
+                      <p className="text-xs text-gray-600 mt-2">
+                        월 100개 리뷰 + 고급 기능
+                      </p>
+                    </div>
+                  )}
+                  
+                  {stats.subscription.plan === 'premium' && (
+                    <div className="md:text-right">
+                      <Button 
+                        onClick={() => router.push('/pricing')}
+                        size="lg"
+                        variant="outline"
+                        className="border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35] hover:text-white w-full md:w-auto"
+                      >
+                        비즈니스로 업그레이드 →
+                      </Button>
+                      <p className="text-xs text-gray-600 mt-2">
+                        무제한 리뷰 + 프리미엄 기능
+                      </p>
+                    </div>
                   )}
                 </div>
-                {stats.subscription.plan === 'free' && stats.subscription.reviewsUsed >= 40 && (
-                  <div className="mt-4 p-3 bg-orange-100 rounded-lg">
-                    <p className="text-sm text-orange-800">
-                      무료 플랜 리뷰 한도에 거의 도달했습니다. 프리미엄으로 업그레이드하여 무제한 리뷰를 등록하세요!
+                
+                {stats.subscription.plan === 'free' && stats.subscription.reviewsUsed >= stats.subscription.reviewLimit * 0.8 && (
+                  <div className="mt-4 p-4 bg-orange-100 rounded-lg border border-orange-200">
+                    <p className="text-sm text-orange-900 font-medium">
+                      ⚠️ 프리 플랜 한도의 80%를 사용했습니다. 프리미엄 플랜으로 업그레이드하여 월 100개까지 등록하세요!
                     </p>
                   </div>
                 )}

@@ -26,6 +26,7 @@ const USER_SELECT = {
   bgImage: true,
   location: true,
   website: true,
+  plan: true,
   theme: true,
   layout: true,
   bgColor: true,
@@ -102,6 +103,7 @@ export type PublicProfile = {
     instagram?: string;
     website?: string;
   };
+  plan?: 'free' | 'premium' | 'pro';
   theme: string;
   layout: string;
   bgImage: string | null;
@@ -286,6 +288,7 @@ function buildProfilePayload(
       instagram: undefined,
       website: user.website ?? undefined
     },
+    plan: user.plan as 'free' | 'premium' | 'pro' | undefined,
     theme: user.theme || 'default',
     layout: user.layout || 'grid',
     bgImage: user.bgImage || null,

@@ -50,6 +50,7 @@ interface ProfileData {
     instagram?: string
     website?: string
   }
+  plan?: 'free' | 'premium' | 'pro' // 요금제 정보
   // 커스터마이징 설정
   theme?: string
   layout?: string
@@ -68,8 +69,13 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
   const [activeImage, setActiveImage] = useState<string | null>(null)
   const [activeReview, setActiveReview] = useState<Review | null>(null)
   const [coverError, setCoverError] = useState(false)
+  const [isEmbedMode, setIsEmbedMode] = useState(false)
 
   useEffect(() => {
+    // Check for embed mode
+    const params = new URLSearchParams(window.location.search)
+    setIsEmbedMode(params.get('embed') === 'true')
+    
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 100)
     }
@@ -127,6 +133,133 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
     인스타그램: "I",
     당근: "D",
     'Re:cord': "R"
+  }
+
+  // Embed mode: Simplified layout for iframe embedding
+  if (isEmbedMode) {
+    return (
+      <div className="min-h-screen bg-white">
+        {/* Compact Profile Header */}
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full border-2 border-white shadow-lg overflow-hidden bg-gradient-to-br from-[#FF6B35] to-[#E55A2B]">
+              {profile.avatar ? (
+                <Image
+                  src={profile.avatar}
+                  alt={profile.name}
+                  width={64}
+                  height={64}
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
+                  {profile.name.charAt(0)}
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-white">{profile.name}</h1>
+              {profile.profession && (
+                <p className="text-sm text-white/80">{profile.profession}</p>
+              )}
+              <p className="text-xs text-white/60 mt-1">{profile.totalReviews}개의 리뷰</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Reviews Grid - Compact */}
+        <div className="p-4">
+          {/* Platform Filter */}
+          <div className="flex justify-center mb-4">
+            <div className="inline-flex bg-gray-100 rounded-full p-1 text-xs">
+              <button
+                onClick={() => setSelectedPlatform("all")}
+                className={`px-3 py-1 rounded-full transition-all ${
+                  selectedPlatform === "all"
+                    ? "bg-white shadow-sm font-medium"
+                    : "text-gray-600"
+                }`}
+              >
+                전체
+              </button>
+              {profile.platforms.slice(0, 4).map(platform => (
+                <button
+                  key={platform}
+                  onClick={() => setSelectedPlatform(platform)}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    selectedPlatform === platform
+                      ? "bg-white shadow-sm font-medium"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {platform}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reviews */}
+          <div className="space-y-3">
+            {filteredReviews.slice(0, 6).map((review) => (
+              <Card key={review.id} className="border border-gray-200 hover:shadow-md transition-shadow">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${(platformColors[review.platform] ?? 'from-gray-400 to-gray-500')} flex items-center justify-center text-white text-xs font-bold`}>
+                        {platformIcons[review.platform] ?? review.platform.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-xs">{review.business}</p>
+                        <p className="text-xs text-gray-500">{review.platform}</p>
+                      </div>
+                    </div>
+                    {review.verified && (
+                      <CheckIcon className="w-4 h-4 text-blue-500" />
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-700 line-clamp-3">
+                    {review.content}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+                    <span>{review.author}</span>
+                    <span>{new Date(review.reviewDate).toLocaleDateString()}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* View Full Profile Link */}
+          <div className="mt-6 text-center">
+            <a
+              href={`/${profile.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-[#FF6B35] hover:text-[#E55A2B] font-medium"
+            >
+              전체 프로필 보기 →
+            </a>
+          </div>
+
+          {/* Watermark for Free Plan */}
+          {profile.plan === 'free' && (
+            <div className="mt-6 pt-4 border-t text-center">
+              <a 
+                href="/?ref=widget" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-[#FF6B35] transition-colors"
+              >
+                <span>Powered by</span>
+                <span className="font-bold">Re:cord</span>
+                <span className="text-[#FF6B35]">*</span>
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -488,6 +621,44 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
           </Link>
         </div>
       </section>
+
+      {/* Watermark for Free Plan */}
+      {profile.plan === 'free' && (
+        <section className="py-8 bg-gradient-to-r from-orange-50 via-red-50 to-orange-50 border-y border-orange-100">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center space-y-4">
+              <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
+                <span>Powered by</span>
+                <span className="font-bold text-[#FF6B35]">Re:cord</span>
+                <span className="text-[#FF6B35]">*</span>
+              </div>
+              
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900">
+                나도 이런 리뷰 포트폴리오 만들고 싶다면?
+              </h3>
+              
+              <p className="text-gray-600 text-sm md:text-base">
+                Re:cord로 흩어진 리뷰를 한곳에 모아 전문성을 증명하세요. 
+                <br className="hidden md:block" />
+                가입 후 바로 20개의 리뷰를 무료로 관리할 수 있습니다.
+              </p>
+              
+              <Link href="/?ref=watermark" target="_blank">
+                <Button 
+                  size="lg"
+                  className="bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] hover:from-[#E55A2B] hover:to-[#D54A1B] text-white shadow-xl hover:shadow-2xl transition-all duration-300 text-base md:text-lg px-8 py-6 rounded-full"
+                >
+                  무료로 내 리뷰 포트폴리오 만들기 →
+                </Button>
+              </Link>
+              
+              <p className="text-xs text-gray-500">
+                신용카드 등록 없이 바로 시작 가능 · 3분 만에 완성
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="py-8 bg-white border-t">

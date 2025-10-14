@@ -250,24 +250,32 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
             </div>
 
             {/* 서브 타이틀 */}
-            <h2 className="text-2xl md:text-3xl font-bold leading-tight mb-8 text-gray-900 text-center">
-              고객들의 진짜 '찐' 후기가<br/>
-              여러 플랫폼에 흩어져 제대로 빛을 못 보고 있나요?
+            <h2 className="text-2xl md:text-3xl font-bold leading-tight mb-6 text-gray-900 text-center">
+              네이버, 카카오, 인스타... 여기저기 흩어진 리뷰,<br/>
+              <span className="text-[#FF6B35]">한 곳에 모아서 신뢰도 UP!</span>
             </h2>
 
             {/* 설명 텍스트 */}
-            <p className="text-lg text-gray-600 mb-4">
-              이제 흩어진 리뷰를 한 곳에 모아
-            </p>
-            <p className="text-lg mb-12">
-              프로필 조회 후 문의율을 <span className="text-[#FF6B35] font-bold">최대 67%까지</span> 확실히 끌어올리세요!
+            <p className="text-lg md:text-xl text-gray-700 mb-8 text-center leading-relaxed">
+              고객이 남긴 소중한 리뷰를 통합 관리하고,<br className="hidden md:block"/>
+              프로필 링크 하나로 당신의 실력을 증명하세요
             </p>
 
-            {/* 추가 설명 */}
-            <p className="text-gray-600 mb-12">
-              네이버, 카카오, 인스타 등 모든 리뷰를 한 번에 통합<br />
-              당신의 모든 소중한 리뷰가 당신의 실력을 명확하게 증명합니다
-            </p>
+            {/* 핵심 가치 제안 */}
+            <div className="grid md:grid-cols-3 gap-4 mb-10 max-w-3xl mx-auto">
+              <div className="bg-blue-50 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-blue-600 mb-1">3분</p>
+                <p className="text-sm text-gray-600">셋업 완료</p>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-green-600 mb-1">무료</p>
+                <p className="text-sm text-gray-600">20개 리뷰 등록</p>
+              </div>
+              <div className="bg-orange-50 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-[#FF6B35] mb-1">67%↑</p>
+                <p className="text-sm text-gray-600">문의율 증가</p>
+              </div>
+            </div>
 
             {/* CTA 버튼 */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -291,12 +299,21 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
             </div>
 
             {/* 하단 정보 */}
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-4">
-              <span>✓ 카드 등록 없음</span>
-              <span>·</span>
-              <span>14일 무료 체험</span>
-              <span>·</span>
-              <span>1분 안에 시작</span>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-gray-600 mb-4">
+              <span className="flex items-center gap-1">
+                <CheckIcon className="w-4 h-4 text-green-500" />
+                카드 등록 없음
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="flex items-center gap-1">
+                <CheckIcon className="w-4 h-4 text-green-500" />
+                무료로 시작
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="flex items-center gap-1">
+                <CheckIcon className="w-4 h-4 text-green-500" />
+                3분 만에 완성
+              </span>
             </div>
             
             <div className="flex items-center justify-center gap-2 text-sm">

@@ -55,7 +55,7 @@ function fileToDataUrl(file: File): Promise<string> {
 
 export default function AddReviewPage() {
   const router = useRouter()
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isProcessingImage, setIsProcessingImage] = useState(false)
   const [originalImage, setOriginalImage] = useState<string | null>(null)
@@ -64,6 +64,7 @@ export default function AddReviewPage() {
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
   const [futureDateWarning, setFutureDateWarning] = useState("")
+  const [reviewQuota, setReviewQuota] = useState<{ current: number; limit: number; plan: string } | null>(null)
 
   const {
     register,
@@ -170,6 +171,25 @@ export default function AddReviewPage() {
     }
   }, [status, router])
 
+  // 리뷰 쿼터 정보 가져오기
+  useEffect(() => {
+    const fetchQuota = async () => {
+      try {
+        const res = await fetch('/api/user/quota')
+        if (res.ok) {
+          const data = await res.json()
+          setReviewQuota(data)
+        }
+      } catch (err) {
+        console.error('쿼터 정보 로드 실패:', err)
+      }
+    }
+    
+    if (status === 'authenticated') {
+      fetchQuota()
+    }
+  }, [status])
+
   if (status === "loading") {
     return (
       <div className="h-full flex items-center justify-center">
@@ -204,6 +224,21 @@ export default function AddReviewPage() {
 
       if (!response.ok) {
         const detail = await response.json().catch(() => null)
+        
+        // 리뷰 한도 초과 시 업그레이드 프롬프트
+        if (response.status === 403 && detail?.error === 'Review limit reached') {
+          const { message, reviewCount, limit } = detail
+          setError(
+            `${message}
+
+현재 ${reviewCount}/${limit}개 사용 중입니다. 3초 후 가격 페이지로 이동합니다.`
+          )
+          setTimeout(() => {
+            router.push('/pricing')
+          }, 3000)
+          throw new Error(message)
+        }
+        
         throw new Error(detail?.message || "리뷰 저장에 실패했습니다.")
       }
 
@@ -229,7 +264,28 @@ export default function AddReviewPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-10">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold text-gray-900">리뷰 아카이빙</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-semibold text-gray-900">리뷰 아카이빙</h1>
+          {reviewQuota && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {reviewQuota.limit === -1 
+                  ? `${reviewQuota.current}개 리뷰 사용 중 (무제한)` 
+                  : `${reviewQuota.current}/${reviewQuota.limit}개 사용 중`}
+              </span>
+              {reviewQuota.limit !== -1 && reviewQuota.current >= reviewQuota.limit * 0.8 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/pricing')}
+                  className="text-[#FF6B35] border-[#FF6B35] hover:bg-[#FF6B35] hover:text-white"
+                >
+                  업그레이드
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
         <p className="text-gray-600">
           고객이 남긴 리뷰를 빠르게 기록하고 보관하세요. Re:cord는 다양한 채널의 리뷰를 한곳에서 관리합니다.
         </p>

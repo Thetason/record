@@ -4,7 +4,7 @@ export type UserPlan = 'free' | 'premium' | 'pro';
 
 export const PLAN_LIMITS = {
   free: {
-    reviews: 50,
+    reviews: 20, // Free 플랜: 20개 리뷰
     profileViews: true,
     customDomain: false,
     advancedStats: false,
@@ -12,7 +12,7 @@ export const PLAN_LIMITS = {
     teamMembers: 0,
   },
   premium: {
-    reviews: -1, // unlimited
+    reviews: 100, // Premium 플랜: 100개 리뷰/월
     profileViews: true,
     customDomain: false,
     advancedStats: true,
@@ -20,12 +20,12 @@ export const PLAN_LIMITS = {
     teamMembers: 0,
   },
   pro: {
-    reviews: -1, // unlimited
+    reviews: -1, // Business 플랜: 무제한
     profileViews: true,
-    customDomain: true,
+    customDomain: false,
     advancedStats: true,
-    apiAccess: true,
-    teamMembers: 5,
+    apiAccess: false,
+    teamMembers: 0,
   },
 };
 

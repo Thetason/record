@@ -29,7 +29,10 @@ export default function SharePage() {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [profileUrl, setProfileUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [widgetCopied, setWidgetCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [widgetTheme, setWidgetTheme] = useState<'light' | 'dark'>('light');
+  const [widgetSize, setWidgetSize] = useState<'small' | 'medium' | 'large'>('medium');
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,6 +76,40 @@ export default function SharePage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const generateWidgetCode = () => {
+    const widthMap = {
+      small: '320',
+      medium: '480',
+      large: '640'
+    };
+    const heightMap = {
+      small: '400',
+      medium: '600',
+      large: '800'
+    };
+
+    return `<!-- Re:cord 리뷰 위젯 -->
+<iframe
+  src="${profileUrl}?embed=true&theme=${widgetTheme}"
+  width="${widthMap[widgetSize]}"
+  height="${heightMap[widgetSize]}"
+  frameborder="0"
+  scrolling="auto"
+  style="border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
+  title="${session?.user?.name} 리뷰 프로필"
+></iframe>`;
+  };
+
+  const handleCopyWidgetCode = async () => {
+    const code = generateWidgetCode();
+    await navigator.clipboard.writeText(code);
+    setWidgetCopied(true);
+    setTimeout(() => setWidgetCopied(false), 2000);
+  };
+
+  const userPlan = (session?.user as any)?.plan || 'free';
+  const canUseWidget = userPlan === 'premium' || userPlan === 'pro';
 
   const handleDownloadQR = async () => {
     if (!qrRef.current) return;
@@ -320,6 +357,162 @@ export default function SharePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* HTML Widget Embed - Premium/Business Only */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                HTML 임베드 위젯
+              </CardTitle>
+              <CardDescription>
+                내 웹사이트에 리뷰를 직접 표시하세요 (리디렉션 없음)
+              </CardDescription>
+            </div>
+            {!canUseWidget && (
+              <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
+                Premium 이상 필요
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {canUseWidget ? (
+            <div className="space-y-6">
+              {/* Widget Preview */}
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <p className="text-sm font-medium mb-3">미리보기</p>
+                <div className="bg-white rounded-lg p-4 border-2 border-dashed">
+                  <iframe
+                    src={`${profileUrl}?embed=true&theme=${widgetTheme}`}
+                    width={widgetSize === 'small' ? '320' : widgetSize === 'medium' ? '480' : '640'}
+                    height={widgetSize === 'small' ? '400' : widgetSize === 'medium' ? '600' : '800'}
+                    frameBorder="0"
+                    scrolling="auto"
+                    style={{ border: '1px solid #e5e7eb', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                    title={`${session?.user?.name} 리뷰 프로필`}
+                  />
+                </div>
+              </div>
+
+              {/* Widget Settings */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">테마</label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={widgetTheme === 'light' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setWidgetTheme('light')}
+                    >
+                      라이트
+                    </Button>
+                    <Button
+                      variant={widgetTheme === 'dark' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setWidgetTheme('dark')}
+                    >
+                      다크
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">크기</label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={widgetSize === 'small' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setWidgetSize('small')}
+                    >
+                      소형
+                    </Button>
+                    <Button
+                      variant={widgetSize === 'medium' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setWidgetSize('medium')}
+                    >
+                      중형
+                    </Button>
+                    <Button
+                      variant={widgetSize === 'large' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setWidgetSize('large')}
+                    >
+                      대형
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Widget Code */}
+              <div>
+                <label className="block text-sm font-medium mb-2">임베드 코드</label>
+                <div className="relative">
+                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                    <code>{generateWidgetCode()}</code>
+                  </pre>
+                  <Button
+                    size="sm"
+                    variant={widgetCopied ? 'default' : 'secondary'}
+                    className="absolute top-2 right-2"
+                    onClick={handleCopyWidgetCode}
+                  >
+                    {widgetCopied ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        복사됨
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 mr-1" />
+                        복사
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Usage Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-900 mb-2">사용 방법</h4>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                  <li>위 코드를 복사하세요</li>
+                  <li>워드프레스, 티스토리, 또는 HTML 편집기를 여세요</li>
+                  <li>리뷰를 표시하고 싶은 위치에 코드를 붙여넣으세요</li>
+                  <li>저장하면 실시간으로 리뷰가 표시됩니다 ✨</li>
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 mb-4">
+                <Globe className="w-8 h-8 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">HTML 위젯은 Premium 플랜부터 이용 가능합니다</h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                워드프레스, 티스토리 등 내 웹사이트에 리뷰를 직접 임베드하여 방문자가 이탈하지 않고 리뷰를 볼 수 있습니다.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={() => router.push('/pricing')}
+                  className="bg-gradient-to-r from-[#FF6B35] to-[#E55A2B]"
+                >
+                  플랜 업그레이드
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => window.open('https://record-rho.vercel.app/pricing/guide', '_blank')}
+                >
+                  자세히 알아보기
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Marketing Tips */}
       <Card className="mt-6">
