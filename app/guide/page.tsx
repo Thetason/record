@@ -29,10 +29,10 @@ const quickStartSteps = [
   },
   {
     title: '2. 리뷰 불러오기',
-    description: '기존 플랫폼 리뷰 스크린샷을 OCR로 읽어와 단 몇 번의 클릭으로 저장합니다.',
+    description: '이미지만 올리면 자동으로 텍스트 인식. 타이핑 없이 몇 초 만에 리뷰 저장 완료.',
     icon: <Wrench className="w-5 h-5" />,
     href: '#import-guide',
-    cta: 'OCR 가이드'
+    cta: '가이드 보기'
   },
   {
     title: '3. 프로필 공개',
@@ -82,7 +82,7 @@ const setupChecklist = [
   {
     heading: '리뷰 데이터 불러오기',
     items: [
-      '스크린샷 OCR로 빠르게 입력',
+      '이미지 업로드만으로 자동 입력',
       '필요 시 수동 입력으로 즉시 등록',
       '검수 체크리스트로 품질 점검'
     ]
@@ -99,16 +99,16 @@ const setupChecklist = [
 
 const visualGuides = [
   {
-    title: 'OCR 이미지 업로드',
-    description: '리뷰 추가 화면에서 스크린샷을 드래그하면 자동으로 텍스트를 인식합니다.',
-    highlight: '이미지 영역에 드래그',
-    steps: ['이미지 탭 선택', '리뷰 스크린샷 업로드', '인식 결과 확인 후 저장'],
+    title: '이미지로 빠른 등록',
+    description: '리뷰 이미지를 드래그하면 자동으로 내용 추출. 타이핑 없이 즉시 등록됩니다.',
+    highlight: '이미지를 드래그하세요',
+    steps: ['리뷰 추가 화면 이동', '이미지 드래그 또는 업로드', '내용 확인 후 저장'],
   },
   {
-    title: '추가 데이터 정리',
-    description: 'OCR로 읽은 내용은 즉시 편집 가능하며, 필요한 경우 태그와 메모를 추가합니다.',
-    highlight: '내용 확인 후 저장',
-    steps: ['필드 자동 채움 확인', '필요 시 내용 수정', '태그 및 메모 추가'],
+    title: '내용 확인 및 저장',
+    description: '자동 추출된 내용을 확인하고, 필요한 경우 수정 후 저장하세요.',
+    highlight: '확인 후 바로 저장',
+    steps: ['자동 입력된 내용 확인', '필요 시 내용 수정', '저장 버튼 클릭'],
   }
 ]
 
@@ -163,14 +163,14 @@ export default function GuidePage() {
         <section id="import-guide" className="bg-white rounded-2xl shadow-sm p-8 md:p-12 space-y-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-gray-900">리뷰 업로드 가이드</h2>
+              <h2 className="text-2xl font-bold text-gray-900">리뷰 등록 가이드</h2>
               <p className="text-gray-600">
-                Re:cord의 핵심은 스크린샷만으로 리뷰를 기록하는 OCR 업로드입니다. 기존 플랫폼에서 캡처한 이미지를 준비하고 아래 절차를 따르면 1분 안에 리뷰를 저장할 수 있습니다.
+                이미지만 올리면 자동으로 리뷰 내용을 인식합니다. 타이핑 없이 1분 안에 리뷰를 저장하고 당신의 전문성을 증명하세요.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button variant="ghost" asChild>
-                <Link href="/dashboard/bulk-upload">OCR 업로드 화면 열기 →</Link>
+                <Link href="/dashboard/bulk-upload">리뷰 추가하러 가기 →</Link>
               </Button>
             </div>
           </div>
@@ -181,15 +181,15 @@ export default function GuidePage() {
                 <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center">
                   <ImageIcon className="w-5 h-5" />
                 </div>
-                <CardTitle className="text-xl font-semibold text-gray-900">스크린샷 업로드 (OCR)</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-900">이미지로 빠른 등록</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-gray-700">
                 <ol className="space-y-2 list-decimal list-inside">
-                  <li>리뷰가 보이도록 캡처한 이미지를 준비합니다.</li>
-                  <li>`대시보드 → 리뷰 추가`에서 이미지 업로드 방식을 선택합니다.</li>
-                  <li>OCR로 추출된 텍스트를 검토하고 필요한 부분만 수정 후 저장합니다.</li>
+                  <li>리뷰가 보이는 이미지를 준비합니다 (캡처 또는 다운로드)</li>
+                  <li>대시보드 → 리뷰 추가에서 이미지를 드래그하거나 업로드합니다</li>
+                  <li>자동 추출된 내용을 확인하고 저장 버튼을 누릅니다</li>
                 </ol>
-                <p className="text-xs text-gray-500">* 텍스트가 흐릿한 경우 패스워드 보호된 PDF 대신 PNG/JPG로 업로드하는 것이 좋습니다.</p>
+                <p className="text-xs text-gray-500">* 이미지가 선명할수록 더 정확하게 인식됩니다. PNG/JPG 형식을 권장합니다.</p>
               </CardContent>
             </Card>
 
@@ -232,7 +232,7 @@ export default function GuidePage() {
                       <div className="grid grid-cols-4">
                         <div className="col-span-1 border-r border-gray-100 bg-gray-50 p-4 space-y-2 text-xs text-gray-500">
                           <p className="font-semibold text-gray-700">탭</p>
-                          {['이미지 OCR', '직접 입력'].map((label, idx) => (
+                          {['이미지 업로드', '직접 입력'].map((label, idx) => (
                             <div key={label} className={`px-3 py-2 rounded-md ${idx === 0 ? 'bg-white shadow-sm text-[#FF6B35] font-semibold' : ''}`}>
                               {label}
                             </div>

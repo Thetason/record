@@ -601,7 +601,7 @@ export default function DashboardPage() {
                 <Link href="/dashboard/bulk-upload">
                   <Button className="w-full h-auto p-4 flex flex-col items-center gap-2 bg-[#FF6B35] hover:bg-[#E55A2B]">
                     <UploadIcon className="w-5 h-5" />
-                    <span className="text-sm">대량 업로드 (OCR)</span>
+                    <span className="text-sm">이미지로 빠른 등록</span>
                   </Button>
                 </Link>
                 <Link href="/dashboard/add-review">

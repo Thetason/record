@@ -224,11 +224,11 @@ export default function BulkUploadPage() {
         return true
       } else {
         const errorBody = await response.json().catch(() => ({})) as { error?: string }
-        throw new Error(errorBody?.error || 'OCR 처리 실패')
+        throw new Error(errorBody?.error || '이미지 인식 실패')
       }
 
     } catch (error) {
-      console.error('OCR 에러:', error)
+      console.error('이미지 인식 에러:', error)
       updateResult(resultId, {
         status: 'error',
         progress: 100,
@@ -318,8 +318,8 @@ export default function BulkUploadPage() {
     setIsProcessing(false)
 
     toast({
-      title: 'OCR 처리 완료',
-      description: `${successCount}/${files.length}개 스크린샷이 성공적으로 인식되었습니다.`,
+      title: '인식 완료',
+      description: `${successCount}/${files.length}개 이미지에서 리뷰를 성공적으로 추출했습니다.`,
     })
 
     setTimeout(() => setCurrentProgress(0), 800)
@@ -354,7 +354,7 @@ export default function BulkUploadPage() {
     if (!form.content || form.content.trim().length === 0) {
       toast({
         title: '⚠️ 리뷰 내용이 비어있어요',
-        description: 'OCR로 텍스트를 인식하지 못했습니다. 리뷰 내용을 직접 입력해주세요.',
+        description: '이미지에서 텍스트를 인식하지 못했습니다. 리뷰 내용을 직접 입력해주세요.',
         variant: 'destructive',
       })
       return
@@ -479,9 +479,9 @@ export default function BulkUploadPage() {
             </Link>
           </div>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">리뷰 대량 업로드</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">리뷰 빠른 등록</h1>
           <p className="text-gray-600 text-lg">
-            한 번에 여러 리뷰를 업로드하고 AI OCR로 즉시 처리하세요 ✨
+            여러 개의 리뷰 이미지를 한번에 올리고 몇 초 만에 저장 완료 ✨
           </p>
         </div>
 
@@ -493,7 +493,7 @@ export default function BulkUploadPage() {
             className={selectedTab === 'image' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
           >
             <ImageIcon className="mr-2" />
-            이미지 OCR
+            이미지 업로드
           </Button>
           <Button
             variant={selectedTab === 'paste' ? 'default' : 'outline'}
@@ -520,7 +520,7 @@ export default function BulkUploadPage() {
                       <UploadIcon className="w-10 h-10 text-[#FF6B35]" />
                     </div>
                     <h3 className="text-2xl font-bold mb-3 text-gray-900">
-                      리뷰 스크린샷을 드래그하세요
+                      리뷰 이미지를 드래그하세요
                     </h3>
                     <p className="text-gray-500 mb-6">
                       또는 클릭하여 파일을 선택하세요
@@ -577,7 +577,7 @@ export default function BulkUploadPage() {
                         ) : (
                           <>
                             <CheckCircledIcon className="mr-2" />
-                            OCR 시작
+                            자동 인식 시작
                           </>
                         )}
                       </Button>
@@ -740,7 +740,7 @@ export default function BulkUploadPage() {
                         <div>
                           <CardTitle className="text-2xl text-gray-900">리뷰 검토 및 수정</CardTitle>
                           <p className="text-sm text-gray-600 mt-1">
-                            {activeIndex + 1} / {ocrResults.length} · OCR 결과를 확인하고 수정하세요
+                            {activeIndex + 1} / {ocrResults.length} · 내용을 확인하고 수정하세요
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -870,15 +870,15 @@ export default function BulkUploadPage() {
               </>
             )}
 
-            {/* OCR 안내 */}
+            {/* 자동 인식 안내 */}
             <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <span className="text-2xl">✨</span>
-                  Google Vision AI OCR
+                  AI 자동 인식
                 </CardTitle>
                 <CardDescription className="text-blue-900/70">
-                  업계 최고 수준의 이미지 인식 기술
+                  이미지에서 리뷰 내용을 자동으로 추출합니다
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
