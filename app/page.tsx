@@ -1,20 +1,12 @@
-import { fetchPublicProfile } from '@/lib/profile'
+'use client'
+
 import HomePageClient from './HomePageClient'
 import type { PublicProfile } from '@/lib/profile'
 
-// Force dynamic rendering to avoid build-time database connection
-export const dynamic = 'force-dynamic'
-
-// Server Component - SSR로 syb2020 프로필 데이터 미리 가져오기
-export default async function HomePage() {
-  // syb2020 프로필을 서버에서 미리 fetch
-  const result = await fetchPublicProfile('syb2020', {
-    incrementView: false,
-    includeDemoFallback: true
-  })
-
-  // 실패하면 기본 프로필 사용
-  const demoProfile: PublicProfile = result.ok ? result.profile : {
+// Client Component - 데이터베이스 연결 에러 방지
+export default function HomePage() {
+  // 기본 프로필 사용
+  const demoProfile: PublicProfile = {
     id: "demo-syb2020",
     username: "syb2020",
     name: "세타쓴",
