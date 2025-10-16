@@ -63,6 +63,8 @@ const nextConfig: NextConfig = {
   
   // Headers for security and performance
   async headers() {
+    const isDev = process.env.NODE_ENV === 'development'
+
     return [
       {
         source: '/:path*',
@@ -75,11 +77,13 @@ const nextConfig: NextConfig = {
             key: 'X-XSS-Protection',
             value: '1; mode=block'
           },
-          {
-            key: 'Content-Security-Policy',
-            // Allow marketing domains to embed the public profile via iframe while keeping other origins blocked.
-            value: "frame-ancestors 'self' https://record-ebon.vercel.app https://www.record-ebon.vercel.app https://re-cord.kr https://www.re-cord.kr"
-          },
+          ...(isDev ? [] : [
+            {
+              key: 'Content-Security-Policy',
+              // Allow marketing domains to embed the public profile via iframe while keeping other origins blocked.
+              value: "frame-ancestors 'self' https://record-ebon.vercel.app https://www.record-ebon.vercel.app https://re-cord.kr https://www.re-cord.kr"
+            }
+          ]),
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'

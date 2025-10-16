@@ -226,6 +226,7 @@ export const authOptions: NextAuthOptions = {
             avatar,
             plan: 'free',
             reviewLimit: 50,
+            password: null,
           },
         })
       }
