@@ -14,7 +14,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   username  String   @unique
-  password  String   // 비밀번호 필드 추가
+  password  String?  // 비밀번호 필드 (OAuth 유저는 null)
   name      String
   bio       String?
   location  String?
