@@ -297,7 +297,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
       </header>
 
       {/* Hero Section with Parallax */}
-      <section className="relative h-[35vh] md:h-[45vh] overflow-hidden">
+      <section className="relative h-[25vh] md:h-[30vh] overflow-hidden">
         {/* Cover Image with Gradient Overlay */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/70 z-10" />
@@ -326,7 +326,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 transition={{ duration: 0.5 }}
                 className="relative"
               >
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-[#FF6B35] to-[#E55A2B]">
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-[#FF6B35] to-[#E55A2B]">
                   {profile.avatar ? (
                     <Image
                       src={profile.avatar}
