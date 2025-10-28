@@ -188,49 +188,84 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      // OAuth 로그인 시 username 자동 생성
-      if (account?.provider !== "credentials") {
-        const email = user.email
-
-        if (!email) {
-          console.error('OAuth provider did not return an email address', {
-            provider: account?.provider,
-          })
-          return '/login?error=oauth_missing_email'
-        }
-
-        const existingUser = await prisma.user.findUnique({
-          where: { email }
+      try {
+        console.log('🔐 SignIn callback started:', {
+          provider: account?.provider,
+          email: user.email,
+          name: user.name
         })
-        let username = existingUser?.username
 
-        if (!username) {
-          const base = email.split('@')[0] || 'user'
-          username = await findAvailableUsername(base)
-        }
+        // OAuth 로그인 시 username 자동 생성
+        if (account?.provider !== "credentials") {
+          const email = user.email
 
-        const nameToUse = user.name || existingUser?.name || username
-        const avatar = user.image ?? existingUser?.avatar ?? null
+          if (!email) {
+            console.error('❌ OAuth provider did not return an email address', {
+              provider: account?.provider,
+            })
+            return '/login?error=oauth_missing_email'
+          }
 
-        await prisma.user.upsert({
-          where: { email },
-          update: {
-            name: nameToUse,
-            username,
-            avatar,
-          },
-          create: {
+          const existingUser = await prisma.user.findUnique({
+            where: { email }
+          })
+          console.log('👤 Existing user check:', {
+            found: !!existingUser,
+            username: existingUser?.username
+          })
+
+          let username = existingUser?.username
+
+          if (!username) {
+            const base = email.split('@')[0] || 'user'
+            username = await findAvailableUsername(base)
+            console.log('✨ Generated new username:', username)
+          }
+
+          const nameToUse = user.name || existingUser?.name || username
+          const avatar = user.image ?? existingUser?.avatar ?? null
+
+          console.log('💾 Upserting user:', {
             email,
             username,
-            name: nameToUse,
-            avatar,
-            plan: 'free',
-            reviewLimit: 50,
-            password: null,
-          },
+            nameToUse,
+            hasAvatar: !!avatar
+          })
+
+          await prisma.user.upsert({
+            where: { email },
+            update: {
+              name: nameToUse,
+              username,
+              avatar,
+            },
+            create: {
+              email,
+              username,
+              name: nameToUse,
+              avatar,
+              plan: 'free',
+              reviewLimit: 50,
+              password: null,
+            },
+          })
+
+          console.log('✅ User upserted successfully')
+        }
+
+        console.log('✅ SignIn callback completed successfully')
+        return true
+      } catch (error) {
+        console.error('💥 SignIn callback error:', error)
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          user: { email: user.email, name: user.name },
+          provider: account?.provider
         })
+        // 에러 발생 시에도 로그인 허용 (이미 생성된 사용자일 수 있음)
+        return true
       }
-      return true
     },
     
     async jwt({ token, user, account }) {
