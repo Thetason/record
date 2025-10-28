@@ -584,9 +584,10 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     footer: [] as EntityAnnotation[]
   };
 
-  // 재시도 모드: content 영역을 30-85%로 확장 (기본: 33-80%)
-  const contentStartRatio = retryMode ? 0.30 : 0.33;
-  const contentEndRatio = retryMode ? 0.85 : 0.80;
+  // 일반 모드: content 영역 넓게 (리뷰 텍스트 최대한 보존)
+  // 재시도 모드: content 영역 좁게 (뒷부분 쓰레기 제거)
+  const contentStartRatio = retryMode ? 0.33 : 0.30;
+  const contentEndRatio = retryMode ? 0.75 : 0.85;
 
   annotations.slice(1).forEach(annotation => {
     const vertices = annotation.boundingPoly?.vertices || [];
@@ -668,8 +669,9 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log('📅 날짜 추출:', { allDateTexts, date });
 
-  // 본문 추출 - 재시도 모드에서는 더 공격적인 필터링
-  const minWordLength = retryMode ? 2 : 1; // 재시도 모드에서는 1글자 단어 제거
+  // 본문 추출
+  // 일반 모드: 최소 필터링 (긴 리뷰 텍스트 최대한 보존)
+  // 재시도 모드: 공격적 필터링 (뒷부분 쓰레기 데이터 제거)
   
   const contentWords = regions.content
     .sort((a, b) => {
@@ -683,33 +685,44 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     .filter(text => {
       if (!text.trim()) return false;
       
-      // 재시도 모드: 최소 길이 필터
-      if (retryMode && text.trim().length < minWordLength) return false;
-      
-      // 이모지 제외
+      // 이모지 제외 (공통)
       if (/^[🔥✅😊✨📈🗣️👦🧑‍🎓💼📚🎯💪👍❤️⭐🌟]/.test(text)) return false;
       
-      // 태그 키워드 - 재시도 모드에서는 더 많은 키워드 제외
-      const tagKeywords = retryMode 
-        ? /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요|대요|네요|예요)$/
-        : /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고)$/;
+      // 일반 모드: 최소 필터링 (리뷰 텍스트 최대한 보존)
+      if (!retryMode) {
+        // 상대 날짜 패턴만 제외
+        if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
+        
+        // "N 도움 돼요" 패턴만 제외
+        if (/^\d+\s*도움\s*돼요?$/.test(text)) return false;
+        
+        // UI 버튼 텍스트만 제외
+        if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|접기|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
+        
+        return true;
+      }
       
-      if (text.length <= 10 && tagKeywords.test(text)) return false;
+      // 재시도 모드: 공격적 필터링 (뒷부분 쓰레기 제거)
+      // 1글자 단어 제거
+      if (text.trim().length < 2) return false;
+      
+      // 태그 키워드 제외
+      if (text.length <= 10 && /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요|대요|네요|예요)$/.test(text)) return false;
       
       // 상대 날짜 패턴
       if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
-      
+
       // "N 도움 돼요" 패턴
       if (/^\d+\s*도움\s*돼요?$/.test(text)) return false;
-      
+
       // UI 버튼/링크 텍스트
-      if (/채팅\s*문의|확인\s*>|답변\s*\d+|접기|더보기|번역|공유|신고|삭제|수정/.test(text)) return false;
-      
+      if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|접기|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
+
       // 순수 구두점이나 기호
       if (/^[.,·ㆍ\-_]+$/.test(text)) return false;
-      
-      // 재시도 모드: 숫자 + 단위 패턴 제외 (예: "5분", "10km")
-      if (retryMode && /^\d+[가-힣]{1,2}$/.test(text)) return false;
+
+      // 숫자 + 단위 패턴 제외 (예: "5분", "10km")
+      if (/^\d+[가-힣]{1,2}$/.test(text)) return false;
       
       return true;
     });
