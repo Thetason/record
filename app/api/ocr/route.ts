@@ -558,6 +558,12 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     };
   }
 
+  // 전체 텍스트 (textAnnotations[0])
+  const fullText = annotations[0]?.description ?? '';
+  const fullLines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
+
+  console.log(`📄 전체 텍스트 라인 수: ${fullLines.length}`);
+
   // 이미지 높이 계산
   const allYs = annotations.slice(1).flatMap(a =>
     (a.boundingPoly?.vertices || []).map(v => v?.y ?? 0)
@@ -566,7 +572,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log(`📐 이미지 높이: ${maxY}px`);
 
-  // 영역별 분류
+  // 영역별 분류 (개별 단어 블록)
   const regions = {
     header: [] as EntityAnnotation[],
     navigation: [] as EntityAnnotation[],
@@ -600,41 +606,103 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     footer: regions.footer.length
   });
 
-  // 업체명 추출 (헤더에서 가장 긴 한글 텍스트)
-  const business = regions.header
-    .filter(a => /[가-힣]{3,}/.test(a.description ?? ''))
-    .sort((a, b) => (b.description?.length ?? 0) - (a.description?.length ?? 0))[0]
-    ?.description ?? '';
+  // 업체명 추출: 헤더 영역의 텍스트 중 가장 긴 한글 텍스트
+  const headerTexts = regions.header.map(a => a.description ?? '').filter(Boolean);
+  const business = headerTexts
+    .filter(text => /[가-힣]{2,}/.test(text))
+    .sort((a, b) => b.length - a.length)[0] ?? '';
 
-  // 작성자 추출 (userInfo에서 닉네임 패턴)
-  const author = regions.userInfo
-    .find(a => /^[가-힣a-zA-Z0-9*]{2,15}$/.test(a.description ?? ''))
-    ?.description ?? '';
+  console.log('🏪 업체명 후보:', headerTexts, '→ 선택:', business);
 
-  // 날짜 추출 (footer에서)
-  const footerText = regions.footer.map(a => a.description ?? '').join(' ');
-  const dateMatch = footerText.match(/(\d{2,4})[.\-](\d{1,2})[.\-](\d{1,2})/);
+  // 작성자 추출: userInfo 영역에서 닉네임 패턴
+  const userInfoTexts = regions.userInfo.map(a => a.description ?? '').filter(Boolean);
+  const author = userInfoTexts
+    .find(text => /^[가-힣a-zA-Z0-9*]{2,15}$/.test(text)) ?? '';
+
+  console.log('👤 작성자 후보:', userInfoTexts, '→ 선택:', author);
+
+  // 날짜 추출: 
+  // 1) footer 영역에서 "YYYY.MM.DD" 패턴
+  // 2) userInfo 또는 footer에서 "N일 전", "N개월 전" 패턴
+  const footerTexts = regions.footer.map(a => a.description ?? '');
+  const footerText = footerTexts.join(' ');
+  
   let date = new Date().toISOString().split('T')[0];
-  if (dateMatch) {
-    const [, y, m, d] = dateMatch;
+  
+  // 절대 날짜 패턴
+  const absoluteDateMatch = footerText.match(/(\d{2,4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+  if (absoluteDateMatch) {
+    const [, y, m, d] = absoluteDateMatch;
     const year = y.length === 4 ? y : `20${y}`;
     date = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  } else {
+    // 상대 날짜 패턴 ("11일 전", "3개월 전")
+    const allTexts = [...userInfoTexts, ...footerTexts].join(' ');
+    const relativeMatch = allTexts.match(/(\d+)\s*(일|개월|시간|분)\s*전/);
+    
+    if (relativeMatch) {
+      const [, num, unit] = relativeMatch;
+      const now = new Date();
+      const offset = parseInt(num, 10);
+      
+      if (unit === '일') {
+        now.setDate(now.getDate() - offset);
+      } else if (unit === '개월') {
+        now.setMonth(now.getMonth() - offset);
+      } else if (unit === '시간') {
+        now.setHours(now.getHours() - offset);
+      } else if (unit === '분') {
+        now.setMinutes(now.getMinutes() - offset);
+      }
+      
+      date = now.toISOString().split('T')[0];
+    }
   }
 
-  // 본문 추출 (content 영역 + 태그 제외)
-  const reviewText = regions.content
+  console.log('📅 날짜 추출:', { footerText, date });
+
+  // 본문 추출: content 영역의 Y좌표 범위에 해당하는 fullText 라인들
+  const contentYs = regions.content
+    .map(a => a.boundingPoly?.vertices?.[0]?.y ?? 0)
+    .filter(y => y > 0);
+  
+  const minContentY = Math.min(...contentYs);
+  const maxContentY = Math.max(...contentYs);
+
+  console.log(`📝 본문 Y 범위: ${minContentY}px ~ ${maxContentY}px`);
+
+  // content 영역의 단어들을 Y좌표 순서로 정렬하여 공백으로 연결
+  const contentWords = regions.content
+    .sort((a, b) => {
+      const yA = a.boundingPoly?.vertices?.[0]?.y ?? 0;
+      const yB = b.boundingPoly?.vertices?.[0]?.y ?? 0;
+      const xA = a.boundingPoly?.vertices?.[0]?.x ?? 0;
+      const xB = b.boundingPoly?.vertices?.[0]?.x ?? 0;
+      // Y 우선, 같으면 X
+      return yA !== yB ? yA - yB : xA - xB;
+    })
     .map(a => a.description ?? '')
     .filter(text => {
-      // 이모지 시작 태그 제외
+      // UI 노이즈 필터링
+      if (!text.trim()) return false;
       if (/^[🔥✅😊✨📈🗣️👦🧑‍🎓💼📚🎯]/.test(text)) return false;
-      // 짧은 태그 텍스트 제외
-      if (text.length <= 10 && /열정적|소통|체계적|초보자|깔끔|적합|실력/.test(text)) return false;
+      if (text.length <= 10 && /열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천/.test(text)) return false;
+      if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
+      if (/^\d+\s*도움\s*돼요?$/.test(text)) return false;
+      if (/채팅\s*문의|확인\s*>|답변\s*\d+|접기|더보기|번역|공유|신고/.test(text)) return false;
       return true;
-    })
-    .join('\n')
-    .trim();
+    });
 
-  console.log('✅ V2 추출 결과:', { business, author, date, textLength: reviewText.length });
+  // 띄어쓰기로 연결
+  const reviewText = contentWords.join(' ').trim();
+
+  console.log('✅ V2 추출 결과:', { 
+    business, 
+    author, 
+    date, 
+    textLength: reviewText.length,
+    preview: reviewText.slice(0, 50) + '...'
+  });
 
   return {
     platform: 'naver',
