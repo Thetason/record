@@ -893,10 +893,7 @@ export default function BulkUploadPage() {
                                       description: '더 정확한 추출을 시도합니다.',
                                     })
                                     
-                                    // 캐시를 우회하기 위해 다른 버전으로 재시도
-                                    const currentVersion = ocrVersion
-                                    const retryVersion = currentVersion === 'v1' ? 'v2' : 'v1'
-                                    
+                                    // 같은 버전으로 재시도하되 retry 모드 활성화
                                     updateResult(activeResultId, { 
                                       status: 'processing',
                                       progress: 0 
@@ -904,7 +901,8 @@ export default function BulkUploadPage() {
                                     
                                     const formData = new FormData()
                                     formData.append('image', activeResult.file)
-                                    formData.append('version', retryVersion)
+                                    formData.append('version', ocrVersion) // 같은 버전 사용
+                                    formData.append('retry', 'true') // 재시도 모드 활성화
                                     
                                     try {
                                       const response = await fetch('/api/ocr', {
@@ -945,7 +943,7 @@ export default function BulkUploadPage() {
                                         
                                         toast({
                                           title: '✅ 2차 OCR 완료',
-                                          description: `${retryVersion.toUpperCase()} 알고리즘으로 재추출했습니다.`,
+                                          description: '재시도 모드로 더 정확하게 추출했습니다.',
                                         })
                                       } else {
                                         throw new Error('OCR 실패')

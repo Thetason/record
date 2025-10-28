@@ -160,6 +160,7 @@ export async function POST(req: NextRequest) {
     
     const image = formData.get('image') as File;
     const version = (formData.get('version') as string) || 'v1'; // v1 (기존) or v2 (영역기반)
+    const retryMode = formData.get('retry') === 'true'; // 2차 재시도 모드
 
     if (!image) {
       return NextResponse.json(
@@ -171,7 +172,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`📸 OCR 버전: ${version}`);
+    console.log(`📸 OCR 버전: ${version}${retryMode ? ' (2차 재시도 모드)' : ''}`);
 
     // 이미지 크기 체크 (10MB 제한)
     if (image.size > 10 * 1024 * 1024) {
@@ -184,10 +185,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build cache key from image hash + version
+    // Build cache key from image hash + version + retry mode
     const bufRaw = Buffer.from(await image.arrayBuffer());
     lastUploadedBuffer = bufRaw;
-    const hash = crypto.createHash('sha256').update(bufRaw).update(version).digest('hex');
+    const hash = crypto.createHash('sha256').update(bufRaw).update(version).update(retryMode ? 'retry' : 'normal').digest('hex');
     const cached = cache.get(hash);
     if (cached) {
       return NextResponse.json({ success: true, data: cached, cache: true });
@@ -329,8 +330,8 @@ export async function POST(req: NextRequest) {
     // 텍스트 분석 및 데이터 추출
     let extractedData;
     if (version === 'v2') {
-      console.log('🆕 V2 알고리즘 사용 (영역 기반 파싱)');
-      extractedData = analyzeReviewTextV2(result);
+      console.log(`🆕 V2 알고리즘 사용 (영역 기반 파싱)${retryMode ? ' [재시도 모드]' : ''}`);
+      extractedData = analyzeReviewTextV2(result, retryMode);
     } else {
       console.log('📜 V1 알고리즘 사용 (기존 텍스트 기반)');
       extractedData = analyzeReviewText(baseForCleaner);
@@ -545,7 +546,7 @@ function analyzeReviewText(text: string) {
 }
 
 // V2: 영역 기반 파싱 (Vision API의 boundingBox 활용)
-function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefined) {
+function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefined, retryMode = false) {
   const annotations = (visionResult?.textAnnotations as EntityAnnotation[] | undefined) || [];
 
   if (annotations.length <= 1) {
@@ -572,16 +573,20 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log(`📐 이미지 높이: ${maxY}px`);
 
-  // 영역별 분류 (개별 단어 블록) - 네이버 리뷰 구조에 최적화
+  // 영역별 분류 - 재시도 모드에서는 content 영역을 더 넓게 설정
   const regions = {
-    header: [] as EntityAnnotation[],        // 0-10%: 상단 앱바, 뒤로가기
-    businessName: [] as EntityAnnotation[],  // 10-18%: 업체명
-    navigation: [] as EntityAnnotation[],    // 18-25%: 탭 메뉴
-    userInfo: [] as EntityAnnotation[],      // 25-33%: 작성자, 날짜
-    content: [] as EntityAnnotation[],       // 33-80%: 리뷰 본문
-    tags: [] as EntityAnnotation[],          // 80-92%: 태그, 도움돼요
-    footer: [] as EntityAnnotation[]         // 92-100%: 하단 버튼들
+    header: [] as EntityAnnotation[],
+    businessName: [] as EntityAnnotation[],
+    navigation: [] as EntityAnnotation[],
+    userInfo: [] as EntityAnnotation[],
+    content: [] as EntityAnnotation[],
+    tags: [] as EntityAnnotation[],
+    footer: [] as EntityAnnotation[]
   };
+
+  // 재시도 모드: content 영역을 30-85%로 확장 (기본: 33-80%)
+  const contentStartRatio = retryMode ? 0.30 : 0.33;
+  const contentEndRatio = retryMode ? 0.85 : 0.80;
 
   annotations.slice(1).forEach(annotation => {
     const vertices = annotation.boundingPoly?.vertices || [];
@@ -593,8 +598,8 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     if (yRatio < 0.10) regions.header.push(annotation);
     else if (yRatio < 0.18) regions.businessName.push(annotation);
     else if (yRatio < 0.25) regions.navigation.push(annotation);
-    else if (yRatio < 0.33) regions.userInfo.push(annotation);
-    else if (yRatio < 0.80) regions.content.push(annotation);
+    else if (yRatio < contentStartRatio) regions.userInfo.push(annotation);
+    else if (yRatio < contentEndRatio) regions.content.push(annotation);
     else if (yRatio < 0.92) regions.tags.push(annotation);
     else regions.footer.push(annotation);
   });
@@ -609,7 +614,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     footer: regions.footer.length
   });
 
-  // 업체명 추출: businessName 영역에서 가장 긴 한글 텍스트
+  // 업체명 추출
   const businessTexts = regions.businessName.map(a => a.description ?? '').filter(Boolean);
   const business = businessTexts
     .filter(text => /[가-힣]{2,}/.test(text))
@@ -618,30 +623,28 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log('🏪 업체명 후보:', businessTexts, '→ 선택:', business);
 
-  // 작성자 추출: userInfo 영역에서 닉네임 패턴 (UI 노이즈 필터링 강화)
+  // 작성자 추출
   const userInfoTexts = regions.userInfo.map(a => a.description ?? '').filter(Boolean);
   const author = userInfoTexts
     .filter(text => /^[가-힣a-zA-Z0-9*_]{2,15}$/.test(text))
     .filter(text => !/^(리뷰|사진|방문자|팔로우|후기|ㆍ|\d+)$/.test(text))
-    .filter(text => !/^\d+$/.test(text)) // 순수 숫자 제외
+    .filter(text => !/^\d+$/.test(text))
     .find(text => text.length >= 2) ?? '';
 
   console.log('👤 작성자 후보:', userInfoTexts, '→ 선택:', author);
 
-  // 날짜 추출: userInfo와 footer 영역 모두에서 검색
+  // 날짜 추출
   const footerTexts = regions.footer.map(a => a.description ?? '');
   const allDateTexts = [...userInfoTexts, ...footerTexts].join(' ');
   
   let date = new Date().toISOString().split('T')[0];
   
-  // 1) 절대 날짜 패턴 (YYYY.MM.DD, YY.MM.DD)
   const absoluteDateMatch = allDateTexts.match(/(\d{2,4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
   if (absoluteDateMatch) {
     const [, y, m, d] = absoluteDateMatch;
     const year = y.length === 4 ? y : `20${y}`;
     date = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   } else {
-    // 2) 상대 날짜 패턴 ("11일 전", "3개월 전", "1시간 전")
     const relativeMatch = allDateTexts.match(/(\d+)\s*(일|개월|시간|분)\s*전/);
     
     if (relativeMatch) {
@@ -665,26 +668,33 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log('📅 날짜 추출:', { allDateTexts, date });
 
-  // 본문 추출: content 영역의 단어들을 Y좌표 순서로 정렬하여 공백으로 연결
+  // 본문 추출 - 재시도 모드에서는 더 공격적인 필터링
+  const minWordLength = retryMode ? 2 : 1; // 재시도 모드에서는 1글자 단어 제거
+  
   const contentWords = regions.content
     .sort((a, b) => {
       const yA = a.boundingPoly?.vertices?.[0]?.y ?? 0;
       const yB = b.boundingPoly?.vertices?.[0]?.y ?? 0;
       const xA = a.boundingPoly?.vertices?.[0]?.x ?? 0;
       const xB = b.boundingPoly?.vertices?.[0]?.x ?? 0;
-      // Y 우선, 같으면 X
       return yA !== yB ? yA - yB : xA - xB;
     })
     .map(a => a.description ?? '')
     .filter(text => {
-      // UI 노이즈 필터링 강화
       if (!text.trim()) return false;
+      
+      // 재시도 모드: 최소 길이 필터
+      if (retryMode && text.trim().length < minWordLength) return false;
       
       // 이모지 제외
       if (/^[🔥✅😊✨📈🗣️👦🧑‍🎓💼📚🎯💪👍❤️⭐🌟]/.test(text)) return false;
       
-      // 단어가 10자 이하이고 태그 키워드인 경우
-      if (text.length <= 10 && /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요)$/.test(text)) return false;
+      // 태그 키워드 - 재시도 모드에서는 더 많은 키워드 제외
+      const tagKeywords = retryMode 
+        ? /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요|대요|네요|예요)$/
+        : /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고)$/;
+      
+      if (text.length <= 10 && tagKeywords.test(text)) return false;
       
       // 상대 날짜 패턴
       if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
@@ -698,20 +708,23 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       // 순수 구두점이나 기호
       if (/^[.,·ㆍ\-_]+$/.test(text)) return false;
       
+      // 재시도 모드: 숫자 + 단위 패턴 제외 (예: "5분", "10km")
+      if (retryMode && /^\d+[가-힣]{1,2}$/.test(text)) return false;
+      
       return true;
     });
 
   // 띄어쓰기로 연결하되, 구두점 앞뒤 공백 제거
   let reviewText = contentWords.join(' ').trim();
   
-  // 후처리: 불필요한 공백 정리
+  // 후처리
   reviewText = reviewText
-    .replace(/\s+([.,!?])/g, '$1')  // 구두점 앞 공백 제거
-    .replace(/([.,!?])\s+/g, '$1 ') // 구두점 뒤는 공백 하나만
-    .replace(/\s{2,}/g, ' ')         // 연속 공백을 하나로
+    .replace(/\s+([.,!?])/g, '$1')
+    .replace(/([.,!?])\s+/g, '$1 ')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 
-  console.log('✅ V2 추출 결과:', { 
+  console.log(`✅ V2 추출 결과${retryMode ? ' [재시도]' : ''}:`, { 
     business, 
     author, 
     date, 
