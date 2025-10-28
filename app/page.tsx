@@ -8,12 +8,15 @@ export default async function HomePage() {
   
   try {
     const { fetchPublicProfile } = await import('@/lib/profile')
-    const result = await fetchPublicProfile('syb2020', { incrementView: false })
+    const result = await fetchPublicProfile('syb2020', { 
+      incrementView: false,
+      includeDemoFallback: true 
+    })
     
-    if (result.success && result.profile) {
+    if (result.ok && result.profile) {
       demoProfile = result.profile
     } else {
-      throw new Error('Failed to fetch profile')
+      throw new Error('Profile not found')
     }
   } catch (error) {
     console.error('Failed to fetch demo profile, using fallback:', error)
