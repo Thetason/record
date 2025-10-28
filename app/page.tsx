@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid ISR size limits
+export const dynamic = 'force-dynamic'
+
 import HomePageClient from './HomePageClient'
 import type { PublicProfile } from '@/lib/profile'
 
