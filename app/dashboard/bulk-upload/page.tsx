@@ -556,12 +556,17 @@ export default function BulkUploadPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                      {isProcessing && (
-                        <div className="flex items-center gap-3">
+{isProcessing && (
+                        <div className="flex items-center gap-3 bg-orange-50 px-4 py-2 rounded-full border border-orange-200">
                           <ReloadIcon className="w-5 h-5 text-[#FF6B35] animate-spin" />
-                          <span className="text-sm font-semibold text-[#FF6B35]">
-                            {Math.round(currentProgress)}%
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-[#FF6B35]">
+                              처리 중... {Math.round(currentProgress)}%
+                            </span>
+                            <span className="text-xs text-gray-600">
+                              이미지에서 리뷰 내용을 추출하고 있습니다
+                            </span>
+                          </div>
                         </div>
                       )}
                       <Button
@@ -675,7 +680,12 @@ export default function BulkUploadPage() {
                                         {result.saved ? '✓ 저장 완료' :
                                          result.status === 'processing' ? '처리 중...' :
                                          result.status === 'success' ? '인식 완료' :
-                                         result.status === 'error' ? '오류 발생' :
+                                         result.status === 'error' ? (
+                                           <span className="flex items-center gap-1">
+                                             <span>⚠️</span>
+                                             <span className="truncate">{result.error || '오류 발생'}</span>
+                                           </span>
+                                         ) :
                                          '대기 중'}
                                       </p>
                                     </div>

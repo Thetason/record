@@ -16,7 +16,8 @@ export default function SignupPage() {
     terms: false,
     truthfulReviews: false,
     consentResponsibility: false,
-    privacyPolicy: false
+    privacyPolicy: false,
+    contactConsent: false
   })
 
   const [showPassword, setShowPassword] = useState(false)
@@ -102,7 +103,7 @@ export default function SignupPage() {
       return
     }
 
-    if (!formData.terms || !formData.truthfulReviews || !formData.consentResponsibility || !formData.privacyPolicy) {
+    if (!formData.terms || !formData.truthfulReviews || !formData.consentResponsibility || !formData.privacyPolicy || !formData.contactConsent) {
       setError("모든 필수 약관에 동의해주세요")
       return
     }
@@ -189,7 +190,8 @@ export default function SignupPage() {
         newFormData.terms && 
         newFormData.truthfulReviews && 
         newFormData.consentResponsibility && 
-        newFormData.privacyPolicy
+        newFormData.privacyPolicy &&
+        newFormData.contactConsent
       setAllChecked(allConsentsChecked)
     }
   }
@@ -201,7 +203,8 @@ export default function SignupPage() {
       terms: newValue,
       truthfulReviews: newValue,
       consentResponsibility: newValue,
-      privacyPolicy: newValue
+      privacyPolicy: newValue,
+      contactConsent: newValue
     }))
     setAllChecked(newValue)
   }
@@ -581,6 +584,51 @@ export default function SignupPage() {
                         약관 보기
                       </Link>
                     </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* 연락처 수집 동의 - 새로 추가 */}
+              <div className="rounded-lg border border-blue-200 hover:border-[#FF6B35] transition-colors p-4 bg-blue-50">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    name="contactConsent"
+                    className="w-4 h-4 mt-0.5 text-[#FF6B35] bg-white border-gray-300 rounded focus:ring-[#FF6B35] focus:ring-2"
+                    checked={formData.contactConsent}
+                    onChange={handleChange}
+                    required
+                  />
+                  <div className="flex-1">
+                    <label className="flex items-center justify-between cursor-pointer" onClick={() => setFormData(prev => ({...prev, contactConsent: !prev.contactConsent}))}>
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">📞 [필수] 리뷰 진위 확인을 위한 연락처 수집 동의</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          리뷰 작성 시 연락처를 수집하며, 오직 진위 확인 목적으로만 사용됩니다
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleExpanded('contact')
+                        }}
+                        className="text-xs text-gray-500 hover:text-[#FF6B35] ml-2"
+                      >
+                        {expandedSections.contact ? '접기' : '자세히'}
+                      </button>
+                    </label>
+                    {expandedSections.contact && (
+                      <div className="mt-2 pt-2 border-t border-blue-200">
+                        <div className="text-xs text-gray-700 space-y-2">
+                          <p className="font-semibold">✓ 수집 목적: 리뷰의 진위 여부 확인</p>
+                          <p>✓ 사용 제한: 리뷰 진위 확인 용도로만 사용하며, 마케팅 목적으로 사용하지 않음</p>
+                          <p>✓ 제3자 제공 금지: 어떠한 경우에도 제3자에게 제공하지 않음</p>
+                          <p>✓ 보유 기간: 리뷰 삭제 시 즉시 파기 (단, 분쟁 발생 시 최대 3년)</p>
+                          <p>✓ 동의 철회: 언제든지 연락처 삭제 요청 가능 (단, 리뷰도 함께 삭제됨)</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

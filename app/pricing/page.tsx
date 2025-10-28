@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import Navigation from '@/components/Navigation'
 import { Check, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -114,7 +115,9 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] py-16">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-[#F6F7F9] py-16 pt-24">
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-3xl shadow-md p-8 md:p-12">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
@@ -317,6 +320,7 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

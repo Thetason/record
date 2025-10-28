@@ -93,6 +93,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 비밀번호 복잡도 검증 (영문 + 숫자 조합)
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return NextResponse.json(
+        { error: '비밀번호는 영문과 숫자를 포함해야 합니다.' },
+        { status: 400 }
+      );
+    }
+
     const existingEmail = await prisma.user.findUnique({
       where: { email }
     });

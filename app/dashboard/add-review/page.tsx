@@ -318,13 +318,26 @@ export default function AddReviewPage() {
               {errors.platform && <FormMessage>{errors.platform.message}</FormMessage>}
             </FormItem>
 
-            <FormItem>
-              <FormLabel>업체명</FormLabel>
+<FormItem>
+              <FormLabel className="flex items-center justify-between">
+                <span>업체명 <span className="text-red-500">*</span></span>
+                {watch("businessName") && (
+                  <span className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckIcon className="w-3 h-3" /> 입력됨
+                  </span>
+                )}
+              </FormLabel>
               <Input
                 placeholder="예: 레코드 플래그십 스튜디오"
                 {...register("businessName", { required: "업체명을 입력해 주세요." })}
+                className={errors.businessName ? "border-red-500" : ""}
               />
-              {errors.businessName && <FormMessage>{errors.businessName.message}</FormMessage>}
+              {errors.businessName && (
+                <FormMessage className="flex items-center gap-1">
+                  <span className="text-red-500">⚠️</span>
+                  {errors.businessName.message}
+                </FormMessage>
+              )}
             </FormItem>
 
             <FormItem>
@@ -348,8 +361,15 @@ export default function AddReviewPage() {
             </FormItem>
           </div>
 
-          <FormItem>
-            <FormLabel>리뷰 내용</FormLabel>
+<FormItem>
+            <FormLabel className="flex items-center justify-between">
+              <span>리뷰 내용 <span className="text-red-500">*</span></span>
+              {contentValue && contentValue.length >= 10 && (
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckIcon className="w-3 h-3" /> {contentValue.length}자
+                </span>
+              )}
+            </FormLabel>
             <Textarea
               rows={8}
               maxLength={MAX_CONTENT_LENGTH}
@@ -358,10 +378,26 @@ export default function AddReviewPage() {
                 required: "리뷰 내용을 입력해 주세요.",
                 minLength: { value: 10, message: "리뷰 내용은 최소 10자 이상이어야 합니다." }
               })}
+              className={errors.content ? "border-red-500" : ""}
             />
-            <div className="mt-1 flex justify-between text-xs text-gray-500">
-              <span>{remainingCharacters}자 남았습니다</span>
-              {errors.content && <FormMessage>{errors.content.message}</FormMessage>}
+            <div className="mt-1 flex justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className={remainingCharacters < 100 ? "text-orange-600 font-medium" : "text-gray-500"}>
+                  {remainingCharacters}자 남음
+                </span>
+                {contentValue && contentValue.length < 10 && (
+                  <span className="text-red-500 flex items-center gap-1">
+                    <span>⚠️</span>
+                    최소 {10 - contentValue.length}자 더 필요
+                  </span>
+                )}
+              </div>
+              {errors.content && (
+                <FormMessage className="flex items-center gap-1">
+                  <span className="text-red-500">⚠️</span>
+                  {errors.content.message}
+                </FormMessage>
+              )}
             </div>
           </FormItem>
 
@@ -424,15 +460,33 @@ export default function AddReviewPage() {
               </FormItem>
           </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
+{error && (
+            <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-red-800">저장 실패</h3>
+                  <p className="mt-1 text-sm text-red-700 whitespace-pre-line">{error}</p>
+                </div>
+              </div>
             </div>
           )}
 
-          {successMessage && (
-            <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              {successMessage}
+{successMessage && (
+            <div className="rounded-md bg-emerald-50 border border-emerald-200 px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <CheckIcon className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-emerald-800">저장 완료!</h3>
+                  <p className="mt-1 text-sm text-emerald-700">{successMessage} 대시보드로 이동합니다...</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -450,11 +504,20 @@ export default function AddReviewPage() {
             >
               초기화
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+<Button 
+              type="submit" 
+              disabled={isSubmitting || isProcessingImage}
+              className="relative"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   저장 중...
+                </>
+              ) : isProcessingImage ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  이미지 처리 중...
                 </>
               ) : (
                 "리뷰 저장"

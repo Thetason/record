@@ -61,7 +61,10 @@ export default function PrivacyPage() {
                   <h4 className="font-semibold mb-2">필수 수집 항목</h4>
                   <ul className="list-disc pl-5 space-y-1 text-gray-700">
                     <li>회원가입 시: 이메일, 비밀번호, 이름, 사용자명(닉네임)</li>
-                    <li>서비스 이용 시: 리뷰 내용, 평점, 업체명, 리뷰 작성일</li>
+                    <li>서비스 이용 시: 리뷰 내용, 평점, 업체명, 리뷰 작성일, <strong>연락처(전화번호)</strong></li>
+                    <li className="text-sm text-gray-600 mt-2">
+                      ※ 연락처는 리뷰 진위 확인 목적으로만 수집되며, 마케팅 및 제3자 제공에 사용되지 않습니다.
+                    </li>
                     <li>자동 수집: 접속 IP, 접속 기기 정보, 서비스 이용 기록, 쿠키</li>
                     <li>OCR 처리 과정에서 수집되는 정보: 업로드된 이미지에서 추출된 텍스트 정보, 이미지 메타데이터</li>
                   </ul>
@@ -131,6 +134,22 @@ export default function PrivacyPage() {
                   인구통계학적 특성에 따른 서비스 제공 및 광고 게재, 서비스의 유효성 확인, 
                   접속 빈도 파악 또는 회원의 서비스 이용에 대한 통계
                 </p>
+              </div>
+
+              <div className="border-l-4 border-[#FF6B35] pl-4">
+                <h3 className="font-semibold mb-2">리뷰 진위 확인</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+                  <p className="text-gray-700 mb-2">
+                    <strong>연락처(전화번호) 수집 및 이용</strong>
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-gray-700 text-sm">
+                    <li><strong>수집 목적:</strong> 리뷰의 진위 여부 확인</li>
+                    <li><strong>사용 제한:</strong> 리뷰 진위 확인 용도로만 사용하며, 마케팅 목적으로 사용하지 않음</li>
+                    <li><strong>제3자 제공 금지:</strong> 어떠한 경우에도 제3자에게 제공하지 않음</li>
+                    <li><strong>보유 기간:</strong> 리뷰 삭제 시 즉시 파기 (단, 분쟁 발생 시 최대 3년)</li>
+                    <li><strong>동의 철회:</strong> 언제든지 연락처 삭제 요청 가능 (단, 리뷰도 함께 삭제됨)</li>
+                  </ul>
+                </div>
               </div>
 
               <div className="border-l-4 border-[#FF6B35] pl-4">
