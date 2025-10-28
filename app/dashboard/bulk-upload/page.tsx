@@ -879,13 +879,106 @@ export default function BulkUploadPage() {
                           </div>
 
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 mb-2">리뷰 내용</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-semibold text-gray-600">리뷰 내용</p>
+                              {activeResult?.status === 'success' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (!activeResultId || !activeResult.file) return
+                                    
+                                    toast({
+                                      title: '🔄 2차 OCR 재시도 중...',
+                                      description: '더 정확한 추출을 시도합니다.',
+                                    })
+                                    
+                                    // 캐시를 우회하기 위해 다른 버전으로 재시도
+                                    const currentVersion = ocrVersion
+                                    const retryVersion = currentVersion === 'v1' ? 'v2' : 'v1'
+                                    
+                                    updateResult(activeResultId, { 
+                                      status: 'processing',
+                                      progress: 0 
+                                    })
+                                    
+                                    const formData = new FormData()
+                                    formData.append('image', activeResult.file)
+                                    formData.append('version', retryVersion)
+                                    
+                                    try {
+                                      const response = await fetch('/api/ocr', {
+                                        method: 'POST',
+                                        body: formData
+                                      })
+                                      
+                                      if (response.ok) {
+                                        const json = await response.json()
+                                        const payload = json.data ?? {}
+                                        const parsedData: ParsedReview = {
+                                          platform: payload.platform,
+                                          business: payload.business,
+                                          author: payload.author,
+                                          reviewDate: payload.date,
+                                          content: payload.reviewText ?? payload.text ?? payload.normalizedText ?? '',
+                                          link: payload.originalUrl,
+                                        }
+                                        
+                                        updateResult(activeResultId, {
+                                          status: 'success',
+                                          progress: 100,
+                                          parsed: parsedData,
+                                          confidence: payload.confidence
+                                        })
+                                        
+                                        setEditingData(prev => ({
+                                          ...prev,
+                                          [activeResultId]: {
+                                            platform: parsedData.platform || '네이버',
+                                            business: parsedData.business || '',
+                                            author: parsedData.author || '',
+                                            reviewDate: parsedData.reviewDate || new Date().toISOString().split('T')[0],
+                                            content: parsedData.content || '',
+                                            link: parsedData.link || ''
+                                          }
+                                        }))
+                                        
+                                        toast({
+                                          title: '✅ 2차 OCR 완료',
+                                          description: `${retryVersion.toUpperCase()} 알고리즘으로 재추출했습니다.`,
+                                        })
+                                      } else {
+                                        throw new Error('OCR 실패')
+                                      }
+                                    } catch (error) {
+                                      updateResult(activeResultId, {
+                                        status: 'error',
+                                        error: '2차 OCR 실패'
+                                      })
+                                      
+                                      toast({
+                                        title: '❌ 2차 OCR 실패',
+                                        description: '다시 시도해주세요.',
+                                        variant: 'destructive'
+                                      })
+                                    }
+                                  }}
+                                  className="text-xs h-7"
+                                >
+                                  <ReloadIcon className="mr-1 w-3 h-3" />
+                                  2차 OCR 재시도
+                                </Button>
+                              )}
+                            </div>
                             <Textarea
                               value={activeForm.content}
                               onChange={(e) => activeResultId && updateEditingField(activeResultId, 'content', e.target.value)}
                               rows={8}
                               className="resize-none"
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                              💡 추출 결과가 불완전한 경우 "2차 OCR 재시도" 버튼을 눌러보세요
+                            </p>
                           </div>
 
                           <div className="flex justify-end gap-3 pt-4">
