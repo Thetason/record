@@ -584,10 +584,10 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     footer: [] as EntityAnnotation[]
   };
 
-  // 일반 모드: content 영역 넓게 (리뷰 텍스트 최대한 보존)
-  // 재시도 모드: content 영역 좁게 (뒷부분 쓰레기 제거)
-  const contentStartRatio = retryMode ? 0.33 : 0.30;
-  const contentEndRatio = retryMode ? 0.75 : 0.85;
+  // 일반 모드: content 영역 최대한 넓게 (리뷰 텍스트 거의 전체 보존)
+  // 재시도 모드: content 영역 좁게 (노이즈 강력 제거)
+  const contentStartRatio = retryMode ? 0.30 : 0.05;
+  const contentEndRatio = retryMode ? 0.75 : 0.98;
 
   annotations.slice(1).forEach(annotation => {
     const vertices = annotation.boundingPoly?.vertices || [];

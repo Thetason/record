@@ -889,8 +889,8 @@ export default function BulkUploadPage() {
                                     if (!activeResultId || !activeResult.file) return
                                     
                                     toast({
-                                      title: '🔄 2차 OCR 재시도 중...',
-                                      description: '더 정확한 추출을 시도합니다.',
+                                      title: '🔄 정밀 인식 시작',
+                                      description: '노이즈를 제거하고 리뷰 본문만 정밀하게 추출합니다.',
                                     })
                                     
                                     // 같은 버전으로 재시도하되 retry 모드 활성화
@@ -942,8 +942,8 @@ export default function BulkUploadPage() {
                                         }))
                                         
                                         toast({
-                                          title: '✅ 2차 OCR 완료',
-                                          description: '재시도 모드로 더 정확하게 추출했습니다.',
+                                          title: '✅ 정밀 인식 완료',
+                                          description: '리뷰 본문을 깔끔하게 추출했습니다.',
                                         })
                                       } else {
                                         throw new Error('OCR 실패')
@@ -955,8 +955,8 @@ export default function BulkUploadPage() {
                                       })
                                       
                                       toast({
-                                        title: '❌ 2차 OCR 실패',
-                                        description: '다시 시도해주세요.',
+                                        title: '❌ 정밀 인식 실패',
+                                        description: '다시 시도하거나 직접 수정해주세요.',
                                         variant: 'destructive'
                                       })
                                     }
@@ -964,7 +964,7 @@ export default function BulkUploadPage() {
                                   className="text-xs h-7"
                                 >
                                   <ReloadIcon className="mr-1 w-3 h-3" />
-                                  2차 OCR 재시도
+                                  🔄 정밀 인식
                                 </Button>
                               )}
                             </div>
