@@ -598,8 +598,11 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       return 'kmong';
     }
 
-    // 당근 - "동네", "거래", "매너온도" 등
-    if (topTexts.includes('동네') || topTexts.includes('매너온도') || topTexts.includes('당근')) {
+    // 당근 - "동네", "매너온도", "당근", ("후기" + "도움돼요") 조합
+    if (topTexts.includes('동네') ||
+        topTexts.includes('매너온도') ||
+        topTexts.includes('당근') ||
+        (topTexts.includes('후기') && topTexts.includes('도움돼요'))) {
       console.log('🏷️ 플랫폼 감지: 당근');
       return 'danggeun';
     }
@@ -701,6 +704,31 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   };
 
   const nicknameBottomY = detectNicknameBoundary();
+
+  // 📅 당근 상대 날짜 영역 감지 (날짜 밑부터 리뷰 본문)
+  const detectDanggeunDateBoundary = (): number => {
+    if (detectedPlatform !== 'danggeun') return 0;
+
+    // 상대 날짜 패턴: "2년 전", "2개월 전", "3일 전", "1주 전"
+    const datePattern = /^\d+(년|개월|일|주)\s*전$/;
+
+    for (const annotation of annotations.slice(1)) {
+      const text = annotation.description ?? '';
+      const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
+
+      if (datePattern.test(text)) {
+        // 날짜 텍스트의 높이를 고려하여 날짜 아래부터 본문 시작
+        const height = (annotation.boundingPoly?.vertices?.[2]?.y ?? y) - y;
+        const dateBottomY = y + height;
+        console.log(`📅 [당근] 날짜 감지: "${text}" at Y=${y}px, 본문 시작=${dateBottomY}px`);
+        return dateBottomY;
+      }
+    }
+
+    return 0;
+  };
+
+  const danggeunDateBottomY = detectDanggeunDateBoundary();
 
   // 영역별 분류 - 재시도 모드에서는 content 영역을 더 넓게 설정
   const regions = {
@@ -808,6 +836,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   // 📸 네이버 특화: 이미지가 있으면 이미지 아래부터 리뷰 시작
   // 📅 카카오 특화: 날짜가 있으면 날짜 아래부터 리뷰 시작
   // 👤 크몽 특화: 닉네임이 있으면 닉네임 아래부터 리뷰 시작
+  // 📅 당근 특화: 상대 날짜가 있으면 날짜 아래부터 리뷰 시작
   const contentAnnotations = regions.content.filter(a => {
     const y = a.boundingPoly?.vertices?.[0]?.y ?? 0;
 
@@ -826,6 +855,11 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       return y >= nicknameBottomY;
     }
 
+    // 당근: 상대 날짜 감지된 경우, 날짜 아래 텍스트만 처리
+    if (danggeunDateBottomY > 0 && detectedPlatform === 'danggeun') {
+      return y >= danggeunDateBottomY;
+    }
+
     return true;
   });
 
@@ -837,13 +871,18 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     return yA !== yB ? yA - yB : xA - xB;
   });
 
-  // ⛔ "접기" 키워드 이후 텍스트 제외
+  // ⛔ "접기" 또는 "사장님의 답글" 키워드 이후 텍스트 제외
   let stopAtIndex = -1;
   sortedContent.forEach((a, idx) => {
     const text = a.description ?? '';
     if (text === '접기' && stopAtIndex === -1) {
       stopAtIndex = idx;
       console.log(`⛔ "접기" 감지 - 인덱스 ${idx}에서 본문 추출 중단`);
+    }
+    // 당근: "사장님의 답글" 감지
+    if ((text.includes('사장님의') && text.includes('답글')) && stopAtIndex === -1) {
+      stopAtIndex = idx;
+      console.log(`⛔ [당근] "사장님의 답글" 감지 - 인덱스 ${idx}에서 본문 추출 중단`);
     }
   });
 
@@ -946,6 +985,40 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
         // "24시간이내", "2일이내", "1주이내"
         if (/^\d+(시간|일|주|개월)이내$/.test(text)) {
           console.log(`🚫 [크몽] 작업기간 제외: ${text}`);
+          return false;
+        }
+      }
+
+      // 🚫 당근 특화: 상대 날짜, 유저 통계, UI 버튼 등 제외
+      if (detectedPlatform === 'danggeun') {
+        // 상대 날짜 패턴: "2년 전", "2개월 전", "3일 전", "1주 전"
+        if (/^\d+(년|개월|일|주)\s*전$/.test(text)) {
+          console.log(`🚫 [당근] 날짜 텍스트 제외: ${text}`);
+          return false;
+        }
+        // 유저 통계: "후기 8", "후기8"
+        if (/^후기\s*\d+/.test(text)) {
+          console.log(`🚫 [당근] 후기 통계 제외: ${text}`);
+          return false;
+        }
+        // UI 버튼: "도움돼요", "도움돼요 1"
+        if (/^도움돼요\s*\d*$/.test(text)) {
+          console.log(`🚫 [당근] UI 버튼 제외: ${text}`);
+          return false;
+        }
+        // 필터 옵션: "유용한순", "최신순", "오래된순"
+        if (/^(유용한순|최신순|오래된순)/.test(text)) {
+          console.log(`🚫 [당근] 필터 옵션 제외: ${text}`);
+          return false;
+        }
+        // 별점 평균: "평균 별점 5.0"
+        if (/^평균\s*별점\s*[\d.]+$/.test(text)) {
+          console.log(`🚫 [당근] 별점 평균 제외: ${text}`);
+          return false;
+        }
+        // UI 요소: "조혜어", "소식", "홈", "전체 문의", "채팅 문의"
+        if (/^(홈|소식|전체|조혜어|채팅\s*문의|전체\s*문의)$/.test(text)) {
+          console.log(`🚫 [당근] UI 요소 제외: ${text}`);
           return false;
         }
       }
