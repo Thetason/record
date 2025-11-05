@@ -89,28 +89,22 @@ export default function PricingPage() {
       return
     }
 
-    setLoadingPlan(planId)
-    try {
-      // Polar Checkout 생성
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId }) // 'premium' or 'pro'
-      })
+    // 레몬스퀴즈 결제 페이지로 이동
+    const LEMONSQUEEZY_URLS = {
+      premium: 'https://record.lemonsqueezy.com/buy/ca2785bc-3695-42a6-8da0-d7b8732dda45?media=0&desc=0',
+      pro: 'https://record.lemonsqueezy.com/buy/8fe70d24-78d7-41e8-ad40-86f7afa1e71b?media=0&desc=0'
+    }
 
-      const data = await res.json()
-
-      if (data.checkoutUrl) {
-        // Polar Checkout 페이지로 이동
-        window.location.href = data.checkoutUrl
-      } else {
-        alert(data.error || '결제 페이지 생성에 실패했습니다.')
+    const checkoutUrl = LEMONSQUEEZY_URLS[planId]
+    if (checkoutUrl) {
+      // 사용자 이메일을 URL에 추가 (선택사항)
+      const url = new URL(checkoutUrl)
+      if (session.user?.email) {
+        url.searchParams.set('checkout[email]', session.user.email)
       }
-    } catch (error) {
-      console.error('Checkout error:', error)
-      alert('결제 처리 중 오류가 발생했습니다.')
-    } finally {
-      setLoadingPlan(null)
+      window.location.href = url.toString()
+    } else {
+      alert('결제 페이지를 찾을 수 없습니다.')
     }
   }
 
