@@ -818,6 +818,26 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
       // 🚫 네이버 특화: "리뷰20", "사진40" 등 유저 통계 제외
       if (detectedPlatform === 'naver') {
+        // 날짜 패턴 제외 (예: "24.12.9.월", "2024.12.09.")
+        if (/^\d{2,4}\.\d{1,2}\.\d{1,2}\.[월화수목금토일]?$/.test(text)) {
+          console.log(`🚫 [네이버] 날짜 텍스트 제외: ${text}`);
+          return false;
+        }
+        // "N번째 방문" 패턴
+        if (/^\d+번째\s*방문$/.test(text)) {
+          console.log(`🚫 [네이버] 메타 정보 제외: ${text}`);
+          return false;
+        }
+        // "영수증", "반응 남기기" 등
+        if (/^(영수증|반응\s*남기기)$/.test(text)) {
+          console.log(`🚫 [네이버] UI 요소 제외: ${text}`);
+          return false;
+        }
+        // 네이버 리뷰 반응 텍스트 (예: "선생님이 열정적이에요", "학생과 소통을 잘해요")
+        if (/^(선생님이|학생과|수업이|맞춤|가격이|시설이|분위기가|위치가|주차가|친절|깔끔|청결|실력|전문성|가성비|만족).+(이에요|해요|좋아요|추천|최고)$/.test(text)) {
+          console.log(`🚫 [네이버] 반응 텍스트 제외: ${text}`);
+          return false;
+        }
         if (/^리뷰\s*\d+$/.test(text)) {
           console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
           return false;
