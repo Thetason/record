@@ -739,9 +739,16 @@ export default function BulkUploadPage() {
                       <Button
                         onClick={processAllFiles}
                         disabled={isProcessing}
-                        className="bg-[#FF6B35] hover:bg-[#E55A2B] text-lg px-6 animate-pulse shadow-lg shadow-orange-400/50"
+                        className={`bg-[#FF6B35] hover:bg-[#E55A2B] text-lg px-8 py-6 font-bold text-white transition-all ${
+                          !isProcessing ? 'animate-pulse shadow-2xl shadow-orange-500/80 ring-4 ring-orange-300 ring-opacity-50' : ''
+                        }`}
                         style={{
-                          animation: isProcessing ? 'none' : 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                          animation: isProcessing
+                            ? 'none'
+                            : 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite, glow 2s ease-in-out infinite',
+                          boxShadow: !isProcessing
+                            ? '0 0 30px rgba(255, 107, 53, 0.8), 0 0 60px rgba(255, 107, 53, 0.5), 0 0 90px rgba(255, 107, 53, 0.3)'
+                            : undefined
                         }}
                       >
                         {isProcessing ? (
@@ -751,11 +758,21 @@ export default function BulkUploadPage() {
                           </>
                         ) : (
                           <>
-                            <CheckCircledIcon className="mr-2" />
+                            <CheckCircledIcon className="mr-2 w-6 h-6" />
                             ✨ 자동 인식 시작 ✨
                           </>
                         )}
                       </Button>
+                      <style jsx>{`
+                        @keyframes glow {
+                          0%, 100% {
+                            filter: brightness(1);
+                          }
+                          50% {
+                            filter: brightness(1.3);
+                          }
+                        }
+                      `}</style>
                     </div>
                   </div>
 

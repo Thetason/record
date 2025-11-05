@@ -659,8 +659,9 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       const currY = sortedAnnotations[i].boundingPoly!.vertices![0]!.y!;
       const gap = currY - prevY;
 
-      // 150px 이상 갭이 있고, 상위 40% 영역 내에 있으면 이미지로 간주 (네이버는 이미지가 항상 상단)
-      if (gap > 150 && currY < maxY * 0.4 && gap > maxGap) {
+      // 200px 이상 갭이 있고, 상위 35% 영역 내에 있으면 이미지로 간주 (네이버는 이미지가 항상 상단)
+      // 갭이 너무 작으면 사진 없는 리뷰에서 오감지 발생
+      if (gap > 200 && currY < maxY * 0.35 && gap > maxGap) {
         maxGap = gap;
         gapStartY = currY;
       }
@@ -921,6 +922,26 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
         // "리뷰 4 · 사진 4" 패턴 제외
         if (/^리뷰\s*\d+\s*[·•]\s*사진\s*\d+$/.test(text)) {
           console.log(`🚫 [네이버] 리뷰/사진 통계 제외: ${text}`);
+          return false;
+        }
+        // "리뷰" 단독 단어 제외
+        if (text.trim() === '리뷰') {
+          console.log(`🚫 [네이버] "리뷰" 단어 제외: ${text}`);
+          return false;
+        }
+        // "사진" 단독 단어 제외
+        if (text.trim() === '사진') {
+          console.log(`🚫 [네이버] "사진" 단어 제외: ${text}`);
+          return false;
+        }
+        // 숫자만 있고 3자리 이하인 경우 제외 (통계일 가능성)
+        if (/^\d{1,3}$/.test(text.trim())) {
+          console.log(`🚫 [네이버] 짧은 숫자 제외: ${text}`);
+          return false;
+        }
+        // "·" 또는 "•" 구분자만 있는 경우 제외
+        if (/^[·•\s]+$/.test(text)) {
+          console.log(`🚫 [네이버] 구분자 제외: ${text}`);
           return false;
         }
         // 날짜 패턴 제외 (예: "24.12.9.월", "2024.12.09.")
