@@ -702,6 +702,7 @@ export default function ReviewsPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
                   ))
                 )}
               </div>
