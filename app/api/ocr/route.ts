@@ -753,15 +753,18 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log('🏪 업체명 후보:', businessTexts, '→ 선택:', business);
 
-  // 작성자 추출
+  // 작성자 추출 (네이버는 header 영역도 확인)
+  const headerTexts = regions.header.map(a => a.description ?? '').filter(Boolean);
   const userInfoTexts = regions.userInfo.map(a => a.description ?? '').filter(Boolean);
-  const author = userInfoTexts
+  const allAuthorTexts = [...headerTexts, ...userInfoTexts];
+
+  const author = allAuthorTexts
     .filter(text => /^[가-힣a-zA-Z0-9*_]{2,15}$/.test(text))
     .filter(text => !/^(리뷰|사진|방문자|팔로우|후기|ㆍ|\d+)$/.test(text))
     .filter(text => !/^\d+$/.test(text))
     .find(text => text.length >= 2) ?? '';
 
-  console.log('👤 작성자 후보:', userInfoTexts, '→ 선택:', author);
+  console.log('👤 작성자 후보:', allAuthorTexts, '→ 선택:', author);
 
   // 날짜 추출
   const footerTexts = regions.footer.map(a => a.description ?? '');
@@ -868,11 +871,6 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
         // "영수증", "반응 남기기" 등
         if (/^(영수증|반응\s*남기기)$/.test(text)) {
           console.log(`🚫 [네이버] UI 요소 제외: ${text}`);
-          return false;
-        }
-        // 네이버 리뷰 반응 텍스트 (예: "선생님이 열정적이에요", "학생과 소통을 잘해요")
-        if (/^(선생님이|학생과|수업이|맞춤|가격이|시설이|분위기가|위치가|주차가|친절|깔끔|청결|실력|전문성|가성비|만족).+(이에요|해요|좋아요|추천|최고)$/.test(text)) {
-          console.log(`🚫 [네이버] 반응 텍스트 제외: ${text}`);
           return false;
         }
         if (/^리뷰\s*\d+$/.test(text)) {
