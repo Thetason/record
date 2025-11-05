@@ -26,6 +26,7 @@ export default function SignupPage() {
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({})
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
   const [allChecked, setAllChecked] = useState(false)
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false)
 
   // Validation helper functions
   const validateEmail = (email: string): string | null => {
@@ -576,13 +577,16 @@ export default function SignupPage() {
                           서비스 이용에 필요한 기본 약관입니다
                         </p>
                       </div>
-                      <Link 
-                        href="/terms" 
-                        onClick={(e) => e.stopPropagation()}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setIsTermsModalOpen(true)
+                        }}
                         className="text-xs text-[#FF6B35] hover:underline ml-2"
                       >
                         약관 보기
-                      </Link>
+                      </button>
                     </label>
                   </div>
                 </div>
@@ -667,6 +671,175 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
+
+      {/* 약관 보기 모달 */}
+      {isTermsModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsTermsModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold">서비스 이용약관</h2>
+                <p className="text-sm text-gray-600 mt-1">최종 수정일: 2025년 8월 11일</p>
+              </div>
+              <button
+                onClick={() => setIsTermsModalOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 모달 내용 (스크롤 가능) */}
+            <div className="overflow-y-auto p-6 flex-1">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-amber-800">
+                  <strong>법률 고지:</strong> 본 약관은 정보 제공 목적의 템플릿입니다. 귀하의 상황에 맞는 구체적인 법률 자문을 위해서는 자격을 갖춘 변호사와 상담하시기 바랍니다.
+                </p>
+              </div>
+
+              {/* 약관 내용 요약 (전체 내용은 너무 길어서 주요 내용만) */}
+              <div className="space-y-6 text-sm">
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">제1장 총칙</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">제1조 (목적)</h4>
+                      <p className="text-gray-700">이 약관은 Re:cord가 제공하는 리뷰 포트폴리오 서비스의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항을 규정합니다.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">제2조 (정의)</h4>
+                      <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                        <li>"서비스"란 리뷰 수집, 관리, 공개 프로필 생성, OCR 기반 리뷰 인식 등 일체의 서비스</li>
+                        <li>"회원"이란 서비스 이용계약을 체결하고 이용자 아이디를 부여받은 이용자</li>
+                        <li>"리뷰"란 타 플랫폼에서 받은 진정한 평가 및 후기로, 조작되지 않은 원본 콘텐츠</li>
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">제2장 회원가입 및 서비스 이용</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">제4조 (회원가입)</h4>
+                      <p className="text-gray-700 mb-2">다음의 경우 회원가입이 거부될 수 있습니다:</p>
+                      <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                        <li>실명이 아니거나 타인의 명의를 이용한 경우</li>
+                        <li>허위의 정보를 기재한 경우</li>
+                        <li>만 14세 미만인 경우</li>
+                        <li>허위 리뷰 작성 등으로 신뢰성에 문제가 있는 경우</li>
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">제3장 회원의 의무</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">제6조 (회원의 의무)</h4>
+                      <p className="text-gray-700 mb-2">회원은 다음 행위를 하여서는 안 됩니다:</p>
+                      <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                        <li><strong>허위, 과장, 조작된 리뷰의 등록 (가장 중요)</strong></li>
+                        <li>타인의 리뷰를 무단으로 도용하는 행위</li>
+                        <li>실제 경험하지 않은 서비스에 대한 가짜 리뷰 작성</li>
+                        <li>금전적 보상을 받고 작성된 리뷰를 일반 리뷰로 가장하는 행위</li>
+                        <li>욕설, 비방, 혐오 표현이 포함된 리뷰 작성</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-2">제7조 (리뷰의 진실성 및 검증)</h4>
+                      <p className="text-gray-700 mb-2">회원은 본인이 실제로 제공한 서비스에 대해 진정한 고객으로부터 받은 리뷰만을 등록해야 하며, 허위 리뷰 확인 시 다음 조치가 취해집니다:</p>
+                      <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                        <li>해당 리뷰의 즉시 삭제</li>
+                        <li>회원에게 경고 및 해명 요구</li>
+                        <li>일정 기간 서비스 이용 제한</li>
+                        <li>중대하거나 반복적인 위반 시 회원 자격 영구 정지</li>
+                        <li>관련 법령에 따른 법적 조치</li>
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">제5장 책임 및 면책</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">제11조 (회사의 면책)</h4>
+                      <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                        <li>회사는 리뷰 게시 플랫폼을 제공하는 중개자로서, 회원이 게시한 리뷰의 진실성에 대해 보증하지 않습니다</li>
+                        <li>회원이 게시한 리뷰로 인한 명예훼손 등의 문제는 해당 회원이 모든 책임을 집니다</li>
+                        <li>제3자 플랫폼의 정책 변경, 서비스 중단 등으로 인한 서비스 이용 제한에 대해 책임지지 않습니다</li>
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">제6장 기타</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">제12조 (저작권 및 지적재산권)</h4>
+                      <p className="text-gray-700">제3자 플랫폼에서 수집한 리뷰의 저작권은 원 작성자에게 귀속되며, 회원은 포트폴리오에 전시할 수 있는 사용권만을 보유합니다.</p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-2">제15조 (한국 법령 준수)</h4>
+                      <p className="text-gray-700 mb-2">회사는 다음 법령을 준수합니다:</p>
+                      <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                        <li>개인정보보호법</li>
+                        <li>정보통신망 이용촉진 및 정보보호 등에 관한 법률</li>
+                        <li>전자상거래법 및 공정거래법</li>
+                        <li>부정경쟁방지법</li>
+                        <li>저작권법</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-2">제16조 (분쟁해결 및 준거법)</h4>
+                      <p className="text-gray-700">회사와 이용자 간에 제기되는 소송은 대한민국 법을 준거법으로 하며, 회사의 본사 소재지를 관할하는 법원을 관할 법원으로 합니다.</p>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="bg-gray-50 rounded-lg p-4 mt-6">
+                  <p className="text-xs text-gray-600">
+                    <strong>부칙:</strong> 이 약관은 2025년 8월 11일부터 시행됩니다. 약관 시행 전에 등록된 리뷰는 소급 적용하여 진위성 검증 대상에 포함됩니다.
+                  </p>
+                </div>
+
+                <div className="border-t pt-4 mt-6">
+                  <h4 className="font-semibold mb-2">문의사항</h4>
+                  <ul className="space-y-1 text-gray-700">
+                    <li>• 이메일: support@record.kr</li>
+                    <li>• 고객센터: 평일 09:00 - 18:00</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="border-t border-gray-200 p-4 flex justify-end">
+              <button
+                onClick={() => setIsTermsModalOpen(false)}
+                className="px-6 py-2 bg-[#FF6B35] hover:bg-[#E55A2B] text-white rounded-lg font-medium transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
