@@ -10,8 +10,13 @@ import {
   BarChartIcon,
   QuoteIcon,
   InstagramLogoIcon,
-  Link2Icon
+  Link2Icon,
+  ZoomInIcon,
+  ZoomOutIcon,
+  ResetIcon,
+  DownloadIcon
 } from "@radix-ui/react-icons"
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -680,23 +685,88 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
       </div>
 
       <Dialog open={Boolean(activeImage)} onOpenChange={(open) => !open && (setActiveImage(null), setActiveReview(null))}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-7xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {activeReview ? `${activeReview.platform} · ${activeReview.business}` : '리뷰 첨부 이미지'}
             </DialogTitle>
           </DialogHeader>
           {activeImage && (
-            <div className="relative w-full overflow-hidden rounded-xl border min-h-[320px]">
-              <Image
-                src={activeImage}
-                alt="리뷰 첨부 이미지 확대"
-                fill
-                className="object-contain"
-                sizes="100vw"
-                unoptimized
-              />
-            </div>
+            <TransformWrapper
+              initialScale={1}
+              minScale={0.5}
+              maxScale={4}
+              doubleClick={{ mode: "zoomIn" }}
+              wheel={{ step: 0.1 }}
+              pinch={{ step: 5 }}
+            >
+              {({ zoomIn, zoomOut, resetTransform }) => (
+                <div className="relative">
+                  {/* 컨트롤 버튼 */}
+                  <div className="absolute top-2 right-2 z-10 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => zoomIn()}
+                      className="bg-white/90 hover:bg-white shadow-lg"
+                    >
+                      <ZoomInIcon className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => zoomOut()}
+                      className="bg-white/90 hover:bg-white shadow-lg"
+                    >
+                      <ZoomOutIcon className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => resetTransform()}
+                      className="bg-white/90 hover:bg-white shadow-lg"
+                    >
+                      <ResetIcon className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        const link = document.createElement('a')
+                        link.href = activeImage
+                        link.download = `review-image-${Date.now()}.jpg`
+                        document.body.appendChild(link)
+                        link.click()
+                        document.body.removeChild(link)
+                      }}
+                      className="bg-white/90 hover:bg-white shadow-lg"
+                    >
+                      <DownloadIcon className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* 이미지 영역 */}
+                  <TransformComponent
+                    wrapperClass="!w-full !h-[70vh] overflow-hidden rounded-xl border bg-gray-100"
+                    contentClass="!w-full !h-full flex items-center justify-center"
+                  >
+                    <Image
+                      src={activeImage}
+                      alt="리뷰 첨부 이미지 확대"
+                      width={1200}
+                      height={800}
+                      className="max-w-full max-h-full object-contain"
+                      unoptimized
+                    />
+                  </TransformComponent>
+
+                  {/* 사용 안내 */}
+                  <div className="mt-3 text-center text-sm text-gray-500">
+                    💡 드래그로 이동 · 더블클릭/휠로 확대/축소 · 핀치 제스처 지원
+                  </div>
+                </div>
+              )}
+            </TransformWrapper>
           )}
         </DialogContent>
       </Dialog>
