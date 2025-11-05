@@ -646,6 +646,31 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   const imageBottomY = detectReviewImageBoundary();
 
+  // 📅 카카오맵 날짜 영역 감지 (날짜 밑부터 리뷰 본문)
+  const detectDateBoundary = (): number => {
+    if (detectedPlatform !== 'kakao') return 0;
+
+    // 날짜 패턴: "2025.03.24." 또는 "2022.07.07."
+    const datePattern = /^\d{4}\.\d{2}\.\d{2}\.$/;
+
+    for (const annotation of annotations.slice(1)) {
+      const text = annotation.description ?? '';
+      const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
+
+      if (datePattern.test(text)) {
+        // 날짜 텍스트의 높이를 고려하여 날짜 아래부터 본문 시작
+        const height = (annotation.boundingPoly?.vertices?.[2]?.y ?? y) - y;
+        const dateBottomY = y + height;
+        console.log(`📅 [카카오] 날짜 감지: "${text}" at Y=${y}px, 본문 시작=${dateBottomY}px`);
+        return dateBottomY;
+      }
+    }
+
+    return 0;
+  };
+
+  const dateBottomY = detectDateBoundary();
+
   // 영역별 분류 - 재시도 모드에서는 content 영역을 더 넓게 설정
   const regions = {
     header: [] as EntityAnnotation[],
@@ -747,12 +772,20 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   // 재시도 모드: 공격적 필터링 (뒷부분 쓰레기 데이터 제거)
 
   // 📸 네이버 특화: 이미지가 있으면 이미지 아래부터 리뷰 시작
+  // 📅 카카오 특화: 날짜가 있으면 날짜 아래부터 리뷰 시작
   const contentAnnotations = regions.content.filter(a => {
     const y = a.boundingPoly?.vertices?.[0]?.y ?? 0;
-    // 이미지 감지된 경우, 이미지 아래 텍스트만 처리
+
+    // 네이버: 이미지 감지된 경우, 이미지 아래 텍스트만 처리
     if (imageBottomY > 0 && detectedPlatform === 'naver') {
       return y >= imageBottomY;
     }
+
+    // 카카오: 날짜 감지된 경우, 날짜 아래 텍스트만 처리
+    if (dateBottomY > 0 && detectedPlatform === 'kakao') {
+      return y >= dateBottomY;
+    }
+
     return true;
   });
 
@@ -805,6 +838,11 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
       // 🚫 카카오맵 특화: "후기12", "별점평균1.8", "팔로워1" 등 유저 통계 제외
       if (detectedPlatform === 'kakao') {
+        // 날짜 텍스트 제외 (date 필드에만 저장, 본문에서는 제외)
+        if (/^\d{4}\.\d{2}\.\d{2}\.$/.test(text)) {
+          console.log(`🚫 [카카오] 날짜 텍스트 제외: ${text}`);
+          return false;
+        }
         if (/^후기\s*\d+$/.test(text)) {
           console.log(`🚫 [카카오] 유저 통계 제외: ${text}`);
           return false;
