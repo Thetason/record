@@ -16,6 +16,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
+          integrity="sha384-TiCUE00h+gopKjg4s1aOtQHOKBEgLQRZk/i6RnUWfxY7FdWaZW5fmZPNIPPeM37g"
+          crossOrigin="anonymous"
+          async
+        ></script>
+      </head>
       {/* Use system fonts to avoid remote font fetch during build */}
       <body className="font-sans antialiased">
         <ErrorBoundary>

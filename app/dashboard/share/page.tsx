@@ -215,7 +215,11 @@ export default function SharePage() {
     {
       name: '인스타그램',
       icon: Instagram,
-      action: () => window.open(`https://www.instagram.com/`),
+      action: async () => {
+        await navigator.clipboard.writeText(profileUrl);
+        alert('링크가 복사되었습니다! 인스타그램 프로필 편집에서 웹사이트에 붙여넣으세요.');
+        window.open(`https://www.instagram.com/`, '_blank');
+      },
       color: 'bg-pink-100',
       description: '스토리나 프로필에 링크 추가'
     },

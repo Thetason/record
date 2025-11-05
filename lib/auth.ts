@@ -271,24 +271,32 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.email = user.email
-        
+
         // OAuth 로그인인 경우 DB에서 username 가져오기
         if (account?.provider !== "credentials") {
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email! },
-            select: { username: true, role: true }
+            select: { username: true, role: true, plan: true }
           })
           token.username = dbUser?.username
           token.role = dbUser?.role || 'user'
+          token.plan = dbUser?.plan || 'free'
         } else {
           const meta = extractUserMeta(user)
           token.username = meta.username
           token.role = meta.role ?? 'user'
+          // Credentials 로그인 시에도 plan 정보 가져오기
+          const dbUser = await prisma.user.findUnique({
+            where: { username: meta.username! },
+            select: { plan: true }
+          })
+          token.plan = dbUser?.plan || 'free'
         }
         console.log("👤 JWT에 사용자 정보 추가:", {
           id: token.id,
           username: token.username,
-          role: token.role
+          role: token.role,
+          plan: token.plan
         })
       }
       
@@ -297,7 +305,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { username: token.username as string },
-            select: { id: true, role: true, email: true }
+            select: { id: true, role: true, email: true, plan: true }
           })
           if (dbUser) {
             let effectiveRole = dbUser.role
@@ -328,9 +336,11 @@ export const authOptions: NextAuthOptions = {
 
             token.role = effectiveRole
             token.email = dbUser.email
+            token.plan = dbUser.plan || 'free'
             console.log("🔄 DB에서 최신 정보 업데이트:", {
               role: token.role,
-              email: token.email
+              email: token.email,
+              plan: token.plan
             })
           }
         } catch (error) {
@@ -362,11 +372,15 @@ export const authOptions: NextAuthOptions = {
         if (typeof token.role === 'string') {
           session.user.role = token.role
         }
-        
+        if (typeof token.plan === 'string') {
+          session.user.plan = token.plan
+        }
+
         console.log("📱 Session 정보 설정:", {
           id: session.user.id,
           username: session.user.username,
-          role: session.user.role
+          role: session.user.role,
+          plan: session.user.plan
         })
       }
       
