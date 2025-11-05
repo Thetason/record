@@ -592,6 +592,12 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       return 'kakao';
     }
 
+    // 크몽 - "작업일", "주문 금액" 조합
+    if (topTexts.includes('작업일') || (topTexts.includes('주문') && topTexts.includes('금액'))) {
+      console.log('🏷️ 플랫폼 감지: 크몽');
+      return 'kmong';
+    }
+
     // 당근 - "동네", "거래", "매너온도" 등
     if (topTexts.includes('동네') || topTexts.includes('매너온도') || topTexts.includes('당근')) {
       console.log('🏷️ 플랫폼 감지: 당근');
@@ -670,6 +676,31 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   };
 
   const dateBottomY = detectDateBoundary();
+
+  // 👤 크몽 닉네임 영역 감지 (닉네임 밑부터 리뷰 본문)
+  const detectNicknameBoundary = (): number => {
+    if (detectedPlatform !== 'kmong') return 0;
+
+    // 닉네임 패턴: "천*****", "슬*****" (한글 1자 + 별표 4개 이상)
+    const nicknamePattern = /^[가-힣][*]{4,}$/;
+
+    for (const annotation of annotations.slice(1)) {
+      const text = annotation.description ?? '';
+      const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
+
+      if (nicknamePattern.test(text)) {
+        // 닉네임 텍스트의 높이를 고려하여 닉네임 아래부터 본문 시작
+        const height = (annotation.boundingPoly?.vertices?.[2]?.y ?? y) - y;
+        const nicknameBottomY = y + height;
+        console.log(`👤 [크몽] 닉네임 감지: "${text}" at Y=${y}px, 본문 시작=${nicknameBottomY}px`);
+        return nicknameBottomY;
+      }
+    }
+
+    return 0;
+  };
+
+  const nicknameBottomY = detectNicknameBoundary();
 
   // 영역별 분류 - 재시도 모드에서는 content 영역을 더 넓게 설정
   const regions = {
@@ -773,6 +804,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   // 📸 네이버 특화: 이미지가 있으면 이미지 아래부터 리뷰 시작
   // 📅 카카오 특화: 날짜가 있으면 날짜 아래부터 리뷰 시작
+  // 👤 크몽 특화: 닉네임이 있으면 닉네임 아래부터 리뷰 시작
   const contentAnnotations = regions.content.filter(a => {
     const y = a.boundingPoly?.vertices?.[0]?.y ?? 0;
 
@@ -784,6 +816,11 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     // 카카오: 날짜 감지된 경우, 날짜 아래 텍스트만 처리
     if (dateBottomY > 0 && detectedPlatform === 'kakao') {
       return y >= dateBottomY;
+    }
+
+    // 크몽: 닉네임 감지된 경우, 닉네임 아래 텍스트만 처리
+    if (nicknameBottomY > 0 && detectedPlatform === 'kmong') {
+      return y >= nicknameBottomY;
     }
 
     return true;
@@ -877,6 +914,40 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
         }
         if (text === '위치기반') {
           console.log(`🚫 [카카오] UI 링크 제외: ${text}`);
+          return false;
+        }
+      }
+
+      // 🚫 크몽 특화: "작업일:", "주문 금액:" 등 footer 메타 정보 제외
+      if (detectedPlatform === 'kmong') {
+        // 닉네임 텍스트 제외 (author 필드에만 저장)
+        if (/^[가-힣][*]{4,}$/.test(text)) {
+          console.log(`🚫 [크몽] 닉네임 텍스트 제외: ${text}`);
+          return false;
+        }
+        // 날짜 텍스트 제외 (YY.MM.DD HH:MM 형식)
+        if (/^\d{2}\.\d{2}\.\d{2}\s*\d{0,2}:?\d{0,2}$/.test(text)) {
+          console.log(`🚫 [크몽] 날짜 텍스트 제외: ${text}`);
+          return false;
+        }
+        // "작업일:", "작업일"
+        if (/^작업일\s*[:：]?/.test(text)) {
+          console.log(`🚫 [크몽] Footer 메타 제외: ${text}`);
+          return false;
+        }
+        // "주문 금액:", "주문 금액"
+        if (/^주문\s*금액\s*[:：]?/.test(text)) {
+          console.log(`🚫 [크몽] Footer 메타 제외: ${text}`);
+          return false;
+        }
+        // "5만원 미만", "5만원 ~ 10만원", "10만원 이상"
+        if (/^\d+만원\s*(미만|이상|~)/.test(text)) {
+          console.log(`🚫 [크몽] 금액 정보 제외: ${text}`);
+          return false;
+        }
+        // "24시간이내", "2일이내", "1주이내"
+        if (/^\d+(시간|일|주|개월)이내$/.test(text)) {
+          console.log(`🚫 [크몽] 작업기간 제외: ${text}`);
           return false;
         }
       }
