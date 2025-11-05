@@ -77,7 +77,7 @@ export const apiLimits = {
   upload: 10,      // 분당 10회
   
   // OCR
-  ocr: 5,          // 분당 5회
+  ocr: 20,         // 분당 20회 (대량 업로드 지원)
   
   // 결제
   payment: 5,      // 분당 5회

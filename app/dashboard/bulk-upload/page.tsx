@@ -231,11 +231,19 @@ export default function BulkUploadPage() {
 
     } catch (error) {
       console.error('이미지 인식 에러:', error)
+      const errorMessage = error instanceof Error ? error.message : '텍스트 인식 실패'
+
       updateResult(resultId, {
         status: 'error',
         progress: 100,
-        error: error instanceof Error ? error.message : '텍스트 인식 실패',
+        error: errorMessage,
       })
+
+      // Rate limit 에러는 재시도를 위해 throw
+      if (errorMessage.includes('너무 많습니다') || errorMessage.includes('429')) {
+        throw error
+      }
+
       return false
     } finally {
       if (progressInterval) {
@@ -308,13 +316,40 @@ export default function BulkUploadPage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       const result = ocrResults[i]
-      const ok = await performOCR(file, result.id)
-      if (ok) {
-        successCount += 1
+
+      // Rate limit 회피를 위한 재시도 로직 추가
+      let ok = false
+      let retries = 3
+
+      while (retries > 0 && !ok) {
+        try {
+          ok = await performOCR(file, result.id)
+          if (ok) {
+            successCount += 1
+            break
+          }
+        } catch (error: any) {
+          retries--
+          if (error.message?.includes('너무 많습니다') || error.message?.includes('429')) {
+            // Rate limit 에러인 경우 2초 대기 후 재시도
+            if (retries > 0) {
+              console.log(`Rate limit 에러, ${2}초 후 재시도... (남은 시도: ${retries})`)
+              await new Promise(resolve => setTimeout(resolve, 2000))
+            }
+          } else {
+            // 다른 에러는 재시도하지 않음
+            break
+          }
+        }
       }
 
       const overallProgress = Math.round(((i + 1) / files.length) * 100)
       setCurrentProgress(overallProgress)
+
+      // 각 이미지 처리 후 1초 대기 (Rate limit 회피)
+      if (i < files.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
     }
 
     setIsProcessing(false)
