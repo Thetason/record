@@ -918,6 +918,11 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
       // 🚫 네이버 특화: "리뷰20", "사진40" 등 유저 통계 제외
       if (detectedPlatform === 'naver') {
+        // "리뷰 4 · 사진 4" 패턴 제외
+        if (/^리뷰\s*\d+\s*[·•]\s*사진\s*\d+$/.test(text)) {
+          console.log(`🚫 [네이버] 리뷰/사진 통계 제외: ${text}`);
+          return false;
+        }
         // 날짜 패턴 제외 (예: "24.12.9.월", "2024.12.09.")
         if (/^\d{2,4}\.\d{1,2}\.\d{1,2}\.[월화수목금토일]?$/.test(text)) {
           console.log(`🚫 [네이버] 날짜 텍스트 제외: ${text}`);

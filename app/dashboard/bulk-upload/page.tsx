@@ -219,8 +219,10 @@ export default function BulkUploadPage() {
           return {
             ...prev,
             [resultId]: {
-              platform: parsedData.platform || existing?.platform || '네이버',
-              business: parsedData.business || existing?.business || '',
+              // 사용자가 선택한 플랫폼 우선, 없으면 OCR 결과, 없으면 기존 값
+              platform: selectedPlatform || parsedData.platform || existing?.platform || '네이버',
+              // 사용자가 입력한 업체명 우선, 없으면 OCR 결과, 없으면 기존 값
+              business: batchBusinessName || parsedData.business || existing?.business || '',
               author: parsedData.author || existing?.author || '익명',
               reviewDate: parsedData.reviewDate?.slice(0, 10) || defaultDate,
               content: parsedData.content || existing?.content || '',
@@ -318,6 +320,7 @@ export default function BulkUploadPage() {
     setCurrentProgress(0)
 
     let successCount = 0
+    let firstSuccessId: string | null = null // 첫 번째 성공한 리뷰 ID 저장
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -332,6 +335,10 @@ export default function BulkUploadPage() {
           ok = await performOCR(file, result.id)
           if (ok) {
             successCount += 1
+            // 첫 번째 성공한 리뷰 ID 저장
+            if (!firstSuccessId) {
+              firstSuccessId = result.id
+            }
             break
           }
         } catch (error: any) {
@@ -368,16 +375,18 @@ export default function BulkUploadPage() {
     setTimeout(() => setCurrentProgress(0), 800)
 
     // 첫 번째 성공한 리뷰 자동 확장
-    const firstSuccess = ocrResults.find(r => r.status === 'success')
-    if (firstSuccess) {
-      setActiveResultId(firstSuccess.id)
+    if (firstSuccessId) {
+      setTimeout(() => {
+        setActiveResultId(firstSuccessId)
+        console.log(`✅ 첫 번째 리뷰 자동 확장: ${firstSuccessId}`)
+      }, 1200) // 약간의 딜레이로 state 업데이트 보장
     }
 
     // 업체명 일괄 입력 팝업 표시
     if (successCount > 0 && !batchBusinessName) {
       setTimeout(() => {
         setShowBusinessNamePopup(true)
-      }, 1000)
+      }, 1500)
     }
   }
 
@@ -1036,7 +1045,10 @@ export default function BulkUploadPage() {
                                     formData.append('image', activeResult.file)
                                     formData.append('version', ocrVersion) // 같은 버전 사용
                                     formData.append('retry', 'true') // 재시도 모드 활성화
-                                    
+                                    if (selectedPlatform) {
+                                      formData.append('platform', selectedPlatform) // 사용자가 선택한 플랫폼 전달
+                                    }
+
                                     try {
                                       const response = await fetch('/api/ocr', {
                                         method: 'POST',
@@ -1065,12 +1077,14 @@ export default function BulkUploadPage() {
                                         setEditingData(prev => ({
                                           ...prev,
                                           [activeResultId]: {
-                                            platform: parsedData.platform || '네이버',
-                                            business: parsedData.business || '',
-                                            author: parsedData.author || '',
-                                            reviewDate: parsedData.reviewDate || new Date().toISOString().split('T')[0],
+                                            // 사용자가 선택한 플랫폼 우선
+                                            platform: selectedPlatform || parsedData.platform || prev[activeResultId]?.platform || '네이버',
+                                            // 사용자가 입력한 업체명 우선
+                                            business: batchBusinessName || parsedData.business || prev[activeResultId]?.business || '',
+                                            author: parsedData.author || prev[activeResultId]?.author || '',
+                                            reviewDate: parsedData.reviewDate || prev[activeResultId]?.reviewDate || new Date().toISOString().split('T')[0],
                                             content: parsedData.content || '',
-                                            link: parsedData.link || ''
+                                            link: parsedData.link || prev[activeResultId]?.link || ''
                                           }
                                         }))
                                         
