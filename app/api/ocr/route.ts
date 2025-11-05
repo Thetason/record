@@ -635,8 +635,8 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       const currY = sortedAnnotations[i].boundingPoly!.vertices![0]!.y!;
       const gap = currY - prevY;
 
-      // 150px 이상 갭이 있고, 상위 60% 영역 내에 있으면 이미지로 간주
-      if (gap > 150 && currY < maxY * 0.6 && gap > maxGap) {
+      // 150px 이상 갭이 있고, 상위 40% 영역 내에 있으면 이미지로 간주 (네이버는 이미지가 항상 상단)
+      if (gap > 150 && currY < maxY * 0.4 && gap > maxGap) {
         maxGap = gap;
         gapStartY = currY;
       }
