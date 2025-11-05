@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     }
     
     const image = formData.get('image') as File;
-    const version = (formData.get('version') as string) || 'v1'; // v1 (기존) or v2 (영역기반)
+    const version = (formData.get('version') as string) || 'v2'; // 기본값: v2 (영역기반 - 가장 정확함)
     const retryMode = formData.get('retry') === 'true'; // 2차 재시도 모드
 
     if (!image) {

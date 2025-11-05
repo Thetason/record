@@ -61,7 +61,7 @@ export default function BulkUploadPage() {
   // 이미지 업로드만 사용
   const [activeResultId, setActiveResultId] = useState<string | null>(null)
   const [editingData, setEditingData] = useState<Record<string, ReviewFormState>>({})
-  const [ocrVersion, setOcrVersion] = useState<'v1' | 'v2'>('v1') // OCR 알고리즘 버전
+  const ocrVersion = 'v2' // OCR 알고리즘 버전 (V2 영역기반 - 가장 정확함)
 
   const updateResult = (id: string, updater: Partial<OCRResult> | ((result: OCRResult) => Partial<OCRResult>)) => {
     setOcrResults(prev => prev.map(result => {
@@ -607,33 +607,7 @@ export default function BulkUploadPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                      {/* OCR 알고리즘 버전 선택 */}
-                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200">
-                        <span className="text-sm text-gray-600 font-medium">OCR 알고리즘:</span>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setOcrVersion('v1')}
-                            className={`px-3 py-1 text-xs font-medium rounded transition ${
-                              ocrVersion === 'v1'
-                                ? 'bg-[#FF6B35] text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                          >
-                            V1 기존
-                          </button>
-                          <button
-                            onClick={() => setOcrVersion('v2')}
-                            className={`px-3 py-1 text-xs font-medium rounded transition ${
-                              ocrVersion === 'v2'
-                                ? 'bg-[#FF6B35] text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                          >
-                            V2 영역기반 ⭐
-                          </button>
-                        </div>
-                      </div>
-{isProcessing && (
+                      {isProcessing && (
                         <div className="flex items-center gap-3 bg-orange-50 px-4 py-2 rounded-full border border-orange-200">
                           <ReloadIcon className="w-5 h-5 text-[#FF6B35] animate-spin" />
                           <div className="flex flex-col">
