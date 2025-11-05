@@ -487,6 +487,41 @@ export default function BulkUploadPage() {
           </p>
         </div>
 
+        {/* 사용 방법 안내 */}
+        <Card className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FF6B35] text-white font-bold text-sm shrink-0">
+                  1
+                </div>
+                <div>
+                  <p className="text-gray-900 font-medium">저장하고 싶은 리뷰를 스크린샷 찍어주세요.</p>
+                  <p className="text-sm text-gray-600 mt-1">네이버, 카카오맵, 인스타그램 등 어떤 플랫폼이든 OK!</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FF6B35] text-white font-bold text-sm shrink-0">
+                  2
+                </div>
+                <div>
+                  <p className="text-gray-900 font-medium">리뷰 이미지를 아래 박스에 올려주세요.</p>
+                  <p className="text-sm text-gray-600 mt-1">드래그 앤 드롭 또는 클릭하여 파일 선택</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FF6B35] text-white font-bold text-sm shrink-0">
+                  3
+                </div>
+                <div>
+                  <p className="text-gray-900 font-medium">잠시 기다려주시면 리뷰를 저장하는 프로세스가 시작됩니다.</p>
+                  <p className="text-sm text-gray-600 mt-1">AI가 자동으로 리뷰 내용을 분석하고 저장해드려요 ✨</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
             {/* 업로드 영역 */}
             {files.length === 0 ? (
               <Card className="mb-6 border-2 border-dashed hover:border-[#FF6B35] transition-all duration-300">
