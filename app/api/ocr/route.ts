@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
     const image = formData.get('image') as File;
     const version = (formData.get('version') as string) || 'v2'; // 기본값: v2 (영역기반 - 가장 정확함)
     const retryMode = formData.get('retry') === 'true'; // 2차 재시도 모드
+    const forcedPlatform = (formData.get('platform') as string) || ''; // 사용자가 선택한 플랫폼 (강제)
 
     if (!image) {
       return NextResponse.json(
@@ -330,8 +331,8 @@ export async function POST(req: NextRequest) {
     // 텍스트 분석 및 데이터 추출
     let extractedData;
     if (version === 'v2') {
-      console.log(`🆕 V2 알고리즘 사용 (영역 기반 파싱)${retryMode ? ' [재시도 모드]' : ''}`);
-      extractedData = analyzeReviewTextV2(result, retryMode);
+      console.log(`🆕 V2 알고리즘 사용 (영역 기반 파싱)${retryMode ? ' [재시도 모드]' : ''}${forcedPlatform ? ` [플랫폼: ${forcedPlatform}]` : ''}`);
+      extractedData = analyzeReviewTextV2(result, retryMode, forcedPlatform);
     } else {
       console.log('📜 V1 알고리즘 사용 (기존 텍스트 기반)');
       extractedData = analyzeReviewText(baseForCleaner);
@@ -546,7 +547,7 @@ function analyzeReviewText(text: string) {
 }
 
 // V2: 영역 기반 파싱 (Vision API의 boundingBox 활용)
-function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefined, retryMode = false) {
+function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefined, retryMode = false, forcedPlatform = '') {
   const annotations = (visionResult?.textAnnotations as EntityAnnotation[] | undefined) || [];
 
   if (annotations.length <= 1) {
@@ -572,6 +573,20 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   const maxY = Math.max(...allYs, 1);
 
   console.log(`📐 이미지 높이: ${maxY}px`);
+
+  // 한글 플랫폼명 → 영문 코드 매핑
+  const normalizePlatform = (platform: string): string => {
+    const mapping: Record<string, string> = {
+      '네이버': 'naver',
+      '카카오맵': 'kakao',
+      '카카오': 'kakao',
+      '당근': 'danggeun',
+      '크몽': 'kmong',
+      '인스타그램': 'instagram',
+      '구글': 'google',
+    };
+    return mapping[platform] || platform.toLowerCase();
+  };
 
   // 🔍 플랫폼별 UI 패턴 감지
   const detectPlatform = (): string => {
@@ -617,7 +632,13 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     return 'naver';
   };
 
-  const detectedPlatform = detectPlatform();
+  // 사용자가 플랫폼을 지정한 경우 우선 사용, 없으면 자동 감지
+  const detectedPlatform = forcedPlatform
+    ? normalizePlatform(forcedPlatform)
+    : detectPlatform();
+
+  console.log(`🎯 최종 플랫폼: ${detectedPlatform}${forcedPlatform ? ' (사용자 지정)' : ' (자동 감지)'}`);
+
 
   // 📸 리뷰 이미지 영역 감지 (큰 Y축 갭이 있는 경우 = 이미지가 있음)
   const detectReviewImageBoundary = (): number => {

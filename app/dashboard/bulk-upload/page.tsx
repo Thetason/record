@@ -54,6 +54,9 @@ export default function BulkUploadPage() {
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('') // 이미지 업로드 전 플랫폼 선택
+  const [batchBusinessName, setBatchBusinessName] = useState<string>('') // 일괄 입력할 업체명
+  const [showBusinessNamePopup, setShowBusinessNamePopup] = useState(false) // 업체명 팝업 표시 여부
   const [files, setFiles] = useState<File[]>([])
   const [ocrResults, setOcrResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
@@ -103,8 +106,8 @@ export default function BulkUploadPage() {
     const initialEditing: Record<string, ReviewFormState> = {}
     initialResults.forEach(result => {
       initialEditing[result.id] = {
-        platform: '네이버',
-        business: '',
+        platform: selectedPlatform || '네이버', // 사용자가 선택한 플랫폼 사용
+        business: batchBusinessName || '', // 일괄 입력한 업체명 사용
         author: '익명',
         reviewDate: defaultDate,
         content: '',
@@ -166,6 +169,9 @@ export default function BulkUploadPage() {
       const formData = new FormData()
       formData.append('image', file)
       formData.append('version', ocrVersion) // OCR 버전 추가
+      if (selectedPlatform) {
+        formData.append('platform', selectedPlatform) // 사용자가 선택한 플랫폼 전달
+      }
 
       const response = await fetch('/api/ocr', {
         method: 'POST',
@@ -360,6 +366,19 @@ export default function BulkUploadPage() {
     })
 
     setTimeout(() => setCurrentProgress(0), 800)
+
+    // 첫 번째 성공한 리뷰 자동 확장
+    const firstSuccess = ocrResults.find(r => r.status === 'success')
+    if (firstSuccess) {
+      setActiveResultId(firstSuccess.id)
+    }
+
+    // 업체명 일괄 입력 팝업 표시
+    if (successCount > 0 && !batchBusinessName) {
+      setTimeout(() => {
+        setShowBusinessNamePopup(true)
+      }, 1000)
+    }
   }
 
   const activeResult = activeResultId ? ocrResults.find(r => r.id === activeResultId) : undefined
@@ -380,6 +399,26 @@ export default function BulkUploadPage() {
     if (index >= 0 && index < ocrResults.length) {
       setActiveResultId(ocrResults[index].id)
     }
+  }
+
+  // 일괄 업체명 적용 함수
+  const applyBatchBusinessName = (businessName: string) => {
+    setBatchBusinessName(businessName)
+    setEditingData(prev => {
+      const updated = { ...prev }
+      Object.keys(updated).forEach(key => {
+        updated[key] = {
+          ...updated[key],
+          business: businessName
+        }
+      })
+      return updated
+    })
+    setShowBusinessNamePopup(false)
+    toast({
+      title: '✅ 업체명 일괄 적용 완료',
+      description: `모든 리뷰에 "${businessName}"이(가) 적용되었습니다.`,
+    })
   }
 
   const handleSaveActiveReview = async () => {
@@ -531,8 +570,8 @@ export default function BulkUploadPage() {
                   1
                 </div>
                 <div>
-                  <p className="text-gray-900 font-medium">저장하고 싶은 리뷰를 스크린샷 찍어주세요.</p>
-                  <p className="text-sm text-gray-600 mt-1">네이버, 카카오맵, 인스타그램 등 어떤 플랫폼이든 OK!</p>
+                  <p className="text-gray-900 font-medium">어떤 플랫폼의 리뷰인가요?</p>
+                  <p className="text-sm text-gray-600 mt-1">아래에서 플랫폼을 먼저 선택해주세요 (정확한 인식을 위해 필수!)</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -540,8 +579,8 @@ export default function BulkUploadPage() {
                   2
                 </div>
                 <div>
-                  <p className="text-gray-900 font-medium">리뷰 이미지를 아래 박스에 올려주세요.</p>
-                  <p className="text-sm text-gray-600 mt-1">드래그 앤 드롭 또는 클릭하여 파일 선택</p>
+                  <p className="text-gray-900 font-medium">리뷰 이미지를 업로드하세요</p>
+                  <p className="text-sm text-gray-600 mt-1">스크린샷을 드래그하거나 클릭하여 파일 선택</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -549,16 +588,84 @@ export default function BulkUploadPage() {
                   3
                 </div>
                 <div>
-                  <p className="text-gray-900 font-medium">잠시 기다려주시면 리뷰를 저장하는 프로세스가 시작됩니다.</p>
-                  <p className="text-sm text-gray-600 mt-1">AI가 자동으로 리뷰 내용을 분석하고 저장해드려요 ✨</p>
+                  <p className="text-gray-900 font-medium">'자동 인식 시작' 버튼을 클릭하세요</p>
+                  <p className="text-sm text-gray-600 mt-1">AI가 자동으로 리뷰 내용을 분석하고 추출해드려요 ✨</p>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* 플랫폼 선택 */}
+        <Card className="mb-6 border-2 border-[#FF6B35]">
+          <CardHeader>
+            <CardTitle className="text-xl">1️⃣ 리뷰 플랫폼 선택</CardTitle>
+            <CardDescription>정확한 리뷰 추출을 위해 플랫폼을 먼저 선택해주세요</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {['네이버', '카카오맵', '당근', '크몽', '구글', '인스타그램', 'Re:cord', '기타'].map((platform) => (
+                <Button
+                  key={platform}
+                  variant={selectedPlatform === platform ? 'default' : 'outline'}
+                  className={`h-16 text-lg font-semibold transition-all ${
+                    selectedPlatform === platform
+                      ? 'bg-[#FF6B35] hover:bg-[#E55A2B] shadow-lg scale-105'
+                      : 'hover:border-[#FF6B35]'
+                  }`}
+                  onClick={() => setSelectedPlatform(platform)}
+                >
+                  {platform}
+                </Button>
+              ))}
+            </div>
+            {selectedPlatform && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  ✅ <span className="font-semibold">{selectedPlatform}</span> 플랫폼이 선택되었습니다
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 업체명 입력 (선택사항) */}
+        {selectedPlatform && (
+          <Card className="mb-6 border-2 border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-xl">2️⃣ 업체명 입력 (선택사항)</CardTitle>
+              <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input
+                placeholder="예: 오픈런 카페, 서울 맛집 등..."
+                value={batchBusinessName}
+                onChange={(e) => setBatchBusinessName(e.target.value)}
+                className="text-lg h-12"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                💡 나중에 일괄 입력하거나 개별 수정도 가능합니다
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
             {/* 업로드 영역 */}
-            {files.length === 0 ? (
+            {!selectedPlatform ? (
+              <Card className="mb-6 border-2 border-dashed border-gray-300">
+                <CardContent className="p-12 text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
+                    <ImageIcon className="w-10 h-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-500 mb-2">
+                    플랫폼을 먼저 선택해주세요
+                  </h3>
+                  <p className="text-gray-400">
+                    정확한 리뷰 인식을 위해 플랫폼 선택이 필요합니다
+                  </p>
+                </CardContent>
+              </Card>
+            ) : files.length === 0 ? (
               <Card className="mb-6 border-2 border-dashed hover:border-[#FF6B35] transition-all duration-300">
                 <CardContent className="p-12">
                   <div
@@ -623,7 +730,10 @@ export default function BulkUploadPage() {
                       <Button
                         onClick={processAllFiles}
                         disabled={isProcessing}
-                        className="bg-[#FF6B35] hover:bg-[#E55A2B] text-lg px-6"
+                        className="bg-[#FF6B35] hover:bg-[#E55A2B] text-lg px-6 animate-pulse shadow-lg shadow-orange-400/50"
+                        style={{
+                          animation: isProcessing ? 'none' : 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                        }}
                       >
                         {isProcessing ? (
                           <>
@@ -633,7 +743,7 @@ export default function BulkUploadPage() {
                         ) : (
                           <>
                             <CheckCircledIcon className="mr-2" />
-                            자동 인식 시작
+                            ✨ 자동 인식 시작 ✨
                           </>
                         )}
                       </Button>
@@ -1057,6 +1167,70 @@ export default function BulkUploadPage() {
                 </div>
               </CardContent>
             </Card>
+
+        {/* 업체명 일괄 입력 팝업 */}
+        {showBusinessNamePopup && (
+          <div
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowBusinessNamePopup(false)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  💼 업체명 일괄 입력
+                </h3>
+                <p className="text-sm text-gray-600">
+                  이 리뷰들은 같은 업체에서 받은 리뷰인가요?
+                </p>
+                <p className="text-sm text-gray-600">
+                  업체명을 입력하시면 모든 리뷰에 자동으로 적용됩니다.
+                </p>
+              </div>
+
+              <Input
+                placeholder="예: 오픈런 카페, 서울 맛집 등..."
+                value={batchBusinessName}
+                onChange={(e) => setBatchBusinessName(e.target.value)}
+                className="mb-4 text-lg h-12"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && batchBusinessName.trim()) {
+                    applyBatchBusinessName(batchBusinessName.trim())
+                  }
+                }}
+              />
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowBusinessNamePopup(false)}
+                >
+                  나중에 입력
+                </Button>
+                <Button
+                  className="flex-1 bg-[#FF6B35] hover:bg-[#E55A2B]"
+                  onClick={() => {
+                    if (batchBusinessName.trim()) {
+                      applyBatchBusinessName(batchBusinessName.trim())
+                    } else {
+                      toast({
+                        title: '⚠️ 업체명을 입력해주세요',
+                        description: '업체명을 입력하거나 "나중에 입력" 버튼을 눌러주세요.',
+                        variant: 'destructive',
+                      })
+                    }
+                  }}
+                  disabled={!batchBusinessName.trim()}
+                >
+                  일괄 적용
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
