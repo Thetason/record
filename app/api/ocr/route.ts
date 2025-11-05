@@ -786,11 +786,39 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       // 🚫 네이버 특화: "리뷰20", "사진40" 등 유저 통계 제외
       if (detectedPlatform === 'naver') {
         if (/^리뷰\s*\d+$/.test(text)) {
-          console.log(`🚫 유저 통계 제외: ${text}`);
+          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
           return false;
         }
         if (/^사진\s*\d+$/.test(text)) {
-          console.log(`🚫 유저 통계 제외: ${text}`);
+          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
+          return false;
+        }
+        if (/^방문자\s*\d*$/.test(text)) {
+          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
+          return false;
+        }
+        if (/^팔로우\s*\d*$/.test(text)) {
+          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
+          return false;
+        }
+      }
+
+      // 🚫 카카오맵 특화: "후기12", "별점평균1.8", "팔로워1" 등 유저 통계 제외
+      if (detectedPlatform === 'kakao') {
+        if (/^후기\s*\d+$/.test(text)) {
+          console.log(`🚫 [카카오] 유저 통계 제외: ${text}`);
+          return false;
+        }
+        if (/^별점평균\s*[\d.]+$/.test(text)) {
+          console.log(`🚫 [카카오] 유저 통계 제외: ${text}`);
+          return false;
+        }
+        if (/^팔로워\s*\d+$/.test(text)) {
+          console.log(`🚫 [카카오] 유저 통계 제외: ${text}`);
+          return false;
+        }
+        if (text === '위치기반') {
+          console.log(`🚫 [카카오] UI 링크 제외: ${text}`);
           return false;
         }
       }
