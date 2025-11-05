@@ -58,7 +58,7 @@ export default function BulkUploadPage() {
   const [ocrResults, setOcrResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [currentProgress, setCurrentProgress] = useState(0)
-  const [selectedTab, setSelectedTab] = useState<'image' | 'paste'>('image')
+  // 이미지 업로드만 사용
   const [activeResultId, setActiveResultId] = useState<string | null>(null)
   const [editingData, setEditingData] = useState<Record<string, ReviewFormState>>({})
   const [ocrVersion, setOcrVersion] = useState<'v1' | 'v2'>('v1') // OCR 알고리즘 버전
@@ -487,27 +487,6 @@ export default function BulkUploadPage() {
           </p>
         </div>
 
-        {/* 탭 선택 */}
-        <div className="flex gap-2 mb-8">
-          <Button
-            variant={selectedTab === 'image' ? 'default' : 'outline'}
-            onClick={() => setSelectedTab('image')}
-            className={selectedTab === 'image' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
-          >
-            <ImageIcon className="mr-2" />
-            이미지 업로드
-          </Button>
-          <Button
-            variant={selectedTab === 'paste' ? 'default' : 'outline'}
-            onClick={() => setSelectedTab('paste')}
-            className={selectedTab === 'paste' ? 'bg-[#FF6B35] hover:bg-[#E55A2B]' : ''}
-          >
-            직접 입력
-          </Button>
-        </div>
-
-        {selectedTab === 'image' ? (
-          <>
             {/* 업로드 영역 */}
             {files.length === 0 ? (
               <Card className="mb-6 border-2 border-dashed hover:border-[#FF6B35] transition-all duration-300">
@@ -1034,35 +1013,6 @@ export default function BulkUploadPage() {
                 </div>
               </CardContent>
             </Card>
-          </>
-        ) : (
-          /* 텍스트 직접 입력 */
-          <Card>
-            <CardHeader>
-              <CardTitle>텍스트 직접 입력</CardTitle>
-              <CardDescription>
-                리뷰 텍스트를 복사해서 붙여넣으세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <textarea
-                className="w-full h-64 p-4 border-2 border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35] transition-all"
-                placeholder="리뷰 텍스트를 여기에 붙여넣으세요...
-
-예시:
-⭐⭐⭐⭐⭐
-김서연 강사님 최고예요! 자세 하나하나 꼼꼼하게 봐주시고...
-- 정** 님, 2024.08.07"
-                onPaste={handlePasteText}
-              />
-              <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <p className="text-sm text-orange-900">
-                  💡 <strong>팁:</strong> 플랫폼, 평점, 작성자, 날짜 정보가 포함되면 자동으로 인식됩니다
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   )
