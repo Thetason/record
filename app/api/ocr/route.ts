@@ -573,6 +573,79 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log(`📐 이미지 높이: ${maxY}px`);
 
+  // 🔍 플랫폼별 UI 패턴 감지
+  const detectPlatform = (): string => {
+    const topTexts = fullLines.slice(0, 20).join(' ');
+
+    // 네이버 - "리뷰", "방문자", "사진" 조합 또는 "이웃추가" 등
+    if ((topTexts.includes('리뷰') && topTexts.includes('방문자')) ||
+        topTexts.includes('이웃추가') ||
+        topTexts.includes('플레이스')) {
+      console.log('🏷️ 플랫폼 감지: 네이버');
+      return 'naver';
+    }
+
+    // 카카오 - "별점", "리뷰", "친구" 조합
+    if ((topTexts.includes('별점') || topTexts.includes('★')) &&
+        (topTexts.includes('친구') || topTexts.includes('카카오'))) {
+      console.log('🏷️ 플랫폼 감지: 카카오');
+      return 'kakao';
+    }
+
+    // 당근 - "동네", "거래", "매너온도" 등
+    if (topTexts.includes('동네') || topTexts.includes('매너온도') || topTexts.includes('당근')) {
+      console.log('🏷️ 플랫폼 감지: 당근');
+      return 'danggeun';
+    }
+
+    // 인스타그램 - "좋아요", "댓글", "instagram" 등
+    if (topTexts.includes('좋아요') && topTexts.includes('댓글')) {
+      console.log('🏷️ 플랫폼 감지: 인스타그램');
+      return 'instagram';
+    }
+
+    console.log('🏷️ 플랫폼 감지: 알 수 없음 (기본: naver)');
+    return 'naver';
+  };
+
+  const detectedPlatform = detectPlatform();
+
+  // 📸 리뷰 이미지 영역 감지 (큰 Y축 갭이 있는 경우 = 이미지가 있음)
+  const detectReviewImageBoundary = (): number => {
+    const sortedAnnotations = annotations.slice(1)
+      .filter(a => a.boundingPoly?.vertices?.[0]?.y)
+      .sort((a, b) => {
+        const yA = a.boundingPoly!.vertices![0]!.y!;
+        const yB = b.boundingPoly!.vertices![0]!.y!;
+        return yA - yB;
+      });
+
+    // Y축 좌표 차이가 큰 갭 찾기 (이미지 영역으로 추정)
+    let maxGap = 0;
+    let gapStartY = 0;
+
+    for (let i = 1; i < sortedAnnotations.length; i++) {
+      const prevY = sortedAnnotations[i - 1].boundingPoly!.vertices![0]!.y!;
+      const currY = sortedAnnotations[i].boundingPoly!.vertices![0]!.y!;
+      const gap = currY - prevY;
+
+      // 150px 이상 갭이 있고, 상위 60% 영역 내에 있으면 이미지로 간주
+      if (gap > 150 && currY < maxY * 0.6 && gap > maxGap) {
+        maxGap = gap;
+        gapStartY = currY;
+      }
+    }
+
+    if (maxGap > 0) {
+      console.log(`📸 리뷰 이미지 감지: Y=${gapStartY}px (갭=${maxGap}px)`);
+      return gapStartY;
+    }
+
+    return 0;
+  };
+
+  const imageBottomY = detectReviewImageBoundary();
+
   // 영역별 분류 - 재시도 모드에서는 content 영역을 더 넓게 설정
   const regions = {
     header: [] as EntityAnnotation[],
@@ -672,43 +745,80 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   // 본문 추출
   // 일반 모드: 최소 필터링 (긴 리뷰 텍스트 최대한 보존)
   // 재시도 모드: 공격적 필터링 (뒷부분 쓰레기 데이터 제거)
-  
-  const contentWords = regions.content
-    .sort((a, b) => {
-      const yA = a.boundingPoly?.vertices?.[0]?.y ?? 0;
-      const yB = b.boundingPoly?.vertices?.[0]?.y ?? 0;
-      const xA = a.boundingPoly?.vertices?.[0]?.x ?? 0;
-      const xB = b.boundingPoly?.vertices?.[0]?.x ?? 0;
-      return yA !== yB ? yA - yB : xA - xB;
-    })
+
+  // 📸 네이버 특화: 이미지가 있으면 이미지 아래부터 리뷰 시작
+  const contentAnnotations = regions.content.filter(a => {
+    const y = a.boundingPoly?.vertices?.[0]?.y ?? 0;
+    // 이미지 감지된 경우, 이미지 아래 텍스트만 처리
+    if (imageBottomY > 0 && detectedPlatform === 'naver') {
+      return y >= imageBottomY;
+    }
+    return true;
+  });
+
+  const sortedContent = contentAnnotations.sort((a, b) => {
+    const yA = a.boundingPoly?.vertices?.[0]?.y ?? 0;
+    const yB = b.boundingPoly?.vertices?.[0]?.y ?? 0;
+    const xA = a.boundingPoly?.vertices?.[0]?.x ?? 0;
+    const xB = b.boundingPoly?.vertices?.[0]?.x ?? 0;
+    return yA !== yB ? yA - yB : xA - xB;
+  });
+
+  // ⛔ "접기" 키워드 이후 텍스트 제외
+  let stopAtIndex = -1;
+  sortedContent.forEach((a, idx) => {
+    const text = a.description ?? '';
+    if (text === '접기' && stopAtIndex === -1) {
+      stopAtIndex = idx;
+      console.log(`⛔ "접기" 감지 - 인덱스 ${idx}에서 본문 추출 중단`);
+    }
+  });
+
+  const finalContent = stopAtIndex !== -1
+    ? sortedContent.slice(0, stopAtIndex)
+    : sortedContent;
+
+  const contentWords = finalContent
     .map(a => a.description ?? '')
     .filter(text => {
       if (!text.trim()) return false;
-      
+
+      // 🚫 네이버 특화: "리뷰20", "사진40" 등 유저 통계 제외
+      if (detectedPlatform === 'naver') {
+        if (/^리뷰\s*\d+$/.test(text)) {
+          console.log(`🚫 유저 통계 제외: ${text}`);
+          return false;
+        }
+        if (/^사진\s*\d+$/.test(text)) {
+          console.log(`🚫 유저 통계 제외: ${text}`);
+          return false;
+        }
+      }
+
       // 이모지 제외 (공통)
       if (/^[🔥✅😊✨📈🗣️👦🧑‍🎓💼📚🎯💪👍❤️⭐🌟]/.test(text)) return false;
-      
+
       // 일반 모드: 최소 필터링 (리뷰 텍스트 최대한 보존)
       if (!retryMode) {
         // 상대 날짜 패턴만 제외
         if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
-        
+
         // "N 도움 돼요" 패턴만 제외
         if (/^\d+\s*도움\s*돼요?$/.test(text)) return false;
-        
+
         // UI 버튼 텍스트만 제외
-        if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|접기|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
-        
+        if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
+
         return true;
       }
-      
+
       // 재시도 모드: 공격적 필터링 (뒷부분 쓰레기 제거)
       // 1글자 단어 제거
       if (text.trim().length < 2) return false;
-      
+
       // 태그 키워드 제외
       if (text.length <= 10 && /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요|대요|네요|예요)$/.test(text)) return false;
-      
+
       // 상대 날짜 패턴
       if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
 
@@ -716,14 +826,14 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       if (/^\d+\s*도움\s*돼요?$/.test(text)) return false;
 
       // UI 버튼/링크 텍스트
-      if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|접기|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
+      if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
 
       // 순수 구두점이나 기호
       if (/^[.,·ㆍ\-_]+$/.test(text)) return false;
 
       // 숫자 + 단위 패턴 제외 (예: "5분", "10km")
       if (/^\d+[가-힣]{1,2}$/.test(text)) return false;
-      
+
       return true;
     });
 
@@ -737,16 +847,17 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     .replace(/\s{2,}/g, ' ')
     .trim();
 
-  console.log(`✅ V2 추출 결과${retryMode ? ' [재시도]' : ''}:`, { 
-    business, 
-    author, 
-    date, 
+  console.log(`✅ V2 추출 결과${retryMode ? ' [재시도]' : ''}:`, {
+    platform: detectedPlatform,
+    business,
+    author,
+    date,
     textLength: reviewText.length,
     preview: reviewText.slice(0, 100) + '...'
   });
 
   return {
-    platform: 'naver',
+    platform: detectedPlatform,
     date,
     author,
     business,
