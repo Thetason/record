@@ -59,6 +59,8 @@ export default function ReviewsPage() {
   })
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [selectedReviews, setSelectedReviews] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchReviews = useCallback(async () => {
     if (!session) return
@@ -205,6 +207,60 @@ export default function ReviewsPage() {
 
   const handleCancelDelete = () => {
     setDeletingReviewId(null)
+  }
+
+  const handleSelectReview = (reviewId: string) => {
+    setSelectedReviews(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(reviewId)) {
+        newSet.delete(reviewId)
+      } else {
+        newSet.add(reviewId)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedReviews.size === paginatedReviews.length) {
+      setSelectedReviews(new Set())
+    } else {
+      setSelectedReviews(new Set(paginatedReviews.map(r => r.id)))
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedReviews.size === 0) return
+    
+    if (!confirm(`선택한 ${selectedReviews.size}개의 리뷰를 삭제하시겠습니까?`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const deletePromises = Array.from(selectedReviews).map(id =>
+        fetch(`/api/reviews/${id}`, { method: 'DELETE' })
+      )
+      
+      await Promise.all(deletePromises)
+      
+      setReviews(reviews.filter(review => !selectedReviews.has(review.id)))
+      setSelectedReviews(new Set())
+      
+      toast({
+        title: '삭제 완료',
+        description: `${deletePromises.length}개의 리뷰가 삭제되었습니다.`
+      })
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast({
+        title: '삭제 실패',
+        description: '일부 리뷰 삭제에 실패했습니다.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleEdit = (id: string) => {
@@ -482,12 +538,51 @@ export default function ReviewsPage() {
           {/* Reviews List */}
           <Card>
             <CardHeader>
-              <CardTitle>
-                리뷰 목록 ({filteredReviews.length}개)
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  리뷰 목록 ({filteredReviews.length}개)
+                </CardTitle>
+                {selectedReviews.size > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600">
+                      {selectedReviews.size}개 선택됨
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedReviews(new Set())}
+                    >
+                      선택 해제
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteSelected}
+                      disabled={isDeleting}
+                    >
+                      <TrashIcon className="w-4 h-4 mr-2" />
+                      선택 삭제
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {filteredReviews.length > 0 && (
+                  <div className="flex items-center gap-3 pb-4 border-b">
+                    <input
+                      type="checkbox"
+                      checked={selectedReviews.size === paginatedReviews.length && paginatedReviews.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-[#FF6B35] border-gray-300 rounded focus:ring-[#FF6B35]"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      전체 선택 ({paginatedReviews.length}개)
+                    </span>
+                  </div>
+                )}
+                
                 {filteredReviews.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="text-gray-500 mb-4">
@@ -502,7 +597,15 @@ export default function ReviewsPage() {
                 ) : (
                   paginatedReviews.map((review) => (
                     <div key={review.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedReviews.has(review.id)}
+                          onChange={() => handleSelectReview(review.id)}
+                          className="mt-1 w-4 h-4 text-[#FF6B35] border-gray-300 rounded focus:ring-[#FF6B35]"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-3">
                           <div className="flex items-center gap-3">
                             <span className={`px-3 py-1 text-sm font-medium rounded-full ${getPlatformColor(review.platform)}`}>
@@ -556,45 +659,46 @@ export default function ReviewsPage() {
                           이미지 미리보기
                         </Button>
                       )}
-                        </div>
-                        
-                        <div className="flex items-center gap-2 ml-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(review.id)}
-                          >
-                            <Pencil1Icon className="w-4 h-4" />
-                          </Button>
-                          {deletingReviewId === review.id ? (
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(review.id)}
-                                className="text-red-600 hover:text-red-700 text-xs"
-                              >
-                                확인
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleCancelDelete}
-                                className="text-gray-600 hover:text-gray-700 text-xs"
-                              >
-                                취소
-                              </Button>
-                            </div>
-                          ) : (
+                          </div>
+                          
+                          <div className="flex items-center gap-2 ml-4">
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDeleteClick(review.id)}
-                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleEdit(review.id)}
                             >
-                              <TrashIcon className="w-4 h-4" />
+                              <Pencil1Icon className="w-4 h-4" />
                             </Button>
-                          )}
+                            {deletingReviewId === review.id ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDelete(review.id)}
+                                  className="text-red-600 hover:text-red-700 text-xs"
+                                >
+                                  확인
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleCancelDelete}
+                                  className="text-gray-600 hover:text-gray-700 text-xs"
+                                >
+                                  취소
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteClick(review.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
