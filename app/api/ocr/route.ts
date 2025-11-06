@@ -659,9 +659,9 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       const currY = sortedAnnotations[i].boundingPoly!.vertices![0]!.y!;
       const gap = currY - prevY;
 
-      // 200px 이상 갭이 있고, 상위 35% 영역 내에 있으면 이미지로 간주 (네이버는 이미지가 항상 상단)
-      // 갭이 너무 작으면 사진 없는 리뷰에서 오감지 발생
-      if (gap > 200 && currY < maxY * 0.35 && gap > maxGap) {
+      // 300px 이상 갭이 있고, 상위 30% 영역 내에 있으면 이미지로 간주 (네이버는 이미지가 항상 상단)
+      // 매우 보수적으로 설정하여 사진 없는 리뷰에서 오감지 방지
+      if (gap > 300 && currY < maxY * 0.3 && gap > maxGap) {
         maxGap = gap;
         gapStartY = currY;
       }
@@ -912,208 +912,131 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     ? sortedContent.slice(0, stopAtIndex)
     : sortedContent;
 
-  const contentWords = finalContent
-    .map(a => a.description ?? '')
-    .filter(text => {
-      if (!text.trim()) return false;
+  // 🎯 BoundingBox 기반 스마트 띄어쓰기
+  // 필터링된 단어들을 BoundingBox 좌표를 활용해 자연스럽게 연결
+  let reviewText = '';
+  let lastAnnotation: any = null; // 마지막으로 추가된 annotation 추적
 
-      // 🚫 네이버 특화: "리뷰20", "사진40" 등 유저 통계 제외
-      if (detectedPlatform === 'naver') {
-        // "리뷰 4 · 사진 4" 패턴 제외
-        if (/^리뷰\s*\d+\s*[·•]\s*사진\s*\d+$/.test(text)) {
-          console.log(`🚫 [네이버] 리뷰/사진 통계 제외: ${text}`);
-          return false;
+  for (let i = 0; i < finalContent.length; i++) {
+    const annotation = finalContent[i];
+    const text = annotation.description ?? '';
+
+    // 필터링 - 제외할 텍스트는 건너뛰기
+    if (!text.trim()) continue;
+
+    // 네이버 필터링
+    if (detectedPlatform === 'naver') {
+      if (/^리뷰\s*\d+\s*[·•]\s*사진\s*\d+$/.test(text)) continue;
+      if (text.trim() === '리뷰') continue;
+      if (text.trim() === '사진') continue;
+      if (/^\d{1,3}$/.test(text.trim())) continue;
+      if (/^[·•\s]+$/.test(text)) continue;
+      if (/^\d{2,4}\.\d{1,2}\.\d{1,2}\.[월화수목금토일]?$/.test(text)) continue;
+      if (/^\d+번째\s*방문$/.test(text)) continue;
+      if (/^(영수증|반응\s*남기기)$/.test(text)) continue;
+      if (/^리뷰\s*\d+$/.test(text)) continue;
+      if (/^사진\s*\d+$/.test(text)) continue;
+      if (/^방문자\s*\d*$/.test(text)) continue;
+      if (/^팔로우\s*\d*$/.test(text)) continue;
+    }
+
+    // 카카오 필터링
+    if (detectedPlatform === 'kakao') {
+      if (/^\d{4}\.\d{2}\.\d{2}\.$/.test(text)) continue;
+      if (/^후기\s*\d+$/.test(text)) continue;
+      if (/^별점평균\s*[\d.]+$/.test(text)) continue;
+      if (/^팔로워\s*\d+$/.test(text)) continue;
+      if (text === '위치기반') continue;
+    }
+
+    // 크몽 필터링
+    if (detectedPlatform === 'kmong') {
+      if (/^[가-힣][*]{4,}$/.test(text)) continue;
+      if (/^\d{2}\.\d{2}\.\d{2}\s*\d{0,2}:?\d{0,2}$/.test(text)) continue;
+      if (/^작업일\s*[:：]?/.test(text)) continue;
+      if (/^주문\s*금액\s*[:：]?/.test(text)) continue;
+      if (/^\d+만원\s*(미만|이상|~)/.test(text)) continue;
+      if (/^\d+(시간|일|주|개월)이내$/.test(text)) continue;
+    }
+
+    // 당근 필터링
+    if (detectedPlatform === 'danggeun') {
+      if (/^\d+(년|개월|일|주)\s*전$/.test(text)) continue;
+      if (/^후기\s*\d+/.test(text)) continue;
+      if (/^도움돼요\s*\d*$/.test(text)) continue;
+      if (/^(유용한순|최신순|오래된순)/.test(text)) continue;
+      if (/^평균\s*별점\s*[\d.]+$/.test(text)) continue;
+      if (/^(홈|소식|전체|조혜어|채팅\s*문의|전체\s*문의)$/.test(text)) continue;
+    }
+
+    // 공통 필터링
+    if (/^[🔥✅😊✨📈🗣️👦🧑‍🎓💼📚🎯💪👍❤️⭐🌟]/.test(text)) continue;
+
+    if (!retryMode) {
+      if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) continue;
+      if (/^\d+\s*도움\s*돼요?$/.test(text)) continue;
+      if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) continue;
+    } else {
+      if (text.trim().length < 2) continue;
+      if (text.length <= 10 && /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요|대요|네요|예요)$/.test(text)) continue;
+      if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) continue;
+      if (/^\d+\s*도움\s*돼요?$/.test(text)) continue;
+      if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) continue;
+      if (/^[.,·ㆍ\-_]+$/.test(text)) continue;
+      if (/^\d+[가-힣]{1,2}$/.test(text)) continue;
+    }
+
+    // 통과한 텍스트만 처리
+    if (reviewText.length === 0) {
+      // 첫 단어는 그대로 추가
+      reviewText = text;
+      lastAnnotation = annotation;
+    } else {
+      // 이전 단어와의 간격 계산
+      const prevBoundingBox = lastAnnotation?.boundingPoly?.vertices;
+      const currBoundingBox = annotation.boundingPoly?.vertices;
+
+      if (prevBoundingBox && currBoundingBox) {
+        // 이전 단어의 오른쪽 끝 X 좌표
+        const prevEndX = Math.max(
+          prevBoundingBox[1]?.x ?? 0,
+          prevBoundingBox[2]?.x ?? 0
+        );
+        // 현재 단어의 왼쪽 시작 X 좌표
+        const currStartX = Math.min(
+          currBoundingBox[0]?.x ?? 0,
+          currBoundingBox[3]?.x ?? 0
+        );
+        // 간격
+        const gap = currStartX - prevEndX;
+
+        // 이전 단어의 너비 계산
+        const prevStartX = Math.min(
+          prevBoundingBox[0]?.x ?? 0,
+          prevBoundingBox[3]?.x ?? 0
+        );
+        const prevWidth = prevEndX - prevStartX;
+
+        // 이전 단어의 평균 문자 너비 (한글/영문 대략 계산)
+        const prevTextLength = (lastAnnotation.description ?? '').length || 1;
+        const avgCharWidth = prevWidth / prevTextLength;
+
+        // 간격이 평균 문자 너비의 30% 이상이면 띄어쓰기
+        if (gap > avgCharWidth * 0.3) {
+          reviewText += ' ' + text;
+        } else {
+          reviewText += text;
         }
-        // "리뷰" 단독 단어 제외
-        if (text.trim() === '리뷰') {
-          console.log(`🚫 [네이버] "리뷰" 단어 제외: ${text}`);
-          return false;
-        }
-        // "사진" 단독 단어 제외
-        if (text.trim() === '사진') {
-          console.log(`🚫 [네이버] "사진" 단어 제외: ${text}`);
-          return false;
-        }
-        // 숫자만 있고 3자리 이하인 경우 제외 (통계일 가능성)
-        if (/^\d{1,3}$/.test(text.trim())) {
-          console.log(`🚫 [네이버] 짧은 숫자 제외: ${text}`);
-          return false;
-        }
-        // "·" 또는 "•" 구분자만 있는 경우 제외
-        if (/^[·•\s]+$/.test(text)) {
-          console.log(`🚫 [네이버] 구분자 제외: ${text}`);
-          return false;
-        }
-        // 날짜 패턴 제외 (예: "24.12.9.월", "2024.12.09.")
-        if (/^\d{2,4}\.\d{1,2}\.\d{1,2}\.[월화수목금토일]?$/.test(text)) {
-          console.log(`🚫 [네이버] 날짜 텍스트 제외: ${text}`);
-          return false;
-        }
-        // "N번째 방문" 패턴
-        if (/^\d+번째\s*방문$/.test(text)) {
-          console.log(`🚫 [네이버] 메타 정보 제외: ${text}`);
-          return false;
-        }
-        // "영수증", "반응 남기기" 등
-        if (/^(영수증|반응\s*남기기)$/.test(text)) {
-          console.log(`🚫 [네이버] UI 요소 제외: ${text}`);
-          return false;
-        }
-        if (/^리뷰\s*\d+$/.test(text)) {
-          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
-          return false;
-        }
-        if (/^사진\s*\d+$/.test(text)) {
-          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
-          return false;
-        }
-        if (/^방문자\s*\d*$/.test(text)) {
-          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
-          return false;
-        }
-        if (/^팔로우\s*\d*$/.test(text)) {
-          console.log(`🚫 [네이버] 유저 통계 제외: ${text}`);
-          return false;
-        }
+      } else {
+        // BoundingBox 정보가 없으면 기본 띄어쓰기
+        reviewText += ' ' + text;
       }
 
-      // 🚫 카카오맵 특화: "후기12", "별점평균1.8", "팔로워1" 등 유저 통계 제외
-      if (detectedPlatform === 'kakao') {
-        // 날짜 텍스트 제외 (date 필드에만 저장, 본문에서는 제외)
-        if (/^\d{4}\.\d{2}\.\d{2}\.$/.test(text)) {
-          console.log(`🚫 [카카오] 날짜 텍스트 제외: ${text}`);
-          return false;
-        }
-        if (/^후기\s*\d+$/.test(text)) {
-          console.log(`🚫 [카카오] 유저 통계 제외: ${text}`);
-          return false;
-        }
-        if (/^별점평균\s*[\d.]+$/.test(text)) {
-          console.log(`🚫 [카카오] 유저 통계 제외: ${text}`);
-          return false;
-        }
-        if (/^팔로워\s*\d+$/.test(text)) {
-          console.log(`🚫 [카카오] 유저 통계 제외: ${text}`);
-          return false;
-        }
-        if (text === '위치기반') {
-          console.log(`🚫 [카카오] UI 링크 제외: ${text}`);
-          return false;
-        }
-      }
+      lastAnnotation = annotation; // 현재 annotation을 마지막으로 추가된 것으로 기록
+    }
+  }
 
-      // 🚫 크몽 특화: "작업일:", "주문 금액:" 등 footer 메타 정보 제외
-      if (detectedPlatform === 'kmong') {
-        // 닉네임 텍스트 제외 (author 필드에만 저장)
-        if (/^[가-힣][*]{4,}$/.test(text)) {
-          console.log(`🚫 [크몽] 닉네임 텍스트 제외: ${text}`);
-          return false;
-        }
-        // 날짜 텍스트 제외 (YY.MM.DD HH:MM 형식)
-        if (/^\d{2}\.\d{2}\.\d{2}\s*\d{0,2}:?\d{0,2}$/.test(text)) {
-          console.log(`🚫 [크몽] 날짜 텍스트 제외: ${text}`);
-          return false;
-        }
-        // "작업일:", "작업일"
-        if (/^작업일\s*[:：]?/.test(text)) {
-          console.log(`🚫 [크몽] Footer 메타 제외: ${text}`);
-          return false;
-        }
-        // "주문 금액:", "주문 금액"
-        if (/^주문\s*금액\s*[:：]?/.test(text)) {
-          console.log(`🚫 [크몽] Footer 메타 제외: ${text}`);
-          return false;
-        }
-        // "5만원 미만", "5만원 ~ 10만원", "10만원 이상"
-        if (/^\d+만원\s*(미만|이상|~)/.test(text)) {
-          console.log(`🚫 [크몽] 금액 정보 제외: ${text}`);
-          return false;
-        }
-        // "24시간이내", "2일이내", "1주이내"
-        if (/^\d+(시간|일|주|개월)이내$/.test(text)) {
-          console.log(`🚫 [크몽] 작업기간 제외: ${text}`);
-          return false;
-        }
-      }
-
-      // 🚫 당근 특화: 상대 날짜, 유저 통계, UI 버튼 등 제외
-      if (detectedPlatform === 'danggeun') {
-        // 상대 날짜 패턴: "2년 전", "2개월 전", "3일 전", "1주 전"
-        if (/^\d+(년|개월|일|주)\s*전$/.test(text)) {
-          console.log(`🚫 [당근] 날짜 텍스트 제외: ${text}`);
-          return false;
-        }
-        // 유저 통계: "후기 8", "후기8"
-        if (/^후기\s*\d+/.test(text)) {
-          console.log(`🚫 [당근] 후기 통계 제외: ${text}`);
-          return false;
-        }
-        // UI 버튼: "도움돼요", "도움돼요 1"
-        if (/^도움돼요\s*\d*$/.test(text)) {
-          console.log(`🚫 [당근] UI 버튼 제외: ${text}`);
-          return false;
-        }
-        // 필터 옵션: "유용한순", "최신순", "오래된순"
-        if (/^(유용한순|최신순|오래된순)/.test(text)) {
-          console.log(`🚫 [당근] 필터 옵션 제외: ${text}`);
-          return false;
-        }
-        // 별점 평균: "평균 별점 5.0"
-        if (/^평균\s*별점\s*[\d.]+$/.test(text)) {
-          console.log(`🚫 [당근] 별점 평균 제외: ${text}`);
-          return false;
-        }
-        // UI 요소: "조혜어", "소식", "홈", "전체 문의", "채팅 문의"
-        if (/^(홈|소식|전체|조혜어|채팅\s*문의|전체\s*문의)$/.test(text)) {
-          console.log(`🚫 [당근] UI 요소 제외: ${text}`);
-          return false;
-        }
-      }
-
-      // 이모지 제외 (공통)
-      if (/^[🔥✅😊✨📈🗣️👦🧑‍🎓💼📚🎯💪👍❤️⭐🌟]/.test(text)) return false;
-
-      // 일반 모드: 최소 필터링 (리뷰 텍스트 최대한 보존)
-      if (!retryMode) {
-        // 상대 날짜 패턴만 제외
-        if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
-
-        // "N 도움 돼요" 패턴만 제외
-        if (/^\d+\s*도움\s*돼요?$/.test(text)) return false;
-
-        // UI 버튼 텍스트만 제외
-        if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
-
-        return true;
-      }
-
-      // 재시도 모드: 공격적 필터링 (뒷부분 쓰레기 제거)
-      // 1글자 단어 제거
-      if (text.trim().length < 2) return false;
-
-      // 태그 키워드 제외
-      if (text.length <= 10 && /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요|대요|네요|예요)$/.test(text)) return false;
-
-      // 상대 날짜 패턴
-      if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) return false;
-
-      // "N 도움 돼요" 패턴
-      if (/^\d+\s*도움\s*돼요?$/.test(text)) return false;
-
-      // UI 버튼/링크 텍스트
-      if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) return false;
-
-      // 순수 구두점이나 기호
-      if (/^[.,·ㆍ\-_]+$/.test(text)) return false;
-
-      // 숫자 + 단위 패턴 제외 (예: "5분", "10km")
-      if (/^\d+[가-힣]{1,2}$/.test(text)) return false;
-
-      return true;
-    });
-
-  // 띄어쓰기로 연결하되, 구두점 앞뒤 공백 제거
-  let reviewText = contentWords.join(' ').trim();
+  reviewText = reviewText.trim();
   
   // 후처리
   reviewText = reviewText
