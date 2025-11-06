@@ -641,7 +641,14 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
 
   // 📸 리뷰 이미지 영역 감지 (큰 Y축 갭이 있는 경우 = 이미지가 있음)
+  // ⚠️ 네이버는 이미지 감지 비활성화 (오감지로 인한 본문 손실 방지)
   const detectReviewImageBoundary = (): number => {
+    // 네이버 플랫폼은 이미지 감지 스킵
+    if (detectedPlatform === 'naver') {
+      console.log(`⏭️ [네이버] 이미지 감지 비활성화 (필터링으로 처리)`);
+      return 0;
+    }
+
     const sortedAnnotations = annotations.slice(1)
       .filter(a => a.boundingPoly?.vertices?.[0]?.y)
       .sort((a, b) => {
@@ -659,8 +666,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       const currY = sortedAnnotations[i].boundingPoly!.vertices![0]!.y!;
       const gap = currY - prevY;
 
-      // 300px 이상 갭이 있고, 상위 30% 영역 내에 있으면 이미지로 간주 (네이버는 이미지가 항상 상단)
-      // 매우 보수적으로 설정하여 사진 없는 리뷰에서 오감지 방지
+      // 300px 이상 갭이 있고, 상위 30% 영역 내에 있으면 이미지로 간주
       if (gap > 300 && currY < maxY * 0.3 && gap > maxGap) {
         maxGap = gap;
         gapStartY = currY;
@@ -917,15 +923,32 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   let reviewText = '';
   let lastAnnotation: any = null; // 마지막으로 추가된 annotation 추적
 
+  // 상위 10% 영역 Y 좌표 계산 (프로필/메타데이터 영역)
+  const topThresholdY = maxY * 0.1;
+
   for (let i = 0; i < finalContent.length; i++) {
     const annotation = finalContent[i];
     const text = annotation.description ?? '';
+    const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
 
     // 필터링 - 제외할 텍스트는 건너뛰기
     if (!text.trim()) continue;
 
     // 네이버 필터링
     if (detectedPlatform === 'naver') {
+      // 상위 10% 영역 제외 (프로필/메타데이터)
+      if (y < topThresholdY) continue;
+
+      // 대문자만 있는 텍스트 (로고, 브랜드명)
+      if (/^[A-Z\s]+$/.test(text) && text.length > 1) continue;
+
+      // 프로필명 패턴 (한글+숫자 조합)
+      if (/^[가-힣]+\d+$/.test(text)) continue;
+
+      // 단독 영어 단어 (짧은 것)
+      if (/^[A-Za-z]+$/.test(text) && text.length <= 15) continue;
+
+      // 기존 필터들
       if (/^리뷰\s*\d+\s*[·•]\s*사진\s*\d+$/.test(text)) continue;
       if (text.trim() === '리뷰') continue;
       if (text.trim() === '사진') continue;
@@ -938,6 +961,8 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       if (/^사진\s*\d+$/.test(text)) continue;
       if (/^방문자\s*\d*$/.test(text)) continue;
       if (/^팔로우\s*\d*$/.test(text)) continue;
+      if (/^팔로잉$/.test(text)) continue;
+      if (text === '접기') continue;
     }
 
     // 카카오 필터링
@@ -1021,8 +1046,8 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
         const prevTextLength = (lastAnnotation.description ?? '').length || 1;
         const avgCharWidth = prevWidth / prevTextLength;
 
-        // 간격이 평균 문자 너비의 30% 이상이면 띄어쓰기
-        if (gap > avgCharWidth * 0.3) {
+        // 간격이 평균 문자 너비의 50% 이상이면 띄어쓰기 (기존 30%에서 상향)
+        if (gap > avgCharWidth * 0.5) {
           reviewText += ' ' + text;
         } else {
           reviewText += text;
