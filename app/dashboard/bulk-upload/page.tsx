@@ -60,6 +60,7 @@ export default function BulkUploadPage() {
   const [showBusinessNamePopup, setShowBusinessNamePopup] = useState(false) // 업체명 팝업 표시 여부
   const [showPlatformEdit, setShowPlatformEdit] = useState(false) // 플랫폼 편집 모드
   const [showBusinessEdit, setShowBusinessEdit] = useState(false) // 업체명 편집 모드
+  const [businessInputTimer, setBusinessInputTimer] = useState<NodeJS.Timeout | null>(null) // 업체명 입력 타이머
   const [files, setFiles] = useState<File[]>([])
   const [ocrResults, setOcrResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
@@ -608,10 +609,11 @@ export default function BulkUploadPage() {
           </CardContent>
         </Card>
 
-        {/* 플랫폼 선택 */}
-        <Card className="mb-6 border-2 border-[#FF6B35]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        {/* 플랫폼 선택 & 업체명 입력 - 한 줄로 배치 */}
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          {/* 플랫폼 선택 */}
+          <Card className="border-2 border-[#FF6B35]">
+            <CardHeader>
               <div>
                 <CardTitle className="text-xl">1️⃣ 리뷰 플랫폼 선택</CardTitle>
                 {!selectedPlatform || showPlatformEdit ? (
@@ -635,95 +637,117 @@ export default function BulkUploadPage() {
                   </div>
                 )}
               </div>
-            </div>
-          </CardHeader>
-          {(!selectedPlatform || showPlatformEdit) && (
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['네이버', '카카오맵', '당근', '크몽', '구글', '인스타그램', 'Re:cord', '기타'].map((platform) => (
-                  <Button
-                    key={platform}
-                    variant={selectedPlatform === platform ? 'default' : 'outline'}
-                    className={`h-16 text-lg font-semibold transition-all ${
-                      selectedPlatform === platform
-                        ? 'bg-[#FF6B35] hover:bg-[#E55A2B] shadow-lg scale-105'
-                        : 'hover:border-[#FF6B35]'
-                    }`}
-                    onClick={() => {
-                      setSelectedPlatform(platform)
-                      setShowPlatformEdit(false)
-                    }}
-                  >
-                    {platform}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-
-        {/* 업체명 입력 (선택사항) */}
-        {selectedPlatform && (
-          <Card className="mb-6 border-2 border-gray-200">
-            <CardHeader>
-              <div>
-                <CardTitle className="text-xl">2️⃣ 업체명 입력 (선택사항)</CardTitle>
-                {!batchBusinessName || showBusinessEdit ? (
-                  <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
-                ) : (
-                  <div className="mt-4">
-                    <div className="inline-flex items-center gap-3 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center animate-in fade-in zoom-in duration-300">
-                          <CheckCircledIcon className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="font-bold text-gray-900 text-base">{batchBusinessName}</span>
-                      </div>
-                      <button
-                        onClick={() => setShowBusinessEdit(!showBusinessEdit)}
-                        className="ml-2 text-sm text-[#FF6B35] hover:text-[#E55A2B] transition-colors font-medium"
-                      >
-                        수정
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
             </CardHeader>
-            {(!batchBusinessName || showBusinessEdit) && (
+            {(!selectedPlatform || showPlatformEdit) && (
               <CardContent>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="예: 클라우딘뮤직, 서울 맛집 등..."
-                    value={batchBusinessName}
-                    onChange={(e) => setBatchBusinessName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && batchBusinessName.trim()) {
-                        setShowBusinessEdit(false)
-                      }
-                    }}
-                    className="flex-1 h-12 text-base border-gray-200 focus:border-[#FF6B35] focus:ring-[#FF6B35] rounded-xl"
-                  />
-                  <Button
-                    onClick={() => {
-                      if (batchBusinessName.trim()) {
-                        setShowBusinessEdit(false)
-                      }
-                    }}
-                    disabled={!batchBusinessName.trim()}
-                    className="h-12 px-8 bg-[#FF6B35] hover:bg-[#E55A2B] disabled:bg-gray-200 disabled:text-gray-400 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-                  >
-                    적용
-                  </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  {['네이버', '카카오맵', '당근', '크몽', '구글', '인스타그램', 'Re:cord', '기타'].map((platform) => (
+                    <Button
+                      key={platform}
+                      variant={selectedPlatform === platform ? 'default' : 'outline'}
+                      className={`h-12 text-sm font-semibold transition-all ${
+                        selectedPlatform === platform
+                          ? 'bg-[#FF6B35] hover:bg-[#E55A2B] shadow-lg scale-105'
+                          : 'hover:border-[#FF6B35]'
+                      }`}
+                      onClick={() => {
+                        setSelectedPlatform(platform)
+                        setShowPlatformEdit(false)
+                      }}
+                    >
+                      {platform}
+                    </Button>
+                  ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
-                  <span>💡</span>
-                  <span>입력 후 "적용" 버튼을 누르거나 Enter 키를 눌러주세요</span>
-                </p>
               </CardContent>
             )}
           </Card>
-        )}
+
+          {/* 업체명 입력 (선택사항) */}
+          {selectedPlatform && (
+            <Card className="border-2 border-gray-200">
+              <CardHeader>
+                <div>
+                  <CardTitle className="text-xl">2️⃣ 업체명 입력 (선택사항)</CardTitle>
+                  {!batchBusinessName || showBusinessEdit ? (
+                    <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
+                  ) : (
+                    <div className="mt-4">
+                      <div className="inline-flex items-center gap-3 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center animate-in fade-in zoom-in duration-300">
+                            <CheckCircledIcon className="w-4 h-4 text-white" />
+                          </div>
+                          <span className="font-bold text-gray-900 text-base">{batchBusinessName}</span>
+                        </div>
+                        <button
+                          onClick={() => setShowBusinessEdit(!showBusinessEdit)}
+                          className="ml-2 text-sm text-[#FF6B35] hover:text-[#E55A2B] transition-colors font-medium"
+                        >
+                          수정
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              {(!batchBusinessName || showBusinessEdit) && (
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="예: 클라우딘뮤직, 서울 맛집 등..."
+                      value={batchBusinessName}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setBatchBusinessName(value)
+
+                        // 기존 타이머 제거
+                        if (businessInputTimer) {
+                          clearTimeout(businessInputTimer)
+                        }
+
+                        // 5초 후 자동 확정
+                        if (value.trim()) {
+                          const timer = setTimeout(() => {
+                            setShowBusinessEdit(false)
+                          }, 5000)
+                          setBusinessInputTimer(timer)
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && batchBusinessName.trim()) {
+                          if (businessInputTimer) {
+                            clearTimeout(businessInputTimer)
+                          }
+                          setShowBusinessEdit(false)
+                        }
+                      }}
+                      className="flex-1 h-12 text-base border-gray-200 focus:border-[#FF6B35] focus:ring-[#FF6B35] rounded-xl"
+                    />
+                    <Button
+                      onClick={() => {
+                        if (batchBusinessName.trim()) {
+                          if (businessInputTimer) {
+                            clearTimeout(businessInputTimer)
+                          }
+                          setShowBusinessEdit(false)
+                        }
+                      }}
+                      disabled={!batchBusinessName.trim()}
+                      className="h-12 px-8 bg-[#FF6B35] hover:bg-[#E55A2B] disabled:bg-gray-200 disabled:text-gray-400 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                    >
+                      적용
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
+                    <span>💡</span>
+                    <span>Enter 키 또는 5초간 입력이 없으면 자동 적용됩니다</span>
+                  </p>
+                </CardContent>
+              )}
+            </Card>
+          )}
+        </div>
 
             {/* 업로드 영역 */}
             {!selectedPlatform ? (
