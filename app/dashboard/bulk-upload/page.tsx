@@ -620,14 +620,14 @@ export default function BulkUploadPage() {
                   <div className="mt-4">
                     <div className="inline-flex items-center gap-3 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
                       <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center animate-in fade-in zoom-in duration-300">
+                        <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center animate-in fade-in zoom-in duration-300">
                           <CheckCircledIcon className="w-4 h-4 text-white" />
                         </div>
                         <span className="font-bold text-gray-900 text-base">{selectedPlatform}</span>
                       </div>
                       <button
                         onClick={() => setShowPlatformEdit(!showPlatformEdit)}
-                        className="ml-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                        className="ml-2 text-sm text-[#FF6B35] hover:text-[#E55A2B] transition-colors font-medium"
                       >
                         변경
                       </button>
@@ -674,14 +674,14 @@ export default function BulkUploadPage() {
                   <div className="mt-4">
                     <div className="inline-flex items-center gap-3 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
                       <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center animate-in fade-in zoom-in duration-300">
+                        <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center animate-in fade-in zoom-in duration-300">
                           <CheckCircledIcon className="w-4 h-4 text-white" />
                         </div>
                         <span className="font-bold text-gray-900 text-base">{batchBusinessName}</span>
                       </div>
                       <button
                         onClick={() => setShowBusinessEdit(!showBusinessEdit)}
-                        className="ml-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                        className="ml-2 text-sm text-[#FF6B35] hover:text-[#E55A2B] transition-colors font-medium"
                       >
                         수정
                       </button>
@@ -702,7 +702,7 @@ export default function BulkUploadPage() {
                         setShowBusinessEdit(false)
                       }
                     }}
-                    className="flex-1 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                    className="flex-1 h-12 text-base border-gray-200 focus:border-[#FF6B35] focus:ring-[#FF6B35] rounded-xl"
                   />
                   <Button
                     onClick={() => {
@@ -711,7 +711,7 @@ export default function BulkUploadPage() {
                       }
                     }}
                     disabled={!batchBusinessName.trim()}
-                    className="h-12 px-8 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="h-12 px-8 bg-[#FF6B35] hover:bg-[#E55A2B] disabled:bg-gray-200 disabled:text-gray-400 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
                   >
                     적용
                   </Button>
