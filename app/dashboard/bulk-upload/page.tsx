@@ -617,22 +617,21 @@ export default function BulkUploadPage() {
                 {!selectedPlatform || showPlatformEdit ? (
                   <CardDescription>정확한 리뷰 추출을 위해 플랫폼을 먼저 선택해주세요</CardDescription>
                 ) : (
-                  <div className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border-l-4 border-[#FF6B35]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#FF6B35] flex items-center justify-center">
-                        <CheckCircledIcon className="w-4 h-4 text-white" />
+                  <div className="mt-4">
+                    <div className="inline-flex items-center gap-3 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center animate-in fade-in zoom-in duration-300">
+                          <CheckCircledIcon className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="font-bold text-gray-900 text-base">{selectedPlatform}</span>
                       </div>
-                      <span className="font-bold text-orange-900 text-lg">{selectedPlatform}</span>
+                      <button
+                        onClick={() => setShowPlatformEdit(!showPlatformEdit)}
+                        className="ml-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                      >
+                        변경
+                      </button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto text-orange-700 hover:text-orange-900 hover:bg-orange-100"
-                      onClick={() => setShowPlatformEdit(!showPlatformEdit)}
-                    >
-                      <Pencil1Icon className="w-3 h-3 mr-1" />
-                      변경
-                    </Button>
                   </div>
                 )}
               </div>
@@ -672,29 +671,28 @@ export default function BulkUploadPage() {
                 {!batchBusinessName || showBusinessEdit ? (
                   <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
                 ) : (
-                  <div className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border-l-4 border-emerald-500">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <CheckCircledIcon className="w-4 h-4 text-white" />
+                  <div className="mt-4">
+                    <div className="inline-flex items-center gap-3 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center animate-in fade-in zoom-in duration-300">
+                          <CheckCircledIcon className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="font-bold text-gray-900 text-base">{batchBusinessName}</span>
                       </div>
-                      <span className="font-bold text-emerald-900 text-lg">{batchBusinessName}</span>
+                      <button
+                        onClick={() => setShowBusinessEdit(!showBusinessEdit)}
+                        className="ml-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                      >
+                        수정
+                      </button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100"
-                      onClick={() => setShowBusinessEdit(!showBusinessEdit)}
-                    >
-                      <Pencil1Icon className="w-3 h-3 mr-1" />
-                      수정
-                    </Button>
                   </div>
                 )}
               </div>
             </CardHeader>
             {(!batchBusinessName || showBusinessEdit) && (
               <CardContent>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <Input
                     placeholder="예: 클라우딘뮤직, 서울 맛집 등..."
                     value={batchBusinessName}
@@ -704,7 +702,7 @@ export default function BulkUploadPage() {
                         setShowBusinessEdit(false)
                       }
                     }}
-                    className="text-lg h-12"
+                    className="flex-1 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
                   />
                   <Button
                     onClick={() => {
@@ -713,13 +711,14 @@ export default function BulkUploadPage() {
                       }
                     }}
                     disabled={!batchBusinessName.trim()}
-                    className="bg-emerald-500 hover:bg-emerald-600 h-12 px-6"
+                    className="h-12 px-8 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
                   >
                     적용
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 입력 후 "적용" 버튼을 누르거나 Enter 키를 눌러주세요
+                <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
+                  <span>💡</span>
+                  <span>입력 후 "적용" 버튼을 누르거나 Enter 키를 눌러주세요</span>
                 </p>
               </CardContent>
             )}
