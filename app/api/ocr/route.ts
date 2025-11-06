@@ -883,10 +883,12 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   // 작성자 추출 (fullTextAnnotation에서 추출한 값 우선 사용)
   let author = extractedAuthor;
 
+  // userInfoTexts는 날짜 추출에도 필요하므로 항상 정의
+  const headerTexts = regions.header.map(a => a.description ?? '').filter(Boolean);
+  const userInfoTexts = regions.userInfo.map(a => a.description ?? '').filter(Boolean);
+
   // fallback: 기존 방식
   if (!author) {
-    const headerTexts = regions.header.map(a => a.description ?? '').filter(Boolean);
-    const userInfoTexts = regions.userInfo.map(a => a.description ?? '').filter(Boolean);
     const allAuthorTexts = [...headerTexts, ...userInfoTexts];
 
     author = allAuthorTexts
