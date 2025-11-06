@@ -59,7 +59,7 @@ export default function BulkUploadPage() {
   const [batchBusinessName, setBatchBusinessName] = useState<string>('') // 일괄 입력할 업체명
   const [showBusinessNamePopup, setShowBusinessNamePopup] = useState(false) // 업체명 팝업 표시 여부
   const [showPlatformEdit, setShowPlatformEdit] = useState(false) // 플랫폼 편집 모드
-  const [showBusinessEdit, setShowBusinessEdit] = useState(false) // 업체명 편집 모드
+  const [showBusinessEdit, setShowBusinessEdit] = useState(true) // 업체명 편집 모드
   const [businessInputTimer, setBusinessInputTimer] = useState<NodeJS.Timeout | null>(null) // 업체명 입력 타이머
   const [files, setFiles] = useState<File[]>([])
   const [ocrResults, setOcrResults] = useState<OCRResult[]>([])
