@@ -57,6 +57,8 @@ export default function BulkUploadPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('') // 이미지 업로드 전 플랫폼 선택
   const [batchBusinessName, setBatchBusinessName] = useState<string>('') // 일괄 입력할 업체명
   const [showBusinessNamePopup, setShowBusinessNamePopup] = useState(false) // 업체명 팝업 표시 여부
+  const [showPlatformEdit, setShowPlatformEdit] = useState(false) // 플랫폼 편집 모드
+  const [showBusinessEdit, setShowBusinessEdit] = useState(false) // 업체명 편집 모드
   const [files, setFiles] = useState<File[]>([])
   const [ocrResults, setOcrResults] = useState<OCRResult[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
@@ -608,54 +610,102 @@ export default function BulkUploadPage() {
         {/* 플랫폼 선택 */}
         <Card className="mb-6 border-2 border-[#FF6B35]">
           <CardHeader>
-            <CardTitle className="text-xl">1️⃣ 리뷰 플랫폼 선택</CardTitle>
-            <CardDescription>정확한 리뷰 추출을 위해 플랫폼을 먼저 선택해주세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {['네이버', '카카오맵', '당근', '크몽', '구글', '인스타그램', 'Re:cord', '기타'].map((platform) => (
-                <Button
-                  key={platform}
-                  variant={selectedPlatform === platform ? 'default' : 'outline'}
-                  className={`h-16 text-lg font-semibold transition-all ${
-                    selectedPlatform === platform
-                      ? 'bg-[#FF6B35] hover:bg-[#E55A2B] shadow-lg scale-105'
-                      : 'hover:border-[#FF6B35]'
-                  }`}
-                  onClick={() => setSelectedPlatform(platform)}
-                >
-                  {platform}
-                </Button>
-              ))}
-            </div>
-            {selectedPlatform && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800">
-                  ✅ <span className="font-semibold">{selectedPlatform}</span> 플랫폼이 선택되었습니다
-                </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl">1️⃣ 리뷰 플랫폼 선택</CardTitle>
+                {!selectedPlatform || showPlatformEdit ? (
+                  <CardDescription>정확한 리뷰 추출을 위해 플랫폼을 먼저 선택해주세요</CardDescription>
+                ) : (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="bg-[#FF6B35] hover:bg-[#FF6B35] text-white px-3 py-1 text-sm">
+                      {selectedPlatform}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setShowPlatformEdit(!showPlatformEdit)}
+                    >
+                      변경
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
+            </div>
+          </CardHeader>
+          {(!selectedPlatform || showPlatformEdit) && (
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {['네이버', '카카오맵', '당근', '크몽', '구글', '인스타그램', 'Re:cord', '기타'].map((platform) => (
+                  <Button
+                    key={platform}
+                    variant={selectedPlatform === platform ? 'default' : 'outline'}
+                    className={`h-16 text-lg font-semibold transition-all ${
+                      selectedPlatform === platform
+                        ? 'bg-[#FF6B35] hover:bg-[#E55A2B] shadow-lg scale-105'
+                        : 'hover:border-[#FF6B35]'
+                    }`}
+                    onClick={() => {
+                      setSelectedPlatform(platform)
+                      setShowPlatformEdit(false)
+                    }}
+                  >
+                    {platform}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* 업체명 입력 (선택사항) */}
         {selectedPlatform && (
           <Card className="mb-6 border-2 border-gray-200">
             <CardHeader>
-              <CardTitle className="text-xl">2️⃣ 업체명 입력 (선택사항)</CardTitle>
-              <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
+              <div>
+                <CardTitle className="text-xl">2️⃣ 업체명 입력 (선택사항)</CardTitle>
+                {!batchBusinessName || showBusinessEdit ? (
+                  <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
+                ) : (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="px-3 py-1 text-sm">
+                      {batchBusinessName}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setShowBusinessEdit(!showBusinessEdit)}
+                    >
+                      수정
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
-            <CardContent>
-              <Input
-                placeholder="예: 오픈런 카페, 서울 맛집 등..."
-                value={batchBusinessName}
-                onChange={(e) => setBatchBusinessName(e.target.value)}
-                className="text-lg h-12"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                💡 나중에 일괄 입력하거나 개별 수정도 가능합니다
-              </p>
-            </CardContent>
+            {(!batchBusinessName || showBusinessEdit) && (
+              <CardContent>
+                <Input
+                  placeholder="예: 클라우딘뮤직, 서울 맛집 등..."
+                  value={batchBusinessName}
+                  onChange={(e) => setBatchBusinessName(e.target.value)}
+                  onBlur={() => {
+                    if (batchBusinessName) {
+                      setShowBusinessEdit(false)
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && batchBusinessName) {
+                      setShowBusinessEdit(false)
+                    }
+                  }}
+                  className="text-lg h-12"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 나중에 일괄 입력하거나 개별 수정도 가능합니다
+                </p>
+              </CardContent>
+            )}
           </Card>
         )}
 
