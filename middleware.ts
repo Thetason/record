@@ -65,11 +65,11 @@ export async function middleware(request: NextRequest) {
 
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://*.kakaocdn.net https://t1.kakaocdn.net blob:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://api.resend.com",
+    "connect-src 'self' https://api.resend.com https://kauth.kakao.com https://*.kakao.com https://*.googleapis.com https://*.supabase.co wss://*.supabase.co",
     "worker-src 'self' blob:",
     `frame-ancestors ${allowedFrameAncestors}`,
     "base-uri 'self'",
