@@ -10,7 +10,8 @@ import {
   UploadIcon,
   ImageIcon,
   CheckCircledIcon,
-  ReloadIcon
+  ReloadIcon,
+  Pencil1Icon
 } from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
@@ -616,17 +617,18 @@ export default function BulkUploadPage() {
                 {!selectedPlatform || showPlatformEdit ? (
                   <CardDescription>정확한 리뷰 추출을 위해 플랫폼을 먼저 선택해주세요</CardDescription>
                 ) : (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="bg-[#FF6B35] hover:bg-[#FF6B35] text-white px-3 py-1 text-sm">
-                      {selectedPlatform}
-                    </Badge>
+                  <div className="flex items-center gap-3 mt-3">
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] text-white px-4 py-2 rounded-full shadow-md">
+                      <CheckCircledIcon className="w-4 h-4" />
+                      <span className="font-semibold">{selectedPlatform}</span>
+                    </div>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-7 text-xs"
+                      className="h-8 text-xs border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35] hover:text-white transition-all"
                       onClick={() => setShowPlatformEdit(!showPlatformEdit)}
                     >
-                      변경
+                      변경하기
                     </Button>
                   </div>
                 )}
@@ -667,17 +669,19 @@ export default function BulkUploadPage() {
                 {!batchBusinessName || showBusinessEdit ? (
                   <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
                 ) : (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline" className="px-3 py-1 text-sm">
-                      {batchBusinessName}
-                    </Badge>
+                  <div className="flex items-center gap-3 mt-3">
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-full shadow-md">
+                      <CheckCircledIcon className="w-4 h-4" />
+                      <span className="font-semibold">{batchBusinessName}</span>
+                    </div>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-7 text-xs"
+                      className="h-8 text-xs border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
                       onClick={() => setShowBusinessEdit(!showBusinessEdit)}
                     >
-                      수정
+                      <Pencil1Icon className="w-3 h-3 mr-1" />
+                      수정하기
                     </Button>
                   </div>
                 )}
