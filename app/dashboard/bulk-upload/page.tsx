@@ -617,18 +617,21 @@ export default function BulkUploadPage() {
                 {!selectedPlatform || showPlatformEdit ? (
                   <CardDescription>정확한 리뷰 추출을 위해 플랫폼을 먼저 선택해주세요</CardDescription>
                 ) : (
-                  <div className="flex items-center gap-3 mt-3">
-                    <div className="flex items-center gap-2 bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] text-white px-4 py-2 rounded-full shadow-md">
-                      <CheckCircledIcon className="w-4 h-4" />
-                      <span className="font-semibold">{selectedPlatform}</span>
+                  <div className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border-l-4 border-[#FF6B35]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#FF6B35] flex items-center justify-center">
+                        <CheckCircledIcon className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="font-bold text-orange-900 text-lg">{selectedPlatform}</span>
                     </div>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="h-8 text-xs border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35] hover:text-white transition-all"
+                      className="ml-auto text-orange-700 hover:text-orange-900 hover:bg-orange-100"
                       onClick={() => setShowPlatformEdit(!showPlatformEdit)}
                     >
-                      변경하기
+                      <Pencil1Icon className="w-3 h-3 mr-1" />
+                      변경
                     </Button>
                   </div>
                 )}
@@ -669,19 +672,21 @@ export default function BulkUploadPage() {
                 {!batchBusinessName || showBusinessEdit ? (
                   <CardDescription>모든 리뷰가 같은 업체의 리뷰라면 미리 입력하세요</CardDescription>
                 ) : (
-                  <div className="flex items-center gap-3 mt-3">
-                    <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-full shadow-md">
-                      <CheckCircledIcon className="w-4 h-4" />
-                      <span className="font-semibold">{batchBusinessName}</span>
+                  <div className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border-l-4 border-emerald-500">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <CheckCircledIcon className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="font-bold text-emerald-900 text-lg">{batchBusinessName}</span>
                     </div>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="h-8 text-xs border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+                      className="ml-auto text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100"
                       onClick={() => setShowBusinessEdit(!showBusinessEdit)}
                     >
                       <Pencil1Icon className="w-3 h-3 mr-1" />
-                      수정하기
+                      수정
                     </Button>
                   </div>
                 )}
@@ -689,24 +694,32 @@ export default function BulkUploadPage() {
             </CardHeader>
             {(!batchBusinessName || showBusinessEdit) && (
               <CardContent>
-                <Input
-                  placeholder="예: 클라우딘뮤직, 서울 맛집 등..."
-                  value={batchBusinessName}
-                  onChange={(e) => setBatchBusinessName(e.target.value)}
-                  onBlur={() => {
-                    if (batchBusinessName) {
-                      setShowBusinessEdit(false)
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && batchBusinessName) {
-                      setShowBusinessEdit(false)
-                    }
-                  }}
-                  className="text-lg h-12"
-                />
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="예: 클라우딘뮤직, 서울 맛집 등..."
+                    value={batchBusinessName}
+                    onChange={(e) => setBatchBusinessName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && batchBusinessName.trim()) {
+                        setShowBusinessEdit(false)
+                      }
+                    }}
+                    className="text-lg h-12"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (batchBusinessName.trim()) {
+                        setShowBusinessEdit(false)
+                      }
+                    }}
+                    disabled={!batchBusinessName.trim()}
+                    className="bg-emerald-500 hover:bg-emerald-600 h-12 px-6"
+                  >
+                    적용
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  💡 나중에 일괄 입력하거나 개별 수정도 가능합니다
+                  💡 입력 후 "적용" 버튼을 누르거나 Enter 키를 눌러주세요
                 </p>
               </CardContent>
             )}
