@@ -586,6 +586,50 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log(`📝 fullTextAnnotation에서 추출한 단어 수: ${wordsFromPages.length}`);
 
+  // 👤 작성자 추출: "리뷰 XX · 사진 XX" 패턴의 바로 위 텍스트
+  let extractedAuthor = '';
+  if (wordsFromPages.length > 0) {
+    // Y 좌표로 정렬 (위에서 아래로)
+    const sortedByY = [...wordsFromPages].sort((a, b) => {
+      const yA = a.boundingBox?.vertices?.[0]?.y ?? 0;
+      const yB = b.boundingBox?.vertices?.[0]?.y ?? 0;
+      return yA - yB;
+    });
+
+    // "리뷰" 단어 찾기 (숫자가 뒤따라오는 경우)
+    const reviewIndex = sortedByY.findIndex((word, idx) => {
+      if (word.text === '리뷰' || word.text.startsWith('리뷰')) {
+        // 다음 단어가 숫자인지 확인
+        const nextWord = sortedByY[idx + 1];
+        if (nextWord && /^\d+$/.test(nextWord.text)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (reviewIndex > 0) {
+      // "리뷰" 바로 위 단어를 작성자로 추출
+      const reviewY = sortedByY[reviewIndex].boundingBox?.vertices?.[0]?.y ?? 0;
+
+      // reviewY보다 작은 Y 좌표 중 가장 가까운 단어 찾기
+      for (let i = reviewIndex - 1; i >= 0; i--) {
+        const candidateY = sortedByY[i].boundingBox?.vertices?.[0]?.y ?? 0;
+        const candidateText = sortedByY[i].text;
+
+        // Y 좌표 차이가 100px 이내이고, 유효한 작성자명 패턴
+        if (reviewY - candidateY < 100 && /^[가-힣a-zA-Z0-9*_]+$/.test(candidateText)) {
+          // 메타데이터 제외
+          if (!/^(팔로우|팔로잉|방문자|NAVER|홈|소식|예약|사진|주변|정보)$/.test(candidateText)) {
+            extractedAuthor = candidateText;
+            console.log(`👤 작성자 추출 성공: "${extractedAuthor}" (리뷰 위 ${reviewY - candidateY}px)`);
+            break;
+          }
+        }
+      }
+    }
+  }
+
   // 전체 텍스트 (textAnnotations[0])
   const fullText = annotations[0]?.description ?? '';
   const fullLines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
@@ -835,18 +879,23 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log('🏪 업체명 후보:', businessTexts, '→ 선택:', business);
 
-  // 작성자 추출 (네이버는 header 영역도 확인)
-  const headerTexts = regions.header.map(a => a.description ?? '').filter(Boolean);
-  const userInfoTexts = regions.userInfo.map(a => a.description ?? '').filter(Boolean);
-  const allAuthorTexts = [...headerTexts, ...userInfoTexts];
+  // 작성자 추출 (fullTextAnnotation에서 추출한 값 우선 사용)
+  let author = extractedAuthor;
 
-  const author = allAuthorTexts
-    .filter(text => /^[가-힣a-zA-Z0-9*_]{2,15}$/.test(text))
-    .filter(text => !/^(리뷰|사진|방문자|팔로우|후기|ㆍ|\d+)$/.test(text))
-    .filter(text => !/^\d+$/.test(text))
-    .find(text => text.length >= 2) ?? '';
+  // fallback: 기존 방식
+  if (!author) {
+    const headerTexts = regions.header.map(a => a.description ?? '').filter(Boolean);
+    const userInfoTexts = regions.userInfo.map(a => a.description ?? '').filter(Boolean);
+    const allAuthorTexts = [...headerTexts, ...userInfoTexts];
 
-  console.log('👤 작성자 후보:', allAuthorTexts, '→ 선택:', author);
+    author = allAuthorTexts
+      .filter(text => /^[가-힣a-zA-Z0-9*_]{2,15}$/.test(text))
+      .filter(text => !/^(리뷰|사진|방문자|팔로우|후기|ㆍ|\d+)$/.test(text))
+      .filter(text => !/^\d+$/.test(text))
+      .find(text => text.length >= 2) ?? '';
+
+    console.log('👤 작성자 후보 (fallback):', allAuthorTexts, '→ 선택:', author);
+  }
 
   // 날짜 추출
   const footerTexts = regions.footer.map(a => a.description ?? '');
