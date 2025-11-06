@@ -560,6 +560,32 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     };
   }
 
+  // 🎯 fullTextAnnotation의 word 단위 파싱 (띄어쓰기 개선)
+  const pages = visionResult?.fullTextAnnotation?.pages || [];
+  const wordsFromPages: Array<{ text: string; boundingBox: any }> = [];
+
+  for (const page of pages) {
+    for (const block of page.blocks || []) {
+      for (const paragraph of block.paragraphs || []) {
+        for (const word of paragraph.words || []) {
+          // word의 symbols를 합쳐서 단어 텍스트 생성
+          const wordText = (word.symbols || [])
+            .map(symbol => symbol.text || '')
+            .join('');
+
+          if (wordText.trim()) {
+            wordsFromPages.push({
+              text: wordText,
+              boundingBox: word.boundingBox
+            });
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`📝 fullTextAnnotation에서 추출한 단어 수: ${wordsFromPages.length}`);
+
   // 전체 텍스트 (textAnnotations[0])
   const fullText = annotations[0]?.description ?? '';
   const fullLines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
@@ -918,25 +944,60 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     ? sortedContent.slice(0, stopAtIndex)
     : sortedContent;
 
-  // 🎯 BoundingBox 기반 스마트 띄어쓰기
-  // 필터링된 단어들을 BoundingBox 좌표를 활용해 자연스럽게 연결
+  // 🎯 fullTextAnnotation words 활용 (띄어쓰기 개선)
+  // Vision API가 이미 단어 단위로 구분한 것을 활용
   let reviewText = '';
-  let lastAnnotation: any = null; // 마지막으로 추가된 annotation 추적
 
-  for (let i = 0; i < finalContent.length; i++) {
-    const annotation = finalContent[i];
-    const text = annotation.description ?? '';
+  // wordsFromPages가 있으면 우선 사용 (더 정확한 띄어쓰기)
+  const useWordsFromPages = wordsFromPages.length > 0;
 
-    // 필터링 - 제외할 텍스트는 건너뛰기
-    if (!text.trim()) continue;
+  if (useWordsFromPages) {
+    console.log(`✨ fullTextAnnotation words 사용 (${wordsFromPages.length}개 단어)`);
 
-    // 네이버 필터링
-    if (detectedPlatform === 'naver') {
+    // Y 좌표 기준으로 정렬
+    const sortedWords = wordsFromPages.sort((a, b) => {
+      const yA = a.boundingBox?.vertices?.[0]?.y ?? 0;
+      const yB = b.boundingBox?.vertices?.[0]?.y ?? 0;
+      const xA = a.boundingBox?.vertices?.[0]?.x ?? 0;
+      const xB = b.boundingBox?.vertices?.[0]?.x ?? 0;
+      return yA !== yB ? yA - yB : xA - xB;
+    });
+
+    // "접기" 이후 제외
+    let wordStopIndex = -1;
+    sortedWords.forEach((word, idx) => {
+      if (word.text === '접기' && wordStopIndex === -1) {
+        wordStopIndex = idx;
+        console.log(`⛔ "접기" 감지 - 인덱스 ${idx}에서 중단`);
+      }
+      if ((word.text.includes('사장님의') && word.text.includes('답글')) && wordStopIndex === -1) {
+        wordStopIndex = idx;
+      }
+    });
+
+    const finalWords = wordStopIndex !== -1
+      ? sortedWords.slice(0, wordStopIndex)
+      : sortedWords;
+
+    // 필터링하면서 공백으로 연결
+    const filteredWords: string[] = [];
+
+    for (const word of finalWords) {
+      const text = word.text;
+
+      // 필터링 - 제외할 텍스트는 건너뛰기
+      if (!text.trim()) continue;
+
+      // 네이버 필터링
+      if (detectedPlatform === 'naver') {
       // 대문자만 있는 텍스트 (로고, 브랜드명)
       if (/^[A-Z\s]+$/.test(text) && text.length > 1) continue;
 
       // 프로필명 패턴 (한글+숫자 조합)
       if (/^[가-힣]+\d+$/.test(text)) continue;
+
+      // 프로필명 패턴 (영문+숫자 조합: songwisdom1, wisdom123 등)
+      if (/^[a-zA-Z]+\d+$/.test(text)) continue;
 
       // 단독 영어 단어 (짧은 것)
       if (/^[A-Za-z]+$/.test(text) && text.length <= 15) continue;
@@ -1004,11 +1065,109 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       if (/^\d+[가-힣]{1,2}$/.test(text)) continue;
     }
 
-    // 통과한 텍스트만 처리
-    if (reviewText.length === 0) {
-      // 첫 단어는 그대로 추가
-      reviewText = text;
-      lastAnnotation = annotation;
+      // 필터링 통과한 단어 추가
+      filteredWords.push(text);
+    }
+
+    // 공백으로 연결
+    reviewText = filteredWords.join(' ').trim();
+    console.log(`✨ fullTextAnnotation 기반 추출: ${filteredWords.length}개 단어`);
+
+  } else {
+    // fallback: 기존 textAnnotations 방식
+    console.log(`⚠️ fullTextAnnotation 없음, textAnnotations 사용`);
+
+    let lastAnnotation: any = null;
+
+    for (let i = 0; i < finalContent.length; i++) {
+      const annotation = finalContent[i];
+      const text = annotation.description ?? '';
+
+      // 필터링 - 제외할 텍스트는 건너뛰기
+      if (!text.trim()) continue;
+
+      // 네이버 필터링
+      if (detectedPlatform === 'naver') {
+        // 대문자만 있는 텍스트 (로고, 브랜드명)
+        if (/^[A-Z\s]+$/.test(text) && text.length > 1) continue;
+
+        // 프로필명 패턴 (한글+숫자 조합)
+        if (/^[가-힣]+\d+$/.test(text)) continue;
+
+        // 프로필명 패턴 (영문+숫자 조합: songwisdom1, wisdom123 등)
+        if (/^[a-zA-Z]+\d+$/.test(text)) continue;
+
+        // 단독 영어 단어 (짧은 것)
+        if (/^[A-Za-z]+$/.test(text) && text.length <= 15) continue;
+
+        // 기존 필터들
+        if (/^리뷰\s*\d+\s*[·•]\s*사진\s*\d+$/.test(text)) continue;
+        if (text.trim() === '리뷰') continue;
+        if (text.trim() === '사진') continue;
+        if (/^\d{1,3}$/.test(text.trim())) continue;
+        if (/^[·•\s]+$/.test(text)) continue;
+        if (/^\d{2,4}\.\d{1,2}\.\d{1,2}\.[월화수목금토일]?$/.test(text)) continue;
+        if (/^\d+번째\s*방문$/.test(text)) continue;
+        if (/^(영수증|반응\s*남기기)$/.test(text)) continue;
+        if (/^리뷰\s*\d+$/.test(text)) continue;
+        if (/^사진\s*\d+$/.test(text)) continue;
+        if (/^방문자\s*\d*$/.test(text)) continue;
+        if (/^팔로우\s*\d*$/.test(text)) continue;
+        if (/^팔로잉$/.test(text)) continue;
+        if (text === '접기') continue;
+      }
+
+      // 카카오 필터링
+      if (detectedPlatform === 'kakao') {
+        if (/^\d{4}\.\d{2}\.\d{2}\.$/.test(text)) continue;
+        if (/^후기\s*\d+$/.test(text)) continue;
+        if (/^별점평균\s*[\d.]+$/.test(text)) continue;
+        if (/^팔로워\s*\d+$/.test(text)) continue;
+        if (text === '위치기반') continue;
+      }
+
+      // 크몽 필터링
+      if (detectedPlatform === 'kmong') {
+        if (/^[가-힣][*]{4,}$/.test(text)) continue;
+        if (/^\d{2}\.\d{2}\.\d{2}\s*\d{0,2}:?\d{0,2}$/.test(text)) continue;
+        if (/^작업일\s*[:：]?/.test(text)) continue;
+        if (/^주문\s*금액\s*[:：]?/.test(text)) continue;
+        if (/^\d+만원\s*(미만|이상|~)/.test(text)) continue;
+        if (/^\d+(시간|일|주|개월)이내$/.test(text)) continue;
+      }
+
+      // 당근 필터링
+      if (detectedPlatform === 'danggeun') {
+        if (/^\d+(년|개월|일|주)\s*전$/.test(text)) continue;
+        if (/^후기\s*\d+/.test(text)) continue;
+        if (/^도움돼요\s*\d*$/.test(text)) continue;
+        if (/^(유용한순|최신순|오래된순)/.test(text)) continue;
+        if (/^평균\s*별점\s*[\d.]+$/.test(text)) continue;
+        if (/^(홈|소식|전체|조혜어|채팅\s*문의|전체\s*문의)$/.test(text)) continue;
+      }
+
+      // 공통 필터링
+      if (/^[🔥✅😊✨📈🗣️👦🧑‍🎓💼📚🎯💪👍❤️⭐🌟]/.test(text)) continue;
+
+      if (!retryMode) {
+        if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) continue;
+        if (/^\d+\s*도움\s*돼요?$/.test(text)) continue;
+        if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) continue;
+      } else {
+        if (text.trim().length < 2) continue;
+        if (text.length <= 10 && /^(열정적|소통|체계적|초보자|깔끔|적합|실력|친절|가성비|아늑|추천|꼼꼼|전문적|만족|최고|좋아요|해요|대요|네요|예요)$/.test(text)) continue;
+        if (/^\d+\s*(일|시간|분|개월)\s*전$/.test(text)) continue;
+        if (/^\d+\s*도움\s*돼요?$/.test(text)) continue;
+        if (/^(채팅\s*문의|확인\s*>|답변\s*\d+|더보기|번역|공유|신고|삭제|수정)$/.test(text)) continue;
+        if (/^[.,·ㆍ\-_]+$/.test(text)) continue;
+        if (/^\d+[가-힣]{1,2}$/.test(text)) continue;
+      }
+
+      // 통과한 텍스트만 처리
+      if (reviewText.length === 0) {
+        // 첫 단어는 그대로 추가
+        reviewText = text;
+        lastAnnotation = annotation;
     } else {
       // 이전 단어와의 간격 계산
       const prevBoundingBox = lastAnnotation?.boundingPoly?.vertices;
@@ -1053,6 +1212,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       lastAnnotation = annotation; // 현재 annotation을 마지막으로 추가된 것으로 기록
     }
   }
+}  // useWordsFromPages 분기 종료
 
   reviewText = reviewText.trim();
   
