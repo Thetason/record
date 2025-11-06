@@ -963,6 +963,14 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       return yA !== yB ? yA - yB : xA - xB;
     });
 
+    // 🎯 "팔로우" 버튼 이후부터 시작 (리뷰 콘텐츠 영역)
+    let contentStartY = 0;
+    const followWord = sortedWords.find(w => w.text.includes('팔로우'));
+    if (followWord) {
+      contentStartY = followWord.boundingBox?.vertices?.[0]?.y ?? 0;
+      console.log(`📍 "팔로우" 감지 - Y ${contentStartY} 이후부터 추출`);
+    }
+
     // "접기" 이후 제외
     let wordStopIndex = -1;
     sortedWords.forEach((word, idx) => {
@@ -984,6 +992,10 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
     for (const word of finalWords) {
       const text = word.text;
+      const y = word.boundingBox?.vertices?.[0]?.y ?? 0;
+
+      // "팔로우" 이전 영역은 스킵 (상단 UI 제외)
+      if (contentStartY > 0 && y <= contentStartY) continue;
 
       // 필터링 - 제외할 텍스트는 건너뛰기
       if (!text.trim()) continue;
@@ -1077,11 +1089,23 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     // fallback: 기존 textAnnotations 방식
     console.log(`⚠️ fullTextAnnotation 없음, textAnnotations 사용`);
 
+    // 🎯 "팔로우" 버튼 이후부터 시작 (리뷰 콘텐츠 영역)
+    let contentStartY = 0;
+    const followAnnotation = finalContent.find(a => (a.description ?? '').includes('팔로우'));
+    if (followAnnotation) {
+      contentStartY = followAnnotation.boundingPoly?.vertices?.[0]?.y ?? 0;
+      console.log(`📍 "팔로우" 감지 (fallback) - Y ${contentStartY} 이후부터 추출`);
+    }
+
     let lastAnnotation: any = null;
 
     for (let i = 0; i < finalContent.length; i++) {
       const annotation = finalContent[i];
       const text = annotation.description ?? '';
+      const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
+
+      // "팔로우" 이전 영역은 스킵 (상단 UI 제외)
+      if (contentStartY > 0 && y <= contentStartY) continue;
 
       // 필터링 - 제외할 텍스트는 건너뛰기
       if (!text.trim()) continue;
