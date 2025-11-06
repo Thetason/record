@@ -923,22 +923,15 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   let reviewText = '';
   let lastAnnotation: any = null; // 마지막으로 추가된 annotation 추적
 
-  // 상위 10% 영역 Y 좌표 계산 (프로필/메타데이터 영역)
-  const topThresholdY = maxY * 0.1;
-
   for (let i = 0; i < finalContent.length; i++) {
     const annotation = finalContent[i];
     const text = annotation.description ?? '';
-    const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
 
     // 필터링 - 제외할 텍스트는 건너뛰기
     if (!text.trim()) continue;
 
     // 네이버 필터링
     if (detectedPlatform === 'naver') {
-      // 상위 10% 영역 제외 (프로필/메타데이터)
-      if (y < topThresholdY) continue;
-
       // 대문자만 있는 텍스트 (로고, 브랜드명)
       if (/^[A-Z\s]+$/.test(text) && text.length > 1) continue;
 
