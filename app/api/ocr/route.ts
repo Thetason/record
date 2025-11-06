@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30; // Vercel Pro: 30초 타임아웃 (Free는 10초 고정)
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -27,7 +28,7 @@ type CleanServiceResponse = {
 let visionClient: ImageAnnotatorClient | null = null;
 const cache = new LRUCache<string, Record<string, unknown>>({ max: 500, ttl: 1000 * 60 * 60 * 24 * 7 });
 const enableTesseractFallback = process.env.ENABLE_TESSERACT_FALLBACK === 'true';
-const visionTimeoutMs = Number(process.env.OCR_VISION_TIMEOUT_MS || 18000);
+const visionTimeoutMs = Number(process.env.OCR_VISION_TIMEOUT_MS || 8000); // Vercel Free 10초 timeout 대응
 const limiter = rateLimit({ interval: 60 * 1000, uniqueTokenPerInterval: 500 });
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
