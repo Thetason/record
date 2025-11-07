@@ -243,7 +243,8 @@ function LoginPageContent() {
               </button>
             )}
 
-            {hasKakao && (
+            {/* 카카오 로그인 임시 비활성화 */}
+            {false && hasKakao && (
               <button
                 onClick={() => handleOAuthSignIn('kakao')}
                 className="w-full flex items-center justify-center gap-3 bg-[#FEE500] hover:bg-[#FADA0A] text-[#191919] py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"

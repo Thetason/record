@@ -258,17 +258,20 @@ export default function SignupPage() {
               구글로 시작하기
             </button>
 
-            <button
-              type="button"
-              onClick={() => signIn('kakao', { callbackUrl: '/dashboard' })}
-              className="w-full flex items-center justify-center gap-3 bg-[#FEE500] hover:bg-[#FADA0A] text-[#191919] py-3 px-4 rounded-lg font-medium transition-colors"
-              disabled={isLoading}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#191919" d="M12 3c-4.97 0-9 3.03-9 6.75 0 2.43 1.71 4.56 4.29 5.75-.15.51-.89 3.03-.91 3.14 0 0-.02.17.09.24.11.07.24.01.24.01 1.19-.17 4.84-3.18 5.61-3.72.23.02.45.03.68.03 4.97 0 9-3.03 9-6.75S16.97 3 12 3z"/>
-              </svg>
-              카카오로 시작하기
-            </button>
+            {/* 카카오 로그인 임시 비활성화 */}
+            {false && (
+              <button
+                type="button"
+                onClick={() => signIn('kakao', { callbackUrl: '/dashboard' })}
+                className="w-full flex items-center justify-center gap-3 bg-[#FEE500] hover:bg-[#FADA0A] text-[#191919] py-3 px-4 rounded-lg font-medium transition-colors"
+                disabled={isLoading}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#191919" d="M12 3c-4.97 0-9 3.03-9 6.75 0 2.43 1.71 4.56 4.29 5.75-.15.51-.89 3.03-.91 3.14 0 0-.02.17.09.24.11.07.24.01.24.01 1.19-.17 4.84-3.18 5.61-3.72.23.02.45.03.68.03 4.97 0 9-3.03 9-6.75S16.97 3 12 3z"/>
+                </svg>
+                카카오로 시작하기
+              </button>
+            )}
           </div>
 
           {/* 구분선 */}
