@@ -143,7 +143,7 @@ export default function EditReviewPage() {
             <NavItem icon={<HomeIcon />} label="대시보드" href="/dashboard" />
             <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" active />
             <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" />
-            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/add-review" />
+            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/bulk-upload" />
             <NavItem icon={<GearIcon />} label="설정" href="/dashboard/settings" />
           </nav>
 

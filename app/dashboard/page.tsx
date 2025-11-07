@@ -237,8 +237,8 @@ export default function DashboardPage() {
               >
                 다시 시도
               </Button>
-              <Button 
-                onClick={() => router.push('/dashboard/add-review')}
+              <Button
+                onClick={() => router.push('/dashboard/bulk-upload')}
                 variant="outline"
                 className="w-full"
               >
@@ -666,7 +666,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <p className="mb-4">아직 등록된 리뷰가 없습니다</p>
-                  <Link href="/dashboard/add-review">
+                  <Link href="/dashboard/bulk-upload">
                     <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]">
                       첫 리뷰 추가하기
                     </Button>

@@ -73,7 +73,7 @@ function ProfilePreview() {
             </div>
             <h3 className="text-xl font-bold mb-1">김서연</h3>
             <p className="text-text-secondary mb-1">요가 강사</p>
-            <p className="text-[#FF6B35] text-sm">re-cord.kr/seoyeon</p>
+            <p className="text-[#FF6B35] text-sm">recordyours.com/seoyeon</p>
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-6">

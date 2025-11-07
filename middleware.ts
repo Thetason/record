@@ -59,8 +59,8 @@ export async function middleware(request: NextRequest) {
     "'self'",
     'https://record-ebon.vercel.app',
     'https://www.record-ebon.vercel.app',
-    'https://re-cord.kr',
-    'https://www.re-cord.kr'
+    'https://recordyours.com',
+    'https://www.recordyours.com'
   ].join(' ');
 
   const csp = [

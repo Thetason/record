@@ -355,7 +355,7 @@ export default function ReviewsPage() {
             <NavItem icon={<HomeIcon />} label="대시보드" href="/dashboard" />
             <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" active />
             <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" />
-            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/add-review" />
+            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/bulk-upload" />
             <NavItem icon={<GearIcon />} label="설정" href="/dashboard/settings" />
           </nav>
 
@@ -501,7 +501,7 @@ export default function ReviewsPage() {
                     ))}
                   </select>
                   <Button asChild className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                    <Link href="/dashboard/add-review">
+                    <Link href="/dashboard/bulk-upload">
                       <PlusIcon className="w-4 h-4 mr-2" />
                       리뷰 추가
                     </Link>
@@ -589,7 +589,7 @@ export default function ReviewsPage() {
                       {reviews.length === 0 ? "아직 등록된 리뷰가 없습니다" : "검색 결과가 없습니다"}
                     </p>
                     <Button asChild className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                      <Link href="/dashboard/add-review">
+                      <Link href="/dashboard/bulk-upload">
                         첫 번째 리뷰 추가하기
                       </Link>
                     </Button>

@@ -324,7 +324,7 @@ export default function SignupPage() {
               )}
               {formData.username && !fieldErrors.username && (
                 <p className="text-sm text-gray-600">
-                  프로필 URL: re-cord.kr/{formData.username}
+                  프로필 URL: recordyours.com/{formData.username}
                 </p>
               )}
             </div>

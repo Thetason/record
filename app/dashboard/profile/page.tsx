@@ -181,7 +181,7 @@ export default function ProfilePage() {
   }
 
   const handleCopyProfileUrl = async () => {
-    const url = formData.username ? `https://re-cord.kr/${formData.username}` : ''
+    const url = formData.username ? `https://recordyours.com/${formData.username}` : ''
 
     if (!url) {
       alert('먼저 사용자명을 입력하고 저장해주세요.')
@@ -275,7 +275,7 @@ export default function ProfilePage() {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>
   }
 
-  const shortProfileUrl = formData.username ? `re-cord.kr/${formData.username}` : 're-cord.kr/yourname'
+  const shortProfileUrl = formData.username ? `recordyours.com/${formData.username}` : 'recordyours.com/yourname'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -295,7 +295,7 @@ export default function ProfilePage() {
             <NavItem icon={<HomeIcon />} label="대시보드" href="/dashboard" />
             <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" />
             <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" active />
-            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/add-review" />
+            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/bulk-upload" />
             <NavItem icon={<GearIcon />} label="설정" href="/dashboard/settings" />
           </nav>
 
