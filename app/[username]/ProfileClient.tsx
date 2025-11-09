@@ -274,16 +274,16 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled ? "bg-white/80 backdrop-blur-xl shadow-lg" : "bg-transparent"
       }`}>
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-3 md:px-4 py-3 md:py-4">
           <div className="flex justify-between items-center">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-bold">Re:cord</span>
+            <Link href="/" className="flex items-center gap-1 md:gap-2">
+              <span className="text-lg md:text-xl font-bold">Re:cord</span>
               <span className="text-[#FF6B35]">*</span>
             </Link>
-            <Button 
+            <Button
               onClick={handleShare}
               size="sm"
-              className="bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] hover:from-[#E55A2B] hover:to-[#D54A1B] text-white shadow-lg"
+              className="bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] hover:from-[#E55A2B] hover:to-[#D54A1B] text-white shadow-lg text-xs md:text-sm"
             >
               {copied ? (
                 <>
@@ -322,7 +322,7 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
 
         {/* Profile Content */}
         <div className="relative z-20 h-full flex items-center pb-4 md:pb-6">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-3 md:px-4">
             <div className="flex flex-col md:flex-row items-center md:items-end gap-6">
               {/* Avatar */}
               <motion.div
@@ -360,17 +360,17 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-center md:text-left flex-1"
               >
-                <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
+                <h1 className="text-2xl md:text-3xl lg:text-5xl font-bold text-white mb-2">
                   {profile.name}
                 </h1>
                 {(profile.profession || profile.experience) && (
-                  <p className="text-lg md:text-xl text-white/90 mb-3 flex items-center gap-2 justify-center md:justify-start">
+                  <p className="text-base md:text-lg lg:text-xl text-white/90 mb-3 flex items-center gap-2 justify-center md:justify-start">
                     {profile.profession && <span>{profile.profession}</span>}
                     {profile.profession && profile.experience && <span>·</span>}
                     {profile.experience && <span>{profile.experience}</span>}
                   </p>
                 )}
-                <p className="text-white/80 max-w-2xl mb-4">
+                <p className="text-sm md:text-base text-white/80 max-w-2xl mb-4">
                   {profile.bio}
                 </p>
                 
@@ -404,10 +404,10 @@ export default function ProfileClient({ profile }: { profile: ProfileData }) {
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="bg-white/10 backdrop-blur-md rounded-2xl px-6 py-4 border border-white/20"
+                className="bg-white/10 backdrop-blur-md rounded-2xl px-4 md:px-6 py-3 md:py-4 border border-white/20"
               >
                 <p className="text-xs uppercase tracking-wide text-white/70 mb-1">총 리뷰</p>
-                <p className="text-3xl md:text-4xl font-bold text-white">{profile.totalReviews}</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">{profile.totalReviews}</p>
               </motion.div>
             </div>
           </div>

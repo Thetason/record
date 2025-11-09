@@ -218,25 +218,25 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-6 md:py-8">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-6 md:mb-8">
+        <div className="text-center mb-4 md:mb-6">
           <Link href="/" className="inline-flex items-center gap-1 md:gap-2">
-            <span className="text-2xl md:text-3xl font-bold">Re:cord</span>
-            <span className="text-[#FF6B35] text-2xl md:text-3xl">*</span>
+            <span className="text-xl sm:text-2xl md:text-3xl font-bold">Re:cord</span>
+            <span className="text-[#FF6B35] text-xl sm:text-2xl md:text-3xl">*</span>
           </Link>
           <p className="text-gray-600 mt-2 text-sm md:text-base">
             나만의 리뷰 포트폴리오를 시작하세요
           </p>
         </div>
 
-        <div className="border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-lg p-6">
-          <div className="space-y-1 pb-6">
-            <h1 className="text-2xl font-semibold text-center">
+        <div className="border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-lg p-5 sm:p-6">
+          <div className="space-y-1 pb-4 md:pb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold text-center">
               회원가입
             </h1>
-            <p className="text-center text-gray-600">
+            <p className="text-center text-sm sm:text-base text-gray-600">
               몇 분만에 프로필을 만들고 리뷰를 관리하세요
             </p>
           </div>

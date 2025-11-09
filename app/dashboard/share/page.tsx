@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { MobileBottomNav } from '@/components/ui/mobile-bottom-nav';
 
 export default function SharePage() {
   const { data: session, status } = useSession();
@@ -241,13 +242,13 @@ export default function SharePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto pb-20 md:pb-8 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
           공유 & 마케팅 도구
         </h1>
-        <p className="text-gray-600">
+        <p className="text-sm md:text-base text-gray-600">
           프로필을 다양한 방법으로 공유하고 홍보하세요
         </p>
       </div>
@@ -546,6 +547,9 @@ export default function SharePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }

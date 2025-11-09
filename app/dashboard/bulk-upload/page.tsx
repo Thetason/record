@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav"
 
 type ParsedReview = Partial<ReviewFormState>
 type ReviewInput = Partial<ReviewFormState> & { content: string }
@@ -555,21 +556,21 @@ export default function BulkUploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50 pb-20 md:pb-8">
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-6xl">
         {/* 헤더 */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <div className="flex items-center justify-between mb-4">
             <Link href="/dashboard">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="text-xs md:text-sm">
                 <ArrowLeftIcon className="mr-2" />
                 대시보드
               </Button>
             </Link>
           </div>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">리뷰 빠른 등록</h1>
-          <p className="text-gray-600 text-lg">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">리뷰 빠른 등록</h1>
+          <p className="text-gray-600 text-sm md:text-base lg:text-lg">
             여러 개의 리뷰 이미지를 한번에 올리고 몇 초 만에 저장 완료 ✨
           </p>
         </div>
@@ -1353,6 +1354,9 @@ export default function BulkUploadPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   )
 }

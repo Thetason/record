@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import type { PublicProfile } from "@/lib/profile"
 import ProfileClient from "@/app/[username]/ProfileClient"
+import { MobileMenu } from "@/components/ui/mobile-menu"
 
 // 해시태그 데이터 - 다양한 프리랜서 직업군 (밸런스 조정)
 const hashtags = [
@@ -148,14 +149,14 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
     <main className="min-h-screen bg-white">
       {/* 네비게이션 */}
       <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-100">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex justify-between items-center">
             <Link href="/" className="flex items-center gap-1">
-              <span className="text-2xl font-bold">Re:cord</span>
+              <span className="text-xl md:text-2xl font-bold">Re:cord</span>
               <span className="text-[#FF6B35]">*</span>
             </Link>
-            
-            {/* 네비게이션 메뉴 */}
+
+            {/* 데스크톱 네비게이션 메뉴 */}
             <div className="hidden md:flex items-center gap-6">
               <Link
                 href="/guide"
@@ -169,7 +170,7 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
               >
                 요금 안내
               </Link>
-              <button 
+              <button
                 className="text-gray-600 hover:text-[#FF6B35] transition-colors"
                 onClick={() => {
                   const section = document.getElementById('live-demo')
@@ -178,7 +179,7 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
               >
                 라이브데모
               </button>
-              <button 
+              <button
                 className="text-gray-600 hover:text-[#FF6B35] transition-colors"
                 onClick={() => {
                   const section = document.getElementById('how-it-works')
@@ -187,7 +188,7 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
               >
                 사용방법
               </button>
-              <button 
+              <button
                 className="text-gray-600 hover:text-[#FF6B35] transition-colors"
                 onClick={() => {
                   const section = document.getElementById('before-after')
@@ -197,8 +198,9 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
                 효과비교
               </button>
             </div>
-            
-            <div className="flex gap-3">
+
+            {/* 데스크톱 CTA 버튼 */}
+            <div className="hidden md:flex gap-3">
               {status === "loading" ? (
                 <Button variant="ghost" size="sm" disabled>로딩중...</Button>
               ) : session ? (
@@ -220,6 +222,9 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
                 </>
               )}
             </div>
+
+            {/* 모바일 메뉴 */}
+            <MobileMenu session={session} status={status} />
           </div>
         </div>
       </nav>
@@ -236,27 +241,27 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
             </div>
 
             {/* 메인 타이틀 */}
-            <h1 className="text-5xl md:text-6xl font-bold text-center leading-tight mb-8 text-gray-900">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center leading-tight mb-6 md:mb-8 text-gray-900">
               브랜드를 새로 열거나 지점을 옮기는
             </h1>
-            
+
             {/* 타겟 오디언스 박스 - 자동 변경 */}
-            <div className="flex justify-center mb-8">
-              <div className="inline-block bg-white border-2 border-gray-200 rounded-full px-8 py-3">
-                <span className="text-2xl md:text-3xl font-bold text-[#FF6B35] transition-all duration-300" suppressHydrationWarning>
+            <div className="flex justify-center mb-6 md:mb-8">
+              <div className="inline-block bg-white border-2 border-gray-200 rounded-full px-6 md:px-8 py-2 md:py-3">
+                <span className="text-xl sm:text-2xl md:text-3xl font-bold text-[#FF6B35] transition-all duration-300" suppressHydrationWarning>
                   {mounted ? TARGET_AUDIENCES[currentTargetIndex] : TARGET_AUDIENCES[0]}
                 </span>
               </div>
             </div>
 
             {/* 서브 타이틀 */}
-            <h2 className="text-2xl md:text-3xl font-bold leading-tight mb-6 text-gray-900 text-center">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight mb-4 md:mb-6 text-gray-900 text-center px-2">
               네이버, 카카오, 인스타... 여기저기 흩어진 리뷰,<br/>
               <span className="text-[#FF6B35]">한 곳에 모아서 신뢰도 UP!</span>
             </h2>
 
             {/* 설명 텍스트 */}
-            <p className="text-lg md:text-xl text-gray-700 mb-8 text-center leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-gray-700 mb-6 md:mb-8 text-center leading-relaxed px-4">
               고객이 남긴 소중한 리뷰를 통합 관리하고,<br className="hidden md:block"/>
               프로필 링크 하나로 당신의 실력을 증명하세요
             </p>
@@ -278,17 +283,17 @@ export default function HomePageClient({ initialProfile }: HomePageClientProps) 
             </div>
 
             {/* CTA 버튼 */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link href="/signup">
-                <Button size="lg" className="bg-[#FF6B35] hover:bg-[#E55A2B] px-8 py-6 text-lg">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 md:mb-12 px-4">
+              <Link href="/signup" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto bg-[#FF6B35] hover:bg-[#E55A2B] px-6 md:px-8 py-4 md:py-6 text-base md:text-lg">
                   30초만에 리뷰 통합하기
-                  <ArrowRightIcon className="ml-2" />
+                  <ArrowRightIcon className="ml-2 hidden sm:inline" />
                 </Button>
               </Link>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="px-8 py-6 text-lg"
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto px-6 md:px-8 py-4 md:py-6 text-base md:text-lg"
                 onClick={() => {
                   const section = document.getElementById('app-preview')
                   section?.scrollIntoView({ behavior: 'smooth' })

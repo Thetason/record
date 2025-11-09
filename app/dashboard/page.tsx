@@ -33,7 +33,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import MobileNav from "@/components/ui/mobile-nav"
+import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav"
 
 interface Review {
   id: string
@@ -321,11 +321,11 @@ export default function DashboardPage() {
       <div className="md:pl-64 pt-16 md:pt-0 pb-20 md:pb-0">
         <div className="p-4 md:p-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
               안녕하세요, {session?.user?.name || "사용자"}님! 👋
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-sm md:text-base text-gray-600 mt-2">
               오늘의 리뷰 현황을 한눈에 확인하세요
             </p>
           </div>
@@ -333,14 +333,14 @@ export default function DashboardPage() {
           {/* Subscription Status Card */}
           {stats?.subscription && (
             <Card className="mb-6 border-[#FF6B35]/30 bg-gradient-to-r from-orange-50 to-red-50">
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold text-gray-900">
+                    <div className="flex items-center gap-2 md:gap-3 mb-3">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900">
                         {
                           stats.subscription.plan === 'free' ? '프리 플랜' :
-                          stats.subscription.plan === 'premium' ? '프리미엄 플랜' : 
+                          stats.subscription.plan === 'premium' ? '프리미엄 플랜' :
                           stats.subscription.plan === 'pro' ? '비즈니스 플랜' : '플랜'
                         }
                       </h3>
@@ -356,14 +356,14 @@ export default function DashboardPage() {
                     
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-gray-900">
+                        <span className="text-xl md:text-2xl font-bold text-gray-900">
                           {stats.subscription.reviewsUsed}
                         </span>
                         <span className="text-gray-500">/</span>
-                        <span className="text-lg font-semibold text-gray-700">
+                        <span className="text-base md:text-lg font-semibold text-gray-700">
                           {stats.subscription.reviewLimit === -1 ? '∞' : stats.subscription.reviewLimit}
                         </span>
-                        <span className="text-sm text-gray-600">리뷰 사용 중</span>
+                        <span className="text-xs md:text-sm text-gray-600">리뷰 사용 중</span>
                       </div>
                       
                       {stats.subscription.reviewLimit !== -1 && (
@@ -640,13 +640,13 @@ export default function DashboardPage() {
               {stats?.recent.reviews && stats.recent.reviews.length > 0 ? (
                 <div className="space-y-4">
                   {stats.recent.reviews.slice(0, 3).map((review) => (
-                    <div key={review.id} className="flex gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div key={review.id} className="flex gap-3 md:gap-4 p-3 md:p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPlatformColor(review.platform)}`}>
                             {review.platform}
                           </span>
-                          <span className="text-sm font-medium">{review.business}</span>
+                          <span className="text-xs md:text-sm font-medium truncate">{review.business}</span>
                         </div>
                         <p className="text-sm text-gray-600 overflow-hidden" style={{
                           display: '-webkit-box',
@@ -679,7 +679,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <MobileNav />
+      <MobileBottomNav />
     </div>
   )
 }

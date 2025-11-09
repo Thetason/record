@@ -5,10 +5,10 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { 
-  HomeIcon, 
-  PersonIcon, 
-  PlusIcon, 
+import {
+  HomeIcon,
+  PersonIcon,
+  PlusIcon,
   BarChartIcon,
   GearIcon,
   ExitIcon,
@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
+import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav"
 
 interface Review {
   id: string
@@ -339,8 +340,23 @@ export default function ReviewsPage() {
   return (
     <>
       <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200">
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between h-full px-4">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="text-xl font-bold">Re:cord</span>
+            <span className="text-[#FF6B35]">*</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-medium text-[#FF6B35]">
+              {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar (Desktop Only) */}
+      <div className="hidden md:block fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-gray-200">
@@ -382,19 +398,19 @@ export default function ReviewsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="pl-64">
-        <div className="p-8">
+      <div className="md:pl-64 pt-16 md:pt-0 pb-20 md:pb-0">
+        <div className="p-4 md:p-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">리뷰 관리</h1>
-            <p className="text-gray-600 mt-2">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">리뷰 관리</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-2">
               받으신 모든 리뷰를 한 곳에서 관리하세요
             </p>
           </div>
 
           {session?.user?.username && (
             <Card className="mb-6 border-dashed border-[#FF6B35]/40 bg-[#FF6B35]/5">
-              <CardContent className="py-4 px-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <CardContent className="py-3 md:py-4 px-4 md:px-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-[#FF6B35]">리뷰 자동 아카이빙 링크</p>
                   <p className="text-sm text-gray-600 mt-1">
@@ -750,6 +766,9 @@ export default function ReviewsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
       </div>
 
       <Dialog open={Boolean(previewImage)} onOpenChange={(open) => !open && setPreviewImage(null)}>

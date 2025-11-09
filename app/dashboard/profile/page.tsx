@@ -5,16 +5,17 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { 
-  HomeIcon, 
-  PersonIcon, 
-  PlusIcon, 
+import {
+  HomeIcon,
+  PersonIcon,
+  PlusIcon,
   BarChartIcon,
   GearIcon,
   ExitIcon,
   CameraIcon,
   Share1Icon,
-  Link2Icon
+  Link2Icon,
+  HamburgerMenuIcon
 } from "@radix-ui/react-icons"
 import { QuoteIcon } from "lucide-react"
 
@@ -23,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import type { PublicProfile } from "@/lib/profile"
 import ProfileClient from "@/app/[username]/ProfileClient"
+import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav"
 
 interface ProfileStats {
   totalReviews: number
@@ -279,8 +281,23 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200">
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between h-full px-4">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="text-xl font-bold">Re:cord</span>
+            <span className="text-[#FF6B35]">*</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-medium text-[#FF6B35]">
+              {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar (Desktop Only) */}
+      <div className="hidden md:block fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-gray-200">
@@ -322,12 +339,12 @@ export default function ProfilePage() {
       </div>
 
       {/* Main Content */}
-      <div className="pl-64">
-        <div className="p-8">
+      <div className="md:pl-64 pt-16 md:pt-0 pb-20 md:pb-0">
+        <div className="p-4 md:p-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">내 프로필</h1>
-            <p className="text-gray-600 mt-2">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">내 프로필</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-2">
               공개 프로필 정보를 편집하고 관리하세요
             </p>
           </div>
@@ -335,36 +352,42 @@ export default function ProfilePage() {
           <Card className="overflow-hidden border-0 shadow-xl">
             <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <CardTitle className="text-2xl">공개 프로필 미리보기</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-2xl">공개 프로필 미리보기</CardTitle>
+                <CardDescription className="text-xs md:text-sm">
                   현재 저장된 정보 기준으로 공유 페이지와 동일한 화면이 표시됩니다.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => fetchPreview(formData.username)}
                   disabled={previewLoading}
+                  className="text-xs md:text-sm"
                 >
                   새로고침
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={handleCopyProfileUrl}
                   disabled={!formData.username}
+                  className="text-xs md:text-sm"
                 >
                   링크 복사
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
                   asChild
                   disabled={!formData.username}
+                  className="text-xs md:text-sm"
                 >
                   <Link href={formData.username ? `/${formData.username}` : '#'} target="_blank">
                     새 탭에서 보기
                   </Link>
                 </Button>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" size="sm" asChild className="text-xs md:text-sm">
                   <Link href="/dashboard/share">
                     공유 설정 열기
                   </Link>
@@ -646,6 +669,9 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   )
 }

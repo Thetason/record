@@ -127,20 +127,20 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6 md:mb-8">
+        <div className="text-center mb-4 md:mb-6">
           <Link href="/" className="inline-flex items-center gap-1 md:gap-2">
-            <span className="text-2xl md:text-3xl font-bold">Re:cord</span>
-            <span className="text-[#FF6B35] text-2xl md:text-3xl">*</span>
+            <span className="text-xl sm:text-2xl md:text-3xl font-bold">Re:cord</span>
+            <span className="text-[#FF6B35] text-xl sm:text-2xl md:text-3xl">*</span>
           </Link>
           <p className="text-gray-600 mt-2 text-sm md:text-base">리뷰 포트폴리오에 로그인하세요</p>
         </div>
 
-        <div className="border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-lg p-6">
-          <div className="space-y-1 pb-6 text-center">
-            <h1 className="text-2xl font-semibold">로그인</h1>
-            <p className="text-gray-600">계정에 로그인하여 리뷰를 관리하세요</p>
+        <div className="border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-lg p-5 sm:p-6">
+          <div className="space-y-1 pb-4 md:pb-6 text-center">
+            <h1 className="text-xl sm:text-2xl font-semibold">로그인</h1>
+            <p className="text-sm sm:text-base text-gray-600">계정에 로그인하여 리뷰를 관리하세요</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
