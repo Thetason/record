@@ -57,7 +57,7 @@ const TARGET_AUDIENCES = [
   "사진작가"
 ]
 
-const PROFILE_DEMO_URL = "https://record-ebon.vercel.app/syb2020"
+const PROFILE_DEMO_URL = "/syb2020"
 
 interface HomePageClientProps {
   initialProfile: PublicProfile
