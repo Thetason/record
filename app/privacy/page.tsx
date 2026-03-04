@@ -27,8 +27,8 @@ export default function PrivacyPage() {
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
           <h1 className="text-3xl font-bold mb-2">개인정보처리방침</h1>
           <div className="mb-8">
-            <p className="text-gray-600 mb-2">최종 수정일: 2025년 8월 11일 | 시행일: 2025년 8월 11일</p>
-            <p className="text-sm text-blue-600">버전: v2.0 (2023년 개정법 및 OCR 기능 반영)</p>
+            <p className="text-gray-600 mb-2">최종 수정일: 2026년 3월 4일 | 시행일: 2026년 3월 4일</p>
+            <p className="text-sm text-blue-600">버전: v2.1 (Private Vault / Public Showcase 정책 반영)</p>
           </div>
 
           {/* 개요 */}
@@ -45,6 +45,10 @@ export default function PrivacyPage() {
                 개인정보가 어떻게 수집·이용·처리되고 있는지, 특히 OCR(광학 문자 인식) 기술을 
                 통한 이미지 처리 과정에서의 개인정보 처리 방식과 보호 조치에 대해 
                 상세히 알려드립니다.
+              </p>
+              <p className="text-gray-700 leading-relaxed mt-4">
+                회사는 이용자 계정에 대한 자동 로그인/자동 스크래핑/무단 크롤링을 수행하지 않으며,
+                이용자가 직접 제공한 자료(스크린샷, 영상, PDF, 수기 입력)만 처리합니다.
               </p>
             </div>
           </section>
@@ -76,7 +80,7 @@ export default function PrivacyPage() {
                     <li>프로필 정보: 프로필 사진, 자기소개, 경력 사항</li>
                     <li>SNS 연동 정보: 인스타그램, 웹사이트 URL</li>
                     <li>리뷰 관련: 리뷰 스크린샷 이미지 파일, 원본 링크</li>
-                    <li>제3자 플랫폼 연동: 네이버, 구글, 카카오맵 등 플랫폼에서 공개된 리뷰 정보</li>
+                    <li>이용자 업로드 자료에서 추출된 리뷰 정보(네이버, 카카오맵, 구글 등 출처 텍스트 포함)</li>
                   </ul>
                 </div>
 
@@ -96,7 +100,7 @@ export default function PrivacyPage() {
                   <li>회원가입 및 서비스 이용 과정에서 이용자가 직접 입력</li>
                   <li>서비스 이용 과정에서 자동으로 수집(접속 로그, 이용 기록 등)</li>
                   <li>OCR 기술을 통한 이미지 내 텍스트 자동 추출</li>
-                  <li>제3자 플랫폼 API를 통한 공개 리뷰 정보 수집</li>
+                  <li>이용자가 직접 업로드한 파일(스크린샷/영상/PDF) 및 수기 입력 데이터 처리</li>
                   <li>고객센터를 통한 상담 과정에서 수집</li>
                   <li>쿠키, 웹 비콘 등 자동 수집 장치를 통한 수집</li>
                 </ul>

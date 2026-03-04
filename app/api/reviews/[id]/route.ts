@@ -2,13 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  canExposeReviewPublicly,
+  canOwnerAccessReview,
+  getPublicDisplayContent,
+  normalizeRightsStatus,
+  REVIEW_RIGHTS_STATUSES
+} from '@/lib/review-policy'
 
 // GET /api/reviews/[id] - 특정 리뷰 조회
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions)
+
     const review = await prisma.review.findUnique({
       where: { id: params.id },
       include: {
@@ -25,7 +34,30 @@ export async function GET(
       return NextResponse.json({ error: 'Review not found' }, { status: 404 })
     }
 
-    return NextResponse.json(review)
+    if (canOwnerAccessReview(review, session?.user?.id)) {
+      return NextResponse.json(review)
+    }
+
+    if (!canExposeReviewPublicly(review)) {
+      return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+    }
+
+    const publicReview = {
+      id: review.id,
+      platform: review.platform,
+      business: review.business,
+      content: getPublicDisplayContent(review),
+      author: review.author,
+      rating: review.rating,
+      reviewDate: review.reviewDate,
+      isVerified: review.isVerified,
+      verifiedAt: review.verifiedAt,
+      verifiedBy: review.verifiedBy,
+      originalUrl: review.originalUrl,
+      user: review.user
+    }
+
+    return NextResponse.json(publicReview)
   } catch (error) {
     console.error('Error fetching review:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -45,7 +77,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { platform, business, content, author, reviewDate, imageUrl, isPublic } = body
+    const { platform, business, content, author, reviewDate, imageUrl, isPublic, rightsStatus, publicSnippet } = body
 
     // 소유자 확인
     const existingReview = await prisma.review.findUnique({
@@ -95,14 +127,60 @@ export async function PUT(
       }
     }
 
-    const updateData = {}
+    const updateData: Record<string, unknown> = {}
     if (platform) updateData.platform = platform
     if (business) updateData.business = business
     if (content) updateData.content = content
     if (author) updateData.author = author
     if (reviewDate) updateData.reviewDate = new Date(reviewDate)
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl
-    if (isPublic !== undefined) updateData.isPublic = isPublic
+    if (publicSnippet !== undefined) updateData.publicSnippet = publicSnippet
+
+    let nextRightsStatus = normalizeRightsStatus(
+      existingReview.rightsStatus,
+      REVIEW_RIGHTS_STATUSES.CONSENTED_PUBLIC
+    )
+
+    if (rightsStatus !== undefined) {
+      const normalizedRightsStatus = normalizeRightsStatus(
+        rightsStatus,
+        REVIEW_RIGHTS_STATUSES.IMPORTED_PRIVATE
+      )
+
+      if (normalizedRightsStatus !== rightsStatus) {
+        return NextResponse.json({
+          error: 'Invalid rightsStatus',
+          message: '허용되지 않는 권리 상태입니다.'
+        }, { status: 400 })
+      }
+
+      nextRightsStatus = normalizedRightsStatus
+      updateData.rightsStatus = normalizedRightsStatus
+
+      if (
+        normalizedRightsStatus === REVIEW_RIGHTS_STATUSES.IMPORTED_PRIVATE ||
+        normalizedRightsStatus === REVIEW_RIGHTS_STATUSES.PENDING_PUBLIC ||
+        normalizedRightsStatus === REVIEW_RIGHTS_STATUSES.BLOCKED ||
+        normalizedRightsStatus === REVIEW_RIGHTS_STATUSES.TAKEDOWN_REQUESTED ||
+        normalizedRightsStatus === REVIEW_RIGHTS_STATUSES.TAKEN_DOWN
+      ) {
+        updateData.isPublic = false
+      }
+    }
+
+    if (isPublic !== undefined) {
+      const allowedPublicStatus =
+        nextRightsStatus === REVIEW_RIGHTS_STATUSES.CONSENTED_PUBLIC ||
+        nextRightsStatus === REVIEW_RIGHTS_STATUSES.PLATFORM_SNIPPET
+
+      if (isPublic && !allowedPublicStatus) {
+        return NextResponse.json({
+          error: 'Public exposure is not allowed',
+          message: '현재 권리 상태에서는 공개 설정이 불가능합니다.'
+        }, { status: 400 })
+      }
+      updateData.isPublic = isPublic
+    }
 
     const updatedReview = await prisma.review.update({
       where: { id: params.id },
@@ -126,7 +204,7 @@ export async function PUT(
 
 // DELETE /api/reviews/[id] - 리뷰 삭제
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

@@ -10,6 +10,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ReviewSourceType {
+  PLATFORM_IMPORT
+  DIRECT_TESTIMONIAL
+  MANUAL
+}
+
+enum ReviewRightsStatus {
+  IMPORTED_PRIVATE
+  PENDING_PUBLIC
+  CONSENTED_PUBLIC
+  PLATFORM_SNIPPET
+  BLOCKED
+  TAKEDOWN_REQUESTED
+  TAKEN_DOWN
+}
+
+enum ReviewMaskingStatus {
+  UNKNOWN
+  MASKED
+  UNMASKED_ALLOWED
+}
+
+enum TakedownRequesterType {
+  REVIEWER
+  PLATFORM
+  USER
+  OTHER
+}
+
+enum TakedownStatus {
+  OPEN
+  PROCESSING
+  DONE
+  REJECTED
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -106,11 +142,16 @@ model Review {
   // 메타데이터
   isVerified  Boolean  @default(false) // 검증 여부
   isPublic    Boolean  @default(true)  // 공개 여부
+  sourceType  ReviewSourceType @default(MANUAL)
+  rightsStatus ReviewRightsStatus @default(CONSENTED_PUBLIC)
+  maskingStatus ReviewMaskingStatus @default(UNKNOWN)
   
   // 검증 관련
   originalUrl String?  // 원본 리뷰 링크
   verifiedAt  DateTime? // 검증 완료 시간
   verifiedBy  String?  // 검증 방법 (manual, screenshot, api)
+  publicSnippet String? // 공개시 표시할 축약 텍스트
+  sourceEvidence Json? // 업로드 증빙 메타데이터
   
   // 검증 상태
   verificationStatus String @default("pending") // pending, approved, rejected, flagged
@@ -125,12 +166,31 @@ model Review {
   
   // 신고
   reports     Report[]
+  takedownRequests TakedownRequest[]
   
   // 타임스탬프
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@map("reviews")
+}
+
+model TakedownRequest {
+  id          String   @id @default(cuid())
+  reviewId    String
+  review      Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  requesterType TakedownRequesterType @default(OTHER)
+  requesterEmail String?
+  reason      String
+  description String?
+  status      TakedownStatus @default(OPEN)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reviewId, status])
+  @@map("takedown_requests")
 }
 
 model Report {

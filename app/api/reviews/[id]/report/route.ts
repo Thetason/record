@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { REVIEW_RIGHTS_STATUSES } from '@/lib/review-policy';
 
 export async function POST(
   req: NextRequest,
@@ -50,29 +51,34 @@ export async function POST(
       return NextResponse.json({ error: '이미 신고한 리뷰입니다' }, { status: 400 });
     }
 
-    // 신고 생성
-    const report = await prisma.report.create({
-      data: {
-        reviewId: params.id,
-        reporterIp,
-        reason,
-        description: description || null,
-        status: 'pending'
-      },
-    });
+    // 신고 생성 + 누적 신고 기준 자동 비공개 처리
+    const { report } = await prisma.$transaction(async tx => {
+      const created = await tx.report.create({
+        data: {
+          reviewId: params.id,
+          reporterIp,
+          reason,
+          description: description || null,
+          status: 'pending'
+        },
+      });
 
-    // 리뷰의 신고 횟수 증가
-    await prisma.review.update({
-      where: { id: params.id },
-      data: { 
-        reportCount: { increment: 1 },
-        // 3회 이상 신고되면 자동으로 비활성화
-        isActive: {
-          set: await prisma.report.count({
-            where: { reviewId: params.id }
-          }) >= 3 ? false : undefined
-        }
-      },
+      const reportCount = await tx.report.count({
+        where: { reviewId: params.id, status: 'pending' }
+      });
+
+      if (reportCount >= 3) {
+        await tx.review.update({
+          where: { id: params.id },
+          data: {
+            isPublic: false,
+            verificationStatus: 'flagged',
+            rightsStatus: REVIEW_RIGHTS_STATUSES.BLOCKED
+          }
+        });
+      }
+
+      return { report: created };
     });
 
     return NextResponse.json({ 

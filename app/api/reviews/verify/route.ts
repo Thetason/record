@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { REVIEW_RIGHTS_STATUSES } from '@/lib/review-policy'
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,9 +40,11 @@ export async function POST(req: NextRequest) {
       where: { id: reviewId },
       data: {
         isVerified: true,
+        verificationStatus: 'approved',
         originalUrl: originalUrl || review.originalUrl,
         verifiedAt: new Date(),
-        verifiedBy: verificationMethod || 'manual'
+        verifiedBy: verificationMethod || 'manual',
+        rightsStatus: REVIEW_RIGHTS_STATUSES.CONSENTED_PUBLIC
       }
     })
 

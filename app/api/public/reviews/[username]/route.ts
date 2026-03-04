@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { REVIEW_MASKING_STATUSES, REVIEW_RIGHTS_STATUSES, REVIEW_SOURCE_TYPES } from '@/lib/review-policy'
 
 export async function POST(
   request: Request,
@@ -64,6 +65,9 @@ export async function POST(
         userId: user.id,
         isPublic: false,
         isVerified: false,
+        sourceType: REVIEW_SOURCE_TYPES.DIRECT_TESTIMONIAL,
+        rightsStatus: REVIEW_RIGHTS_STATUSES.PENDING_PUBLIC,
+        maskingStatus: REVIEW_MASKING_STATUSES.UNKNOWN,
         verificationStatus: 'pending',
         verificationNote,
         verifiedBy: 'request'

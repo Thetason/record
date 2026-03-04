@@ -32,6 +32,11 @@ interface Review {
   author: string
   reviewDate: string
   createdAt: string
+  isPublic: boolean
+  sourceType?: string | null
+  rightsStatus?: string | null
+  maskingStatus?: string | null
+  publicSnippet?: string | null
   imageUrl?: string | null
   originalUrl?: string | null
   verificationStatus: string
@@ -59,6 +64,7 @@ export default function ReviewsPage() {
     requestTotal: 0
   })
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
+  const [updatingReviewId, setUpdatingReviewId] = useState<string | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [selectedReviews, setSelectedReviews] = useState<Set<string>>(new Set())
   const [isDeleting, setIsDeleting] = useState(false)
@@ -268,6 +274,92 @@ export default function ReviewsPage() {
     router.push(`/dashboard/reviews/edit/${id}`)
   }
 
+  const updateReviewVisibility = async (
+    review: Review,
+    next: { rightsStatus?: string; isPublic?: boolean; publicSnippet?: string }
+  ) => {
+    setUpdatingReviewId(review.id)
+    try {
+      const res = await fetch(`/api/reviews/${review.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next)
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.message || data?.error || "리뷰 상태 변경에 실패했습니다.")
+      }
+
+      setReviews(prev =>
+        prev.map(item => {
+          if (item.id !== review.id) return item
+          return {
+            ...item,
+            ...(next.rightsStatus !== undefined ? { rightsStatus: next.rightsStatus } : {}),
+            ...(next.isPublic !== undefined ? { isPublic: next.isPublic } : {}),
+            ...(next.publicSnippet !== undefined ? { publicSnippet: next.publicSnippet } : {})
+          }
+        })
+      )
+
+      toast({
+        title: "리뷰 상태가 변경되었습니다",
+        description: "공개/권리 상태가 업데이트되었습니다."
+      })
+    } catch (error) {
+      console.error("Update review visibility error:", error)
+      toast({
+        title: "변경 실패",
+        description: error instanceof Error ? error.message : "리뷰 상태 변경 중 오류가 발생했습니다.",
+        variant: "destructive"
+      })
+    } finally {
+      setUpdatingReviewId(null)
+    }
+  }
+
+  const handleRequestTakedown = async (reviewId: string) => {
+    const reason = prompt("삭제 요청 사유를 입력해주세요 (최소 5자)")
+    if (!reason) return
+
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/takedown`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requesterType: "USER",
+          reason
+        })
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || "삭제 요청에 실패했습니다.")
+      }
+
+      setReviews(prev =>
+        prev.map(item =>
+          item.id === reviewId
+            ? { ...item, rightsStatus: "TAKEDOWN_REQUESTED", isPublic: false }
+            : item
+        )
+      )
+
+      toast({
+        title: "삭제 요청 접수 완료",
+        description: "검토 전까지 해당 리뷰는 비공개로 전환됩니다."
+      })
+    } catch (error) {
+      console.error("Takedown request error:", error)
+      toast({
+        title: "삭제 요청 실패",
+        description: error instanceof Error ? error.message : "요청 중 오류가 발생했습니다.",
+        variant: "destructive"
+      })
+    }
+  }
+
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" })
   }
@@ -287,6 +379,21 @@ export default function ReviewsPage() {
       '크몽': 'bg-purple-100 text-purple-800'
     }
     return map[platform] || "bg-gray-100 text-gray-800"
+  }
+
+  const getRightsBadge = (review: Review) => {
+    const status = review.rightsStatus || "IMPORTED_PRIVATE"
+    const map: Record<string, { label: string; className: string }> = {
+      IMPORTED_PRIVATE: { label: "Private Vault", className: "bg-slate-100 text-slate-700" },
+      PENDING_PUBLIC: { label: "공개 검토중", className: "bg-amber-100 text-amber-700" },
+      CONSENTED_PUBLIC: { label: "공개 가능", className: "bg-emerald-100 text-emerald-700" },
+      PLATFORM_SNIPPET: { label: "스니펫 공개", className: "bg-indigo-100 text-indigo-700" },
+      BLOCKED: { label: "공개 차단", className: "bg-rose-100 text-rose-700" },
+      TAKEDOWN_REQUESTED: { label: "삭제요청", className: "bg-orange-100 text-orange-700" },
+      TAKEN_DOWN: { label: "삭제완료", className: "bg-gray-200 text-gray-700" }
+    }
+
+    return map[status] || { label: status, className: "bg-gray-100 text-gray-700" }
   }
 
   const platforms = ["all", ...Array.from(new Set(reviews.map(r => r.platform)))]
@@ -627,6 +734,12 @@ export default function ReviewsPage() {
                             <span className={`px-3 py-1 text-sm font-medium rounded-full ${getPlatformColor(review.platform)}`}>
                               {review.platform}
                             </span>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRightsBadge(review).className}`}>
+                              {getRightsBadge(review).label}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${review.isPublic ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
+                              {review.isPublic ? '공개중' : '비공개'}
+                            </span>
                             {review.platform === 'Re:cord' && (
                               <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#FF6B35]/10 text-[#FF6B35]">
                                 요청 수집
@@ -675,6 +788,56 @@ export default function ReviewsPage() {
                           이미지 미리보기
                         </Button>
                       )}
+
+                      <div className="flex flex-wrap items-center gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={updatingReviewId === review.id}
+                          onClick={() =>
+                            updateReviewVisibility(review, {
+                              rightsStatus: "CONSENTED_PUBLIC",
+                              isPublic: true
+                            })
+                          }
+                        >
+                          동의 후 공개
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={updatingReviewId === review.id}
+                          onClick={() =>
+                            updateReviewVisibility(review, {
+                              isPublic: false
+                            })
+                          }
+                        >
+                          비공개
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={updatingReviewId === review.id}
+                          onClick={() =>
+                            updateReviewVisibility(review, {
+                              rightsStatus: "IMPORTED_PRIVATE",
+                              isPublic: false
+                            })
+                          }
+                        >
+                          Private Vault 고정
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-rose-600 border-rose-200 hover:text-rose-700"
+                          disabled={updatingReviewId === review.id}
+                          onClick={() => handleRequestTakedown(review.id)}
+                        >
+                          삭제 요청
+                        </Button>
+                      </div>
                           </div>
                           
                           <div className="flex items-center gap-2 ml-4">

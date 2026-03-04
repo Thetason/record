@@ -4,6 +4,14 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
 import { parse } from 'csv-parse/sync'
+import {
+  REVIEW_MASKING_STATUSES,
+  REVIEW_RIGHTS_STATUSES,
+  REVIEW_SOURCE_TYPES,
+  type ReviewMaskingStatus,
+  type ReviewRightsStatus,
+  type ReviewSourceType
+} from '@/lib/review-policy'
 
 type ReviewRow = Record<string, unknown>
 
@@ -16,6 +24,10 @@ interface BulkReview {
   userId: string
   isVerified: boolean
   verifiedBy: string
+  isPublic: boolean
+  sourceType: ReviewSourceType
+  rightsStatus: ReviewRightsStatus
+  maskingStatus: ReviewMaskingStatus
 }
 
 export async function POST(req: NextRequest) {
@@ -256,7 +268,11 @@ export async function POST(req: NextRequest) {
           reviewDate,
           userId: session.user.id,
           isVerified: false,
-          verifiedBy: 'bulk_upload'
+          verifiedBy: 'bulk_upload',
+          isPublic: false,
+          sourceType: REVIEW_SOURCE_TYPES.PLATFORM_IMPORT,
+          rightsStatus: REVIEW_RIGHTS_STATUSES.IMPORTED_PRIVATE,
+          maskingStatus: REVIEW_MASKING_STATUSES.UNKNOWN
         })
         
       } catch (rowError) {

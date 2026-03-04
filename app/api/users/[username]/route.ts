@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { canExposeReviewPublicly, getPublicDisplayContent } from '@/lib/review-policy'
 
 // GET /api/users/[username] - 공개 프로필 조회
 export async function GET(
@@ -28,6 +29,9 @@ export async function GET(
             platform: true,
             business: true,
             content: true,
+            publicSnippet: true,
+            rightsStatus: true,
+            isPublic: true,
             author: true,
             reviewDate: true,
             createdAt: true
@@ -50,15 +54,23 @@ export async function GET(
       data: { profileViews: { increment: 1 } }
     })
 
+    const publicReviews = user.reviews
+      .filter(review => canExposeReviewPublicly(review))
+      .map(review => ({
+        ...review,
+        content: getPublicDisplayContent(review)
+      }))
+
     // 통계 계산
     const stats = {
-      totalReviews: user.reviews.length,
-      platforms: new Set(user.reviews.map(review => review.platform)).size,
+      totalReviews: publicReviews.length,
+      platforms: new Set(publicReviews.map(review => review.platform)).size,
       responseRate: 98 // 임시값, 실제로는 계산 로직 필요
     }
 
     const profile = {
       ...user,
+      reviews: publicReviews,
       stats
     }
 

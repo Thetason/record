@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { REVIEW_RIGHTS_STATUSES } from '@/lib/review-policy'
 
 export async function GET(
   req: NextRequest,
@@ -82,6 +83,13 @@ export async function PATCH(
     const body = await req.json()
     const { verificationStatus, verificationNote } = body
 
+    const nextRightsStatus =
+      verificationStatus === 'approved'
+        ? REVIEW_RIGHTS_STATUSES.CONSENTED_PUBLIC
+        : verificationStatus === 'rejected'
+          ? REVIEW_RIGHTS_STATUSES.BLOCKED
+          : REVIEW_RIGHTS_STATUSES.PENDING_PUBLIC
+
     // 리뷰 업데이트
     const updatedReview = await prisma.review.update({
       where: { id: params.id },
@@ -90,7 +98,9 @@ export async function PATCH(
         verificationNote,
         verifiedAt: verificationStatus === 'approved' ? new Date() : null,
         verifiedBy: verificationStatus === 'approved' ? 'manual' : null,
-        isVerified: verificationStatus === 'approved'
+        isVerified: verificationStatus === 'approved',
+        rightsStatus: nextRightsStatus,
+        isPublic: verificationStatus === 'approved'
       }
     })
 

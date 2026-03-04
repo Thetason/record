@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canAddReview, getUserReviewCount } from '@/lib/subscription'
+import { Prisma } from '@prisma/client'
+import {
+  deriveCreationRightsStatus,
+  normalizeRightsStatus,
+  normalizeSourceType,
+  REVIEW_MASKING_STATUSES,
+  REVIEW_RIGHTS_STATUSES
+} from '@/lib/review-policy'
 
 // GET /api/reviews - 사용자의 리뷰 목록 조회
 export async function GET(request: NextRequest) {
@@ -19,14 +26,14 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    const where = {
+    const where: Prisma.ReviewWhereInput = {
       userId: session.user.id,
       ...(platform && platform !== 'all' && { platform }),
       ...(search && {
         OR: [
-          { business: { contains: search, mode: 'insensitive' } },
-          { content: { contains: search, mode: 'insensitive' } },
-          { author: { contains: search, mode: 'insensitive' } }
+          { business: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { content: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { author: { contains: search, mode: Prisma.QueryMode.insensitive } }
         ]
       })
     }
@@ -120,7 +127,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('📦 요청 본문:', JSON.stringify(body, null, 2))
     
-    const { platform, business, content, author, rating, reviewDate, imageUrl, originalUrl, verifiedBy } = body
+    const {
+      platform,
+      business,
+      content,
+      author,
+      rating,
+      reviewDate,
+      imageUrl,
+      originalUrl,
+      verifiedBy,
+      sourceType,
+      rightsStatus,
+      isPublic,
+      publicSnippet
+    } = body
 
     // 입력 검증
     const missingFields = []
@@ -176,6 +197,23 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    const normalizedSourceType = normalizeSourceType(sourceType)
+    let normalizedRightsStatus = deriveCreationRightsStatus(normalizedSourceType)
+    if (rightsStatus !== undefined) {
+      const parsed = normalizeRightsStatus(rightsStatus, REVIEW_RIGHTS_STATUSES.IMPORTED_PRIVATE)
+      if (parsed !== rightsStatus) {
+        return NextResponse.json({
+          error: 'Invalid rightsStatus',
+          message: '허용되지 않는 권리 상태입니다.'
+        }, { status: 400 })
+      }
+      normalizedRightsStatus = parsed
+    }
+
+    const canExposePublic =
+      normalizedRightsStatus === REVIEW_RIGHTS_STATUSES.CONSENTED_PUBLIC ||
+      normalizedRightsStatus === REVIEW_RIGHTS_STATUSES.PLATFORM_SNIPPET
+
     console.log('💾 Prisma 리뷰 생성 시작...')
     const review = await prisma.review.create({
       data: {
@@ -189,6 +227,17 @@ export async function POST(request: NextRequest) {
         originalUrl,
         verifiedBy,
         isVerified: verifiedBy ? true : false,
+        sourceType: normalizedSourceType,
+        rightsStatus: normalizedRightsStatus,
+        maskingStatus: REVIEW_MASKING_STATUSES.UNKNOWN,
+        isPublic: Boolean(isPublic) && canExposePublic,
+        publicSnippet: typeof publicSnippet === 'string' ? publicSnippet.trim() : undefined,
+        sourceEvidence: {
+          uploader: session.user.id,
+          importedAt: new Date().toISOString(),
+          originalUrl: originalUrl || null,
+          hasImage: Boolean(imageUrl)
+        },
         userId: session.user.id
       },
       include: {

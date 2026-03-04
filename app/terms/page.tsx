@@ -26,7 +26,7 @@ export default function TermsPage() {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
           <h1 className="text-3xl font-bold mb-2">서비스 이용약관</h1>
-          <p className="text-gray-600 mb-4">최종 수정일: 2025년 8월 11일 (법적 견고성 강화 개정)</p>
+          <p className="text-gray-600 mb-4">최종 수정일: 2026년 3월 4일 (Private Vault / Public Showcase 정책 반영)</p>
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
             <p className="text-sm text-amber-800">
               <strong>법률 고지:</strong> 본 약관은 정보 제공 목적의 템플릿입니다. 귀하의 상황에 맞는 구체적인 법률 자문을 위해서는 자격을 갖춘 변호사와 상담하시기 바랍니다.
@@ -101,7 +101,7 @@ export default function TermsPage() {
                 <ol className="list-decimal pl-6 space-y-2 text-gray-700">
                   <li>회사는 다음과 같은 서비스를 제공합니다:
                     <ul className="list-disc pl-6 mt-2 space-y-1">
-                      <li>제3자 플랫폼 리뷰 수집 및 통합 관리 서비스</li>
+                      <li>이용자 제공 자료 기반 리뷰 아카이빙(Private Vault) 및 통합 관리 서비스</li>
                       <li>OCR 기반 리뷰 스크린샷 자동 인식 및 텍스트 변환 서비스</li>
                       <li>리뷰 진위성 검증 및 관리 서비스</li>
                       <li>공개 프로필 페이지 생성 및 커스터마이징 서비스</li>
@@ -147,6 +147,7 @@ export default function TermsPage() {
                   <li>개인정보, 연락처, 광고성 내용이 포함된 리뷰 작성</li>
                   <li>회사의 사전 승인 없이 서비스를 상업적 목적으로 이용하는 행위</li>
                   <li>서비스 보안 체계를 위협하거나 시스템에 무단 접근을 시도하는 행위</li>
+                  <li>자동화 도구를 이용해 제3자 플랫폼의 기술적 보호조치를 우회하거나 무단 수집을 시도하는 행위</li>
                   <li>기타 관련 법령에 위배되거나 미풍양속에 반하는 행위</li>
                 </ol>
               </div>

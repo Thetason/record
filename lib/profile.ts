@@ -1,5 +1,7 @@
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
+import { canExposeReviewPublicly, getPublicDisplayContent } from '@/lib/review-policy';
 
 const POSSIBLE_ID_LENGTH = 16;
 const PROFILE_REVIEW_LIMIT = 32;
@@ -9,6 +11,10 @@ const REVIEW_SELECT = {
   platform: true,
   business: true,
   content: true,
+  isPublic: true,
+  rightsStatus: true,
+  publicSnippet: true,
+  rating: true,
   author: true,
   reviewDate: true,
   verifiedAt: true,
@@ -23,6 +29,7 @@ const USER_SELECT = {
   name: true,
   bio: true,
   avatar: true,
+  isPublic: true,
   bgImage: true,
   location: true,
   website: true,
@@ -42,7 +49,7 @@ const USER_SELECT = {
 
 async function buildSuccessResult(
   user: UserWithReviews,
-  options: FetchPublicProfileOptions,
+  includeDemoFallback: boolean,
   incrementView: boolean,
   fallbackUsername?: string
 ): Promise<FetchPublicProfileSuccess> {
@@ -61,7 +68,7 @@ async function buildSuccessResult(
       });
   }
 
-  const profile = buildProfilePayload(user, options.includeDemoFallback);
+  const profile = buildProfilePayload(user, includeDemoFallback);
 
   return {
     ok: true,
@@ -77,9 +84,10 @@ export type PublicReview = {
   business: string;
   content: string;
   author: string;
+  rating?: number | null;
   reviewDate: string;
   verified: boolean;
-  verifiedAt: Date | null;
+  verifiedAt: string | null;
   verifiedBy: string | null;
   originalUrl: string | null;
   imageUrl?: string | null;
@@ -93,6 +101,7 @@ export type PublicProfile = {
   bio: string;
   avatar: string;
   coverImage: string;
+  averageRating: number;
   totalReviews: number;
   platforms: string[];
   experience: string;
@@ -243,15 +252,15 @@ const DEMO_REVIEWS: PublicReview[] = [
   }
 ];
 
-type UserWithReviews = NonNullable<
-  Awaited<ReturnType<typeof prisma.user.findUnique>>
->;
+type UserWithReviews = Prisma.UserGetPayload<{
+  select: typeof USER_SELECT
+}>;
 
 function buildProfilePayload(
   user: UserWithReviews,
   includeDemoFallback: boolean
 ): PublicProfile {
-  const reviews = user.reviews ?? [];
+  const reviews = (user.reviews ?? []).filter(review => canExposeReviewPublicly(review));
   const totalReviews = reviews.length;
   const platforms = Array.from(new Set(reviews.map(review => review.platform)));
 
@@ -270,6 +279,13 @@ function buildProfilePayload(
     return diff > 0 ? `${diff}년차` : '';
   })();
 
+  const ratingValues = reviews
+    .map(review => review.rating)
+    .filter((rating): rating is number => typeof rating === 'number');
+  const averageRating = ratingValues.length
+    ? Number((ratingValues.reduce((sum, rating) => sum + rating, 0) / ratingValues.length).toFixed(1))
+    : 0;
+
   const baseProfile: PublicProfile = {
     id: user.id,
     username: user.username,
@@ -278,6 +294,7 @@ function buildProfilePayload(
     bio,
     avatar: user.avatar ?? '',
     coverImage: user.bgImage || fallbackCover,
+    averageRating,
     totalReviews,
     platforms,
     experience: yearsExperience,
@@ -300,11 +317,12 @@ function buildProfilePayload(
       id: review.id,
       platform: review.platform,
       business: review.business || '',
-      content: review.content,
+      content: getPublicDisplayContent(review),
       author: review.author,
+      rating: review.rating,
       reviewDate: review.reviewDate.toISOString(),
       verified: Boolean(review.verifiedAt),
-      verifiedAt: review.verifiedAt,
+      verifiedAt: review.verifiedAt?.toISOString() ?? null,
       verifiedBy: review.verifiedBy,
       originalUrl: review.originalUrl,
       imageUrl: review.imageUrl
@@ -346,7 +364,7 @@ export async function fetchPublicProfile(
     });
 
     if (userById) {
-      return buildSuccessResult(userById, { includeDemoFallback }, incrementView, input);
+      return buildSuccessResult(userById, includeDemoFallback, incrementView, input);
     }
   }
 
@@ -376,7 +394,15 @@ export async function fetchPublicProfile(
     };
   }
 
-  const result = await buildSuccessResult(user, { includeDemoFallback }, incrementView, validation.value);
+  if (!user.isPublic) {
+    return {
+      ok: false,
+      status: 404,
+      message: '프로필을 찾을 수 없습니다'
+    };
+  }
+
+  const result = await buildSuccessResult(user, includeDemoFallback, incrementView, validation.value);
   return {
     ...result,
     truncated: validation.truncated

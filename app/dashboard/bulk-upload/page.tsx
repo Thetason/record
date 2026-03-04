@@ -573,6 +573,12 @@ export default function BulkUploadPage() {
           <p className="text-gray-600 text-sm md:text-base lg:text-lg">
             여러 개의 리뷰 이미지를 한번에 올리고 몇 초 만에 저장 완료 ✨
           </p>
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm text-amber-900">
+              기본 저장 모드는 <strong>Private Vault(비공개)</strong>입니다. 업로드된 외부 플랫폼 리뷰는 공개되지 않으며,
+              권리 상태 검토 후에만 공개 전환할 수 있습니다.
+            </p>
+          </div>
         </div>
 
         {/* 사용 방법 안내 */}
