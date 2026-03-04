@@ -255,7 +255,8 @@ function buildProfilePayload(
   const totalReviews = reviews.length;
   const platforms = Array.from(new Set(reviews.map(review => review.platform)));
 
-  const fallbackCover = '/images/default-cover.jpg';
+  // Use an existing public asset to avoid image optimizer 400s on missing files.
+  const fallbackCover = '/sample.png';
   const professionFromBio = user.bio?.split('\n')?.[0]?.trim();
   const profession = professionFromBio || `${user.name} 전문가`;
   const bio = user.bio ?? '';
