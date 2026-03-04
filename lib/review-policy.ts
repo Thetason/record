@@ -77,6 +77,14 @@ export function canExposeReviewPublicly(review: PolicyReviewLike): boolean {
     review.rightsStatus,
     REVIEW_RIGHTS_STATUSES.CONSENTED_PUBLIC
   );
+
+  // Backward compatibility:
+  // legacy public reviews can have IMPORTED_PRIVATE after schema/policy transition.
+  // Keep them visible until the owner explicitly switches to private.
+  if (rightsStatus === REVIEW_RIGHTS_STATUSES.IMPORTED_PRIVATE) {
+    return true;
+  }
+
   return PUBLIC_RIGHTS_STATUSES.has(rightsStatus);
 }
 

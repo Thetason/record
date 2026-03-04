@@ -3,12 +3,13 @@ import { fetchPublicProfile } from '@/lib/profile'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
     const incrementView = _req.nextUrl.searchParams.get('increment') !== 'false'
+    const { username } = await params
 
-    const result = await fetchPublicProfile(params.username, {
+    const result = await fetchPublicProfile(username, {
       incrementView,
       includeDemoFallback: true
     })

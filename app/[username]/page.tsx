@@ -5,12 +5,13 @@ import ProfileClient from "./ProfileClient"
 import { fetchPublicProfile } from "@/lib/profile"
 
 interface Props {
-  params: { username: string }
+  params: Promise<{ username: string }>
 }
 
 // SEO를 위한 서버사이드 메타데이터
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const profile = await getProfile(params.username, false)
+  const { username } = await params
+  const profile = await getProfile(username, false)
   
   if (!profile) {
     return {
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: `${profile.totalReviews}개의 진짜 리뷰로 증명하는 실력`,
       images: [
         {
-          url: `/api/og?username=${params.username}`,
+          url: `/api/og?username=${username}`,
           width: 1200,
           height: 630,
         }
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: "summary_large_image",
       title: `${profile.name} - ${profile.profession}`,
       description: `${profile.totalReviews}개의 진짜 리뷰로 증명하는 실력`,
-      images: [`/api/og?username=${params.username}`],
+      images: [`/api/og?username=${username}`],
     },
   }
 }
@@ -57,7 +58,8 @@ const getProfile = cache(async (username: string, incrementView: boolean) => {
 })
 
 export default async function ProfilePage({ params }: Props) {
-  const profile = await getProfile(params.username, true)
+  const { username } = await params
+  const profile = await getProfile(username, true)
   
   if (!profile) {
     notFound()

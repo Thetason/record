@@ -4,10 +4,10 @@ import { REVIEW_MASKING_STATUSES, REVIEW_RIGHTS_STATUSES, REVIEW_SOURCE_TYPES } 
 
 export async function POST(
   request: Request,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    const { username } = params
+    const { username } = await params
     if (!username) {
       return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
     }
