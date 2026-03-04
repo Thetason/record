@@ -68,6 +68,7 @@ export default function ReviewsPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [selectedReviews, setSelectedReviews] = useState<Set<string>>(new Set())
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isBulkPublishing, setIsBulkPublishing] = useState(false)
 
   const fetchReviews = useCallback(async () => {
     if (!session) return
@@ -360,6 +361,92 @@ export default function ReviewsPage() {
     }
   }
 
+  const publishTargets = reviews.filter((review) => {
+    const status = review.rightsStatus || "IMPORTED_PRIVATE"
+    const blockedStatuses = new Set(["BLOCKED", "TAKEDOWN_REQUESTED", "TAKEN_DOWN"])
+
+    if (blockedStatuses.has(status)) return false
+    if (review.isPublic && (status === "CONSENTED_PUBLIC" || status === "PLATFORM_SNIPPET")) {
+      return false
+    }
+
+    return true
+  })
+
+  const handlePublishAll = async () => {
+    if (publishTargets.length === 0) {
+      toast({
+        title: "전환할 리뷰가 없습니다",
+        description: "이미 공개 가능한 상태이거나 차단된 리뷰만 남아 있습니다."
+      })
+      return
+    }
+
+    if (!confirm(`비공개/대기 중 리뷰 ${publishTargets.length}개를 공개 상태로 전환할까요?`)) {
+      return
+    }
+
+    setIsBulkPublishing(true)
+    try {
+      const results = await Promise.allSettled(
+        publishTargets.map(async (review) => {
+          const res = await fetch(`/api/reviews/${review.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rightsStatus: "CONSENTED_PUBLIC",
+              isPublic: true
+            })
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            throw new Error(data?.message || data?.error || "공개 전환 실패")
+          }
+          return review.id
+        })
+      )
+
+      const successIds = results
+        .filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled")
+        .map((result) => result.value)
+
+      const failedCount = results.length - successIds.length
+
+      if (successIds.length > 0) {
+        const successIdSet = new Set(successIds)
+        setReviews((prev) =>
+          prev.map((review) =>
+            successIdSet.has(review.id)
+              ? { ...review, rightsStatus: "CONSENTED_PUBLIC", isPublic: true }
+              : review
+          )
+        )
+      }
+
+      if (failedCount > 0) {
+        toast({
+          title: `일괄 공개 부분 완료 (${successIds.length}/${results.length})`,
+          description: `${failedCount}개의 리뷰는 권한 상태/요청 상태로 인해 전환되지 않았습니다.`,
+          variant: "destructive"
+        })
+      } else {
+        toast({
+          title: "일괄 공개 완료",
+          description: `${successIds.length}개의 리뷰를 공개 상태로 전환했습니다.`
+        })
+      }
+    } catch (error) {
+      console.error("Bulk publish error:", error)
+      toast({
+        title: "일괄 공개 실패",
+        description: error instanceof Error ? error.message : "처리 중 오류가 발생했습니다.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsBulkPublishing(false)
+    }
+  }
+
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" })
   }
@@ -628,6 +715,14 @@ export default function ReviewsPage() {
                       <PlusIcon className="w-4 h-4 mr-2" />
                       리뷰 추가
                     </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePublishAll}
+                    disabled={isBulkPublishing || publishTargets.length === 0}
+                  >
+                    {isBulkPublishing ? "일괄 공개 중..." : `전체 공개 전환 (${publishTargets.length})`}
                   </Button>
                 </div>
                 
