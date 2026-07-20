@@ -1,5 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { PLANS } from '@/lib/plan-limits'
+
+type PolarMetadata = {
+  userId?: string
+  plan?: string
+}
+
+type PolarData = {
+  metadata?: PolarMetadata
+  status?: string
+}
+
+function normalizePlan(plan: unknown): 'free' | 'premium' | 'pro' {
+  if (plan === 'business' || plan === 'pro') return 'pro'
+  if (plan === 'premium') return 'premium'
+  return 'free'
+}
+
+function nextPlanExpiry(status: string | undefined): Date | null {
+  if (status === 'canceled' || status === 'cancelled') {
+    return null
+  }
+  return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+}
 
 // POST /api/webhooks/polar - Polar Webhook 처리
 export async function POST(request: NextRequest) {
@@ -46,24 +70,24 @@ export async function POST(request: NextRequest) {
 }
 
 // 결제 완료 처리
-async function handleCheckoutCompleted(data: any) {
-  const { customer_email, metadata } = data
+async function handleCheckoutCompleted(data: PolarData) {
+  const { metadata } = data
 
   if (!metadata?.userId || !metadata?.plan) {
     console.error('❌ Missing metadata in checkout')
     return
   }
 
-  const planMap: Record<string, 'free' | 'premium' | 'pro'> = {
-    premium: 'premium',
-    business: 'pro'
-  }
+  const plan = normalizePlan(metadata.plan)
+  const reviewLimit = PLANS[plan].reviewLimit
+  const planExpiry = plan === 'free' ? null : nextPlanExpiry('active')
 
   await prisma.user.update({
     where: { id: metadata.userId },
     data: {
-      plan: planMap[metadata.plan] || 'free',
-      subscriptionStatus: 'active'
+      plan,
+      reviewLimit,
+      planExpiry,
     }
   })
 
@@ -71,47 +95,49 @@ async function handleCheckoutCompleted(data: any) {
 }
 
 // 구독 생성 처리
-async function handleSubscriptionCreated(data: any) {
-  const { customer_email, metadata, id } = data
+async function handleSubscriptionCreated(data: PolarData) {
+  const { metadata, status } = data
 
   if (!metadata?.userId) return
+
+  const plan = normalizePlan(metadata.plan)
+  const reviewLimit = PLANS[plan].reviewLimit
 
   await prisma.user.update({
     where: { id: metadata.userId },
     data: {
-      subscriptionId: id,
-      subscriptionStatus: 'active'
+      plan,
+      reviewLimit,
+      planExpiry: nextPlanExpiry(status),
     }
   })
 
-  console.log(`✅ Subscription ${id} created for user ${metadata.userId}`)
+  console.log(`✅ Subscription created for user ${metadata.userId}`)
 }
 
 // 구독 업데이트 처리
-async function handleSubscriptionUpdated(data: any) {
-  const { id, status, metadata } = data
+async function handleSubscriptionUpdated(data: PolarData) {
+  const { status, metadata } = data
 
   if (!metadata?.userId) return
 
-  const statusMap: Record<string, string> = {
-    active: 'active',
-    canceled: 'cancelled',
-    incomplete: 'incomplete',
-    past_due: 'past_due'
-  }
+  const plan = normalizePlan(metadata.plan)
+  const reviewLimit = PLANS[plan].reviewLimit
 
   await prisma.user.update({
     where: { id: metadata.userId },
     data: {
-      subscriptionStatus: statusMap[status] || 'active'
+      plan,
+      reviewLimit,
+      planExpiry: nextPlanExpiry(status),
     }
   })
 
-  console.log(`✅ Subscription ${id} updated: ${status}`)
+  console.log(`✅ Subscription updated: ${status}`)
 }
 
 // 구독 취소 처리
-async function handleSubscriptionCancelled(data: any) {
+async function handleSubscriptionCancelled(data: PolarData) {
   const { metadata } = data
 
   if (!metadata?.userId) return
@@ -120,7 +146,8 @@ async function handleSubscriptionCancelled(data: any) {
     where: { id: metadata.userId },
     data: {
       plan: 'free',
-      subscriptionStatus: 'cancelled'
+      reviewLimit: PLANS.free.reviewLimit,
+      planExpiry: null,
     }
   })
 

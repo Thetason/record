@@ -5,8 +5,10 @@ import { ToastContainer } from "@/components/ui/toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export const metadata: Metadata = {
-  title: "Re:cord - 리뷰는 누군가의 기억입니다",
-  description: "여러 플랫폼에 흩어진 리뷰를 한 곳에 모아드립니다. Re:cord로 당신의 이야기를 완성하세요.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_URL || "https://www.recordyours.com"),
+  title: "Re:cord - 상담 전에 보내는 신뢰 포트폴리오",
+  description:
+    "리뷰를 모으는 게 아니라, 보내는 링크를 만듭니다. 각 플랫폼에 흩어진 리뷰와 업력을 한 링크에 모아 예비고객에게 바로 전달하세요.",
 };
 
 export default function RootLayout({
@@ -27,14 +29,10 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <ErrorBoundary>
           <AuthProvider>
-            {/* Simple onboarding banner */}
-            <div className="w-full bg-orange-50 text-orange-900 text-sm px-4 py-2 text-center">
-              처음이신가요? 1) 회원가입 2) 프로필 설정 3) 첫 리뷰 업로드 4) 프로필 공유까지 3분!
-            </div>
             {children}
             <ToastContainer />
             <footer className="py-6 border-t text-center text-xs text-gray-600">
-              <p>© 2024 Re:cord. All rights reserved. · 문의: <a className="underline" href="mailto:support@record.kr">support@record.kr</a></p>
+              <p>© {new Date().getFullYear()} Re:cord. All rights reserved. · 문의: <a className="underline" href="mailto:support@record.kr">support@record.kr</a></p>
             </footer>
           </AuthProvider>
         </ErrorBoundary>

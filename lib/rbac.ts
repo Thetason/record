@@ -35,24 +35,26 @@ export enum Role {
   SUPER_ADMIN = 'super_admin',
 }
 
+const adminPermissions: Permission[] = [
+  Permission.VIEW_REVIEWS,
+  Permission.VERIFY_REVIEWS,
+  Permission.MODERATE_REVIEWS,
+  Permission.VIEW_USERS,
+  Permission.VIEW_PAYMENTS,
+  Permission.VIEW_ANALYTICS,
+  Permission.VIEW_TICKETS,
+  Permission.RESPOND_TICKETS,
+  Permission.MANAGE_ANNOUNCEMENTS,
+]
+
 // 역할별 권한 매핑
 const rolePermissions: Record<Role, Permission[]> = {
   [Role.USER]: [], // 일반 사용자는 별도 권한 없음
   
-  [Role.ADMIN]: [
-    Permission.VIEW_REVIEWS,
-    Permission.VERIFY_REVIEWS,
-    Permission.MODERATE_REVIEWS,
-    Permission.VIEW_USERS,
-    Permission.VIEW_PAYMENTS,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_TICKETS,
-    Permission.RESPOND_TICKETS,
-    Permission.MANAGE_ANNOUNCEMENTS,
-  ],
+  [Role.ADMIN]: adminPermissions,
   
   [Role.SUPER_ADMIN]: [
-    ...rolePermissions[Role.ADMIN],
+    ...adminPermissions,
     Permission.DELETE_REVIEWS,
     Permission.EDIT_USERS,
     Permission.DELETE_USERS,

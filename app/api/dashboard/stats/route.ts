@@ -28,6 +28,7 @@ export async function GET() {
 
     // 기본 통계
     const totalReviews = reviews.length
+    const featuredReviews = reviews.filter(review => review.isFeatured).length
     const platforms = new Set(reviews.map(review => review.platform)).size
 
     // 월별 통계
@@ -90,6 +91,7 @@ export async function GET() {
     const stats = {
       overview: {
         totalReviews,
+        featuredReviews,
         platforms,
         thisMonth: thisMonthReviews,
         profileViews: user?.profileViews || 0

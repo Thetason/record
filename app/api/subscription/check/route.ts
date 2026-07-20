@@ -39,7 +39,7 @@ export async function GET() {
         data: { 
           plan: 'free',
           planExpiry: null,
-          reviewLimit: 50
+          reviewLimit: 20
         }
       })
     }

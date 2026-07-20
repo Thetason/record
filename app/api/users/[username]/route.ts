@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma'
 // GET /api/users/[username] - 공개 프로필 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
+    const { username } = await params
     const user = await prisma.user.findUnique({
-      where: { username: params.username },
+      where: { username },
       select: {
         id: true,
         username: true,
@@ -46,7 +47,7 @@ export async function GET(
 
     // 프로필 조회수 증가
     await prisma.user.update({
-      where: { username: params.username },
+      where: { username },
       data: { profileViews: { increment: 1 } }
     })
 

@@ -1,5 +1,9 @@
 # 🚨 프로덕션 최종 확인 체크리스트
 
+> 상태: 과거 스냅샷 문서
+> 이 문서는 특정 시점의 운영 확인 기록입니다. 현재 배포 기준으로 바로 사용하지 마세요.
+> 현재 기준은 `START_HERE.md`, `DEPLOY_STATUS.md`, `GLOBAL_LAUNCH_READINESS.md`, `PRODUCTION_OPERATOR_CHECKLIST.md` 입니다.
+
 **작성일**: 2025-11-06 23:07
 **프로덕션 URL**: https://www.recordyours.com
 

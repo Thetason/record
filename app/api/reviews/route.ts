@@ -1,8 +1,10 @@
+import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canAddReview, getUserReviewCount } from '@/lib/subscription'
+
+const REVIEW_DEBUG = process.env.NODE_ENV !== 'production' && process.env.REVIEW_DEBUG === 'true'
 
 // GET /api/reviews - 사용자의 리뷰 목록 조회
 export async function GET(request: NextRequest) {
@@ -19,14 +21,14 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    const where = {
+    const where: Prisma.ReviewWhereInput = {
       userId: session.user.id,
       ...(platform && platform !== 'all' && { platform }),
       ...(search && {
         OR: [
-          { business: { contains: search, mode: 'insensitive' } },
-          { content: { contains: search, mode: 'insensitive' } },
-          { author: { contains: search, mode: 'insensitive' } }
+          { business: { contains: search } },
+          { content: { contains: search } },
+          { author: { contains: search } }
         ]
       })
     }
@@ -34,7 +36,11 @@ export async function GET(request: NextRequest) {
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
         where,
-        orderBy: { reviewDate: 'desc' },
+        orderBy: [
+          { isFeatured: 'desc' },
+          { featuredAt: 'asc' },
+          { reviewDate: 'desc' }
+        ],
         skip: (page - 1) * limit,
         take: limit,
         include: {
@@ -67,18 +73,13 @@ export async function GET(request: NextRequest) {
 // POST /api/reviews - 새 리뷰 생성
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔵 POST /api/reviews 시작')
-    
     const session = await getServerSession(authOptions)
-    console.log('🔐 세션 확인:', session ? `User ID: ${session.user?.id}` : '세션 없음')
     
     if (!session?.user?.id) {
-      console.log('❌ 인증 실패')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // 플랜 리뷰 제한 확인
-    console.log('📊 리뷰 쿼터 확인 중...')
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { plan: true, reviewLimit: true, _count: { select: { reviews: true } } }
@@ -94,8 +95,6 @@ export async function POST(request: NextRequest) {
 
     // 무제한(-1)이 아닌 경우 한도 체크
     if (reviewLimit !== -1 && reviewCount >= reviewLimit) {
-      console.log(`⚠️ 리뷰 제한 도달: ${reviewCount}/${reviewLimit}`)
-      
       let upgradeMessage = ''
       let upgradePlan = ''
       
@@ -118,9 +117,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    console.log('📦 요청 본문:', JSON.stringify(body, null, 2))
+    if (REVIEW_DEBUG) {
+      console.log('review create request meta:', {
+        userId: session.user.id,
+        hasPlatform: Boolean(body.platform),
+        hasBusiness: Boolean(body.business),
+        contentLength: typeof body.content === 'string' ? body.content.length : 0,
+        hasOriginalUrl: Boolean(body.originalUrl),
+      })
+    }
     
-    const { platform, business, content, author, rating, reviewDate, imageUrl, originalUrl, verifiedBy } = body
+    const { platform, business, content, author, rating, reviewDate, imageUrl, originalUrl, verifiedBy, isPublic } = body
+    const normalizedPlatform = typeof platform === 'string' ? platform.trim().toLowerCase() : ''
+    const isDirectReview = normalizedPlatform === 're:cord'
 
     // 입력 검증
     const missingFields = []
@@ -131,7 +140,6 @@ export async function POST(request: NextRequest) {
     if (!reviewDate) missingFields.push('reviewDate')
 
     if (missingFields.length > 0) {
-      console.log('❌ 필수 필드 누락:', missingFields)
       return NextResponse.json({ 
         error: 'Missing required fields',
         message: `다음 필드가 필요합니다: ${missingFields.join(', ')}`,
@@ -140,10 +148,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 날짜 검증
-    console.log('📅 날짜 파싱 중:', reviewDate)
     const parsedDate = new Date(reviewDate)
     if (isNaN(parsedDate.getTime())) {
-      console.log('❌ 잘못된 날짜 형식')
       return NextResponse.json({
         error: 'Invalid date',
         message: '올바른 날짜 형식이 아닙니다.'
@@ -152,7 +158,6 @@ export async function POST(request: NextRequest) {
 
     // 미래 날짜 방지
     if (parsedDate > new Date()) {
-      console.log('❌ 미래 날짜')
       return NextResponse.json({
         error: 'Invalid date',
         message: '리뷰 작성일은 오늘 이후일 수 없습니다.'
@@ -161,7 +166,6 @@ export async function POST(request: NextRequest) {
 
     // 컨텐츠 길이 검증
     if (content.length < 10) {
-      console.log(`❌ 내용 너무 짧음: ${content.length}자`)
       return NextResponse.json({
         error: 'Invalid content',
         message: '리뷰 내용은 최소 10자 이상이어야 합니다.'
@@ -169,14 +173,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (content.length > 2000) {
-      console.log(`❌ 내용 너무 김: ${content.length}자`)
       return NextResponse.json({
         error: 'Invalid content', 
         message: '리뷰 내용은 최대 2000자까지만 가능합니다.'
       }, { status: 400 })
     }
 
-    console.log('💾 Prisma 리뷰 생성 시작...')
     const review = await prisma.review.create({
       data: {
         platform,
@@ -187,8 +189,14 @@ export async function POST(request: NextRequest) {
         reviewDate: parsedDate,
         imageUrl,
         originalUrl,
-        verifiedBy,
-        isVerified: verifiedBy ? true : false,
+        verifiedBy: verifiedBy ?? (isDirectReview ? 'request' : 'owner_import'),
+        isVerified: false,
+        verificationStatus: isDirectReview ? 'pending' : 'approved',
+        verificationNote: isDirectReview
+          ? 'Created as a direct review and waiting for owner approval.'
+          : 'Imported by the owner into the private vault.',
+        // Private Vault 기본값: 명시적으로 true를 보낸 경우만 공개
+        isPublic: isDirectReview ? false : isPublic === true,
         userId: session.user.id
       },
       include: {
@@ -201,18 +209,24 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log('✅ 리뷰 생성 성공:', review.id)
+    if (REVIEW_DEBUG) {
+      console.log('review created:', {
+        reviewId: review.id,
+        userId: session.user.id,
+        platform: review.platform,
+        verificationStatus: review.verificationStatus,
+        isPublic: review.isPublic,
+      })
+    }
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
-    console.error('🔥 리뷰 생성 중 에러 발생:')
-    console.error('에러 타입:', error?.constructor?.name)
-    console.error('에러 메시지:', error instanceof Error ? error.message : String(error))
-    console.error('에러 스택:', error instanceof Error ? error.stack : 'No stack trace')
-    console.error('전체 에러 객체:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    console.error('review create failed:', error instanceof Error ? error.message : String(error))
     
     return NextResponse.json({ 
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : '리뷰 생성 중 오류가 발생했습니다.',
+      message: process.env.NODE_ENV === 'development'
+        ? (error instanceof Error ? error.message : '리뷰 생성 중 오류가 발생했습니다.')
+        : '리뷰 생성 중 오류가 발생했습니다.',
       details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
     }, { status: 500 })
   }

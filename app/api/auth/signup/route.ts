@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
 import { rateLimit, getIP, rateLimitResponse, apiLimits } from '@/lib/rate-limit';
+import { getLaunchOfferCreateData } from '@/lib/launch-offer';
 
 const USERNAME_MAX_LENGTH = 20;
 
@@ -139,11 +140,9 @@ export async function POST(req: NextRequest) {
     // 비밀번호 암호화
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 첫 가입 사용자는 자동으로 super admin 권한 부여
-    const superAdminCount = await prisma.user.count({
-      where: { role: 'super_admin' }
-    });
-    const assignedRole = superAdminCount === 0 ? 'super_admin' : 'user';
+    const assignedRole = 'user';
+
+    const { launchOfferGranted, createData: launchOfferData } = await getLaunchOfferCreateData(prisma);
 
     // 사용자 생성
     const user = await prisma.user.create({
@@ -152,11 +151,11 @@ export async function POST(req: NextRequest) {
         email,
         password: hashedPassword,
         name: name || finalUsername,
-        avatar:
-          name?.charAt(0).toUpperCase() || finalUsername.charAt(0).toUpperCase(),
-        plan: 'free',
-        reviewLimit: 50,
-        role: assignedRole
+        // avatar stays null until a real image is uploaded; UIs render the
+        // name initial themselves, and next/image crashes on non-URL src
+        avatar: null,
+        role: assignedRole,
+        ...launchOfferData,
       }
     });
 
@@ -181,7 +180,8 @@ export async function POST(req: NextRequest) {
       username: finalUsername,
       truncated: usernameValidation.truncated || usernameAdjusted,
       adjusted: usernameAdjusted,
-      role: assignedRole
+      role: assignedRole,
+      launchOfferGranted,
     });
 
   } catch (error) {

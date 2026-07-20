@@ -1,0 +1,48 @@
+{
+  "name": "somssidang-v2-boundary",
+  "kind": "vision",
+  "parser": "analyzeReviewTextV2",
+  "forcedPlatform": "솜씨당",
+  "input": {
+    "textAnnotations": [
+      {
+        "description": "솜씨당\n작가 소개\n참여 후기\n공간이 아늑하고 설명이 정말 친절했어요\n완성 결과도 만족스러웠습니다\n후기 12"
+      },
+      {
+        "description": "솜씨당",
+        "boundingPoly": { "vertices": [ { "x": 40, "y": 20 }, { "x": 160, "y": 20 }, { "x": 160, "y": 50 }, { "x": 40, "y": 50 } ] }
+      },
+      {
+        "description": "작가 소개",
+        "boundingPoly": { "vertices": [ { "x": 40, "y": 90 }, { "x": 200, "y": 90 }, { "x": 200, "y": 120 }, { "x": 40, "y": 120 } ] }
+      },
+      {
+        "description": "참여 후기",
+        "boundingPoly": { "vertices": [ { "x": 40, "y": 220 }, { "x": 220, "y": 220 }, { "x": 220, "y": 250 }, { "x": 40, "y": 250 } ] }
+      },
+      {
+        "description": "공간이 아늑하고 설명이 정말 친절했어요",
+        "boundingPoly": { "vertices": [ { "x": 40, "y": 320 }, { "x": 520, "y": 320 }, { "x": 520, "y": 350 }, { "x": 40, "y": 350 } ] }
+      },
+      {
+        "description": "완성 결과도 만족스러웠습니다",
+        "boundingPoly": { "vertices": [ { "x": 40, "y": 370 }, { "x": 420, "y": 370 }, { "x": 420, "y": 400 }, { "x": 40, "y": 400 } ] }
+      },
+      {
+        "description": "후기 12",
+        "boundingPoly": { "vertices": [ { "x": 40, "y": 900 }, { "x": 140, "y": 900 }, { "x": 140, "y": 930 }, { "x": 40, "y": 930 } ] }
+      }
+    ]
+  },
+  "expected": {
+    "platform": "somssidang",
+    "reviewTextIncludes": [
+      "공간이 아늑하고",
+      "완성 결과도 만족스러웠습니다"
+    ],
+    "reviewTextExcludes": [
+      "작가 소개",
+      "참여 후기"
+    ]
+  }
+}

@@ -5,14 +5,14 @@ import prisma from '@/lib/prisma'
 // 리뷰 데이터 캐싱 (5분)
 export const getCachedReviews = unstable_cache(
   async (userId: string) => {
-    return await prisma.review.findMany({
+    return prisma.review.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {
             username: true,
-            displayName: true,
+            name: true,
           }
         }
       }
@@ -28,21 +28,19 @@ export const getCachedReviews = unstable_cache(
 // 사용자 프로필 캐싱 (10분)
 export const getCachedUserProfile = unstable_cache(
   async (username: string) => {
-    return await prisma.user.findUnique({
+    return prisma.user.findUnique({
       where: { username },
       select: {
         id: true,
         username: true,
-        displayName: true,
-        profileBio: true,
-        profileImage: true,
-        profileTheme: true,
-        profileBackground: true,
-        showContact: true,
-        contactEmail: true,
-        contactPhone: true,
-        socialInstagram: true,
-        socialNaver: true,
+        name: true,
+        bio: true,
+        avatar: true,
+        theme: true,
+        bgImage: true,
+        phone: true,
+        website: true,
+        email: true,
         createdAt: true,
         profileViews: true,
         _count: {
@@ -107,15 +105,15 @@ export const getCachedStats = unstable_cache(
 
 // React Cache for request deduplication
 export const getUser = cache(async (userId: string) => {
-  return await prisma.user.findUnique({
+  return prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
       email: true,
       username: true,
-      displayName: true,
+      name: true,
       plan: true,
-      planExpiresAt: true,
+      planExpiry: true,
     }
   })
 })

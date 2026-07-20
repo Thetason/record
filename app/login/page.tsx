@@ -11,10 +11,12 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   Configuration: '소셜 로그인 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.',
 }
 
-function LoadingScreen() {
+function LoginFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-      <div className="text-center text-gray-600">로딩 중...</div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
+      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white/80 p-6 text-center text-sm text-gray-600 shadow-xl backdrop-blur-sm">
+        로그인 화면을 불러오는 중입니다.
+      </div>
     </div>
   )
 }
@@ -29,13 +31,8 @@ function LoginPageContent() {
   const [oauthInFlight, setOauthInFlight] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
-  const [mounted, setMounted] = useState(false)
   const [providersLoaded, setProvidersLoaded] = useState(false)
   const [providerMap, setProviderMap] = useState<Record<string, ClientSafeProvider>>({})
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     let active = true
@@ -122,10 +119,6 @@ function LoginPageContent() {
     }
   }
 
-  if (!mounted) {
-    return <LoadingScreen />
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
       <div className="w-full max-w-md">
@@ -134,13 +127,13 @@ function LoginPageContent() {
             <span className="text-xl sm:text-2xl md:text-3xl font-bold">Re:cord</span>
             <span className="text-[#FF6B35] text-xl sm:text-2xl md:text-3xl">*</span>
           </Link>
-          <p className="text-gray-600 mt-2 text-sm md:text-base">리뷰 포트폴리오에 로그인하세요</p>
+          <p className="text-gray-600 mt-2 text-sm md:text-base">내 신뢰 페이지에 로그인하세요</p>
         </div>
 
         <div className="border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-lg p-5 sm:p-6">
           <div className="space-y-1 pb-4 md:pb-6 text-center">
             <h1 className="text-xl sm:text-2xl font-semibold">로그인</h1>
-            <p className="text-sm sm:text-base text-gray-600">계정에 로그인하여 리뷰를 관리하세요</p>
+            <p className="text-sm sm:text-base text-gray-600">계정에 로그인하여 후기 자산과 공개 페이지를 관리하세요</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -272,7 +265,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={<LoginFallback />}>
       <LoginPageContent />
     </Suspense>
   )

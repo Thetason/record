@@ -28,6 +28,8 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.local.backup
+.env.secure
 .env.production
 .env.development
 .env.staging
@@ -43,7 +45,17 @@ next-env.d.ts
 prisma/*.db
 prisma/prisma/*.db
 prisma/*.db-journal
-prisma/migrations/
+prisma/*.db.backup*
+prisma/generated/
+
+# next.js dev output
+/.next-dev/
+
+# production data dumps (contains real review PII — never commit)
+tmp-*.json
+
+# unrelated local tool (not part of the record product)
+유튜브다운로더/
 
 # IDE
 .vscode/

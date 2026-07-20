@@ -1,21 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchPublicProfile } from '@/lib/profile'
+import { fetchLivePublicProfile, shouldUseLivePublicProfile } from '@/lib/live-public-profile'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
+    const { username } = await params
     const incrementView = _req.nextUrl.searchParams.get('increment') !== 'false'
 
-    const result = await fetchPublicProfile(params.username, {
+    const result = await fetchPublicProfile(username, {
       incrementView,
-      includeDemoFallback: true
+      includeDemoFallback: false
     })
 
+    if (!result.ok && result.status === 404 && shouldUseLivePublicProfile(username)) {
+      const liveProfile = await fetchLivePublicProfile(username)
+
+      if (liveProfile) {
+        return NextResponse.json({
+          profile: liveProfile,
+          user: liveProfile,
+          username: liveProfile.username,
+          truncated: false
+        })
+      }
+    }
+
     if (!result.ok) {
+      const code =
+        result.status === 404
+          ? 'PROFILE_NOT_FOUND'
+          : result.status >= 500
+          ? 'PROFILE_UNAVAILABLE'
+          : 'INVALID_USERNAME'
+
       return NextResponse.json(
-        { error: result.message, code: result.status === 404 ? 'PROFILE_NOT_FOUND' : 'INVALID_USERNAME' },
+        { error: result.message, code },
         { status: result.status }
       )
     }

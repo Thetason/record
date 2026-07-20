@@ -1,5 +1,9 @@
 # ✅ Re:cord 프로젝트 프로덕션 준비 완료
 
+> 상태: 과거 스냅샷 문서
+> 이 문서는 이전 배포 가정에 기반한 준비 완료 기록입니다. 현재 기준으로 쓰지 마세요.
+> 현재 기준은 `START_HERE.md`, `DEPLOY_STATUS.md`, `GLOBAL_LAUNCH_READINESS.md`, `PRODUCTION_OPERATOR_CHECKLIST.md` 입니다.
+
 > 최종 업데이트: 2025년 1월 4일
 > **상태: 출시 가능**
 

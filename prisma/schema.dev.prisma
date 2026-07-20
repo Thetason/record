@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../prisma/generated/dev-client"
 }
 
 datasource db {
@@ -16,11 +17,15 @@ model User {
   username  String   @unique
   password  String?  // 비밀번호 필드 (OAuth 유저는 null)
   name      String
+  profession String?
+  experience String?
   bio       String?
   location  String?
   website   String?
   phone     String?
   avatar    String?
+  portfolioImages String @default("[]")
+  careerTimeline String @default("[]")
   
   // 권한 관리
   role      String   @default("user") // user, admin, super_admin
@@ -44,7 +49,8 @@ model User {
   // 구독 플랜
   plan      String   @default("free") // free, premium, pro
   planExpiry DateTime? // 프리미엄 플랜 만료일
-  reviewLimit Int    @default(50) // 무료: 50개, 프리미엄: 무제한(-1)
+  launchOfferClaimedAt DateTime? // 오픈 기념 첫 100명 혜택 부여 시점
+  reviewLimit Int    @default(20) // 무료: 20개, 프리미엄: 100개, 프로: 무제한(-1)
   
   // 통계
   profileViews Int     @default(0)
@@ -100,11 +106,14 @@ model Review {
   business    String   // 업체명
   content     String   // 리뷰 내용
   author      String   // 리뷰 작성자 (익명화된 이름)
+  rating      Int?     // 별점 (1-5, optional)
   reviewDate  DateTime // 실제 리뷰 작성일
   
   // 메타데이터
   isVerified  Boolean  @default(false) // 검증 여부
   isPublic    Boolean  @default(true)  // 공개 여부
+  isFeatured  Boolean  @default(false) // 대표 후기 여부
+  featuredAt  DateTime? // 대표 후기 지정 시점
   
   // 검증 관련
   originalUrl String?  // 원본 리뷰 링크

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -10,18 +10,16 @@ import {
   UploadIcon,
   ImageIcon,
   CheckCircledIcon,
-  ReloadIcon,
-  Pencil1Icon
+  ReloadIcon
 } from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav"
+import { LAUNCH_OCR_IMPORT_LIMIT } from "@/lib/launch-offer-config"
 
 type ParsedReview = Partial<ReviewFormState>
 type ReviewInput = Partial<ReviewFormState> & { content: string }
@@ -35,6 +33,13 @@ interface OCRResult {
   parsed?: ParsedReview
   error?: string
   confidence?: number
+  fieldConfidence?: {
+    platform: number
+    business: number
+    author: number
+    reviewDate: number
+    content: number
+  }
   previewUrl?: string
   saved?: boolean
   order: number
@@ -48,6 +53,275 @@ type ReviewFormState = {
   reviewDate: string
   content: string
   link: string
+}
+
+type DuplicateCandidate = {
+  targetId: string
+  similarity: number
+  reason: string
+}
+
+type QualityState = {
+  level: 'ready' | 'review' | 'fix'
+  label: string
+  description: string
+}
+
+const PLATFORM_OPTIONS = ['네이버', '카카오맵', '당근', '크몽', '프립', '솜씨당', '구글', '인스타그램', 'Re:cord', '기타'] as const
+const PLATFORM_ALIASES: Record<string, string> = {
+  네이버: '네이버',
+  naver: '네이버',
+  카카오: '카카오맵',
+  카카오맵: '카카오맵',
+  kakao: '카카오맵',
+  당근: '당근',
+  danggeun: '당근',
+  daangn: '당근',
+  크몽: '크몽',
+  kmong: '크몽',
+  프립: '프립',
+  frip: '프립',
+  솜씨당: '솜씨당',
+  somssidang: '솜씨당',
+  구글: '구글',
+  google: '구글',
+  인스타: '인스타그램',
+  인스타그램: '인스타그램',
+  instagram: '인스타그램',
+  're:cord': 'Re:cord',
+  record: 'Re:cord',
+  기타: '기타',
+  other: '기타'
+}
+
+const normalizeFingerprint = (value = '') =>
+  value
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .trim()
+
+const normalizePlatformLabel = (value = '') => {
+  const trimmed = value.trim()
+  const normalized = trimmed.toLowerCase()
+  return PLATFORM_ALIASES[trimmed] || PLATFORM_ALIASES[normalized] || trimmed
+}
+
+const isPlaceholderAuthor = (value = '') => {
+  const normalized = value.trim().toLowerCase()
+  return normalized === '' || ['익명', '고객', '고객님', '작성자'].includes(normalized)
+}
+
+const isMeaningfulDate = (value = '', result?: OCRResult) => {
+  if (!value) return false
+  if ((result?.fieldConfidence?.reviewDate ?? 0) >= 0.7) return true
+
+  const today = new Date().toISOString().slice(0, 10)
+  return value !== today
+}
+
+const getTokenOverlap = (a: string, b: string) => {
+  const aTokens = new Set(a.split(' ').filter(Boolean))
+  const bTokens = new Set(b.split(' ').filter(Boolean))
+
+  if (aTokens.size === 0 || bTokens.size === 0) {
+    return 0
+  }
+
+  let intersection = 0
+  aTokens.forEach((token) => {
+    if (bTokens.has(token)) {
+      intersection += 1
+    }
+  })
+
+  return intersection / Math.max(aTokens.size, bTokens.size)
+}
+
+const getContentSimilarity = (left: string, right: string) => {
+  if (!left || !right) return 0
+  if (left === right) return 1
+
+  const longer = left.length >= right.length ? left : right
+  const shorter = longer === left ? right : left
+
+  if (longer.includes(shorter) && shorter.length > 20) {
+    return shorter.length / longer.length
+  }
+
+  return getTokenOverlap(left, right)
+}
+
+const hasContainedContent = (left: string, right: string, minLength = 16) => {
+  if (!left || !right) return false
+
+  const longer = left.length >= right.length ? left : right
+  const shorter = longer === left ? right : left
+
+  return shorter.length >= minLength && longer.includes(shorter)
+}
+
+const buildDuplicateCandidates = (
+  results: OCRResult[],
+  forms: Record<string, ReviewFormState>
+): Record<string, DuplicateCandidate> => {
+  const duplicates: Record<string, DuplicateCandidate> = {}
+
+  for (let i = 0; i < results.length; i += 1) {
+    const baseResult = results[i]
+    const baseForm = forms[baseResult.id]
+    const baseContent = normalizeFingerprint(baseForm?.content ?? '')
+
+    if (baseContent.length < 20) continue
+
+    const baseBusiness = normalizeFingerprint(baseForm?.business ?? '')
+    const baseAuthor = isPlaceholderAuthor(baseForm?.author ?? '') ? '' : normalizeFingerprint(baseForm?.author ?? '')
+    const baseDate = isMeaningfulDate(baseForm?.reviewDate ?? '', baseResult) ? (baseForm?.reviewDate ?? '') : ''
+    const basePlatform = normalizeFingerprint(normalizePlatformLabel(baseForm?.platform ?? ''))
+
+    for (let j = i + 1; j < results.length; j += 1) {
+      const compareResult = results[j]
+      const compareForm = forms[compareResult.id]
+      const compareContent = normalizeFingerprint(compareForm?.content ?? '')
+
+      if (compareContent.length < 20) continue
+
+      const similarity = getContentSimilarity(baseContent, compareContent)
+      const compareBusiness = normalizeFingerprint(compareForm?.business ?? '')
+      const compareAuthor = isPlaceholderAuthor(compareForm?.author ?? '') ? '' : normalizeFingerprint(compareForm?.author ?? '')
+      const compareDate = isMeaningfulDate(compareForm?.reviewDate ?? '', compareResult) ? (compareForm?.reviewDate ?? '') : ''
+      const comparePlatform = normalizeFingerprint(normalizePlatformLabel(compareForm?.platform ?? ''))
+      const sameBusiness = baseBusiness !== '' && baseBusiness === compareBusiness
+      const sameAuthor = baseAuthor !== '' && baseAuthor === compareAuthor
+      const sameDate = baseDate !== '' && baseDate === compareDate
+      const samePlatform = basePlatform !== '' && basePlatform === comparePlatform
+      const metadataMatches = [sameBusiness, sameAuthor, sameDate, samePlatform].filter(Boolean).length
+      const hasContainedText = hasContainedContent(baseContent, compareContent)
+
+      if (
+        similarity >= 0.94 ||
+        (similarity >= 0.82 && metadataMatches >= 2) ||
+        (sameBusiness && sameAuthor && sameDate && similarity >= 0.68) ||
+        (sameBusiness && sameDate && hasContainedText) ||
+        (samePlatform && sameAuthor && sameDate && similarity >= 0.74)
+      ) {
+        const reason =
+          similarity >= 0.94
+            ? '본문이 거의 동일합니다.'
+            : sameBusiness && sameAuthor && sameDate
+            ? '업체명, 작성자, 작성일이 같고 본문도 유사합니다.'
+            : sameBusiness && sameDate && hasContainedText
+            ? '같은 업체의 동일 날짜 리뷰가 겹쳐 캡처된 것으로 보입니다.'
+            : metadataMatches >= 2
+            ? '본문과 메타데이터가 모두 비슷합니다.'
+            : '플랫폼, 작성자, 날짜가 같아 중복 가능성이 높습니다.'
+
+        const existingCandidate = duplicates[compareResult.id]
+        if (existingCandidate && existingCandidate.similarity >= similarity) {
+          continue
+        }
+
+        duplicates[compareResult.id] = {
+          targetId: baseResult.id,
+          similarity,
+          reason
+        }
+      }
+    }
+  }
+
+  return duplicates
+}
+
+const getQualityState = (result: OCRResult, form?: ReviewFormState): QualityState => {
+  if (result.status === 'error') {
+    return {
+      level: 'fix',
+      label: '재처리 필요',
+      description: 'OCR이 실패했습니다. 이미지를 다시 인식하거나 직접 입력해야 합니다.'
+    }
+  }
+
+  if (!form) {
+    return {
+      level: 'review',
+      label: '검토 대기',
+      description: '아직 리뷰 데이터가 준비되지 않았습니다.'
+    }
+  }
+
+  const contentLength = form.content.trim().length
+  const confidence = typeof result.confidence === 'number' ? result.confidence : 0
+  const fieldConfidence = result.fieldConfidence
+  const missingFields = []
+
+  if (!form.business.trim()) missingFields.push('업체명')
+  if (!form.author.trim() || ['익명', '고객', '고객님', '작성자'].includes(form.author.trim())) {
+    missingFields.push('작성자')
+  }
+  if (!form.reviewDate) missingFields.push('작성일')
+
+  if (contentLength < 10) {
+    return {
+      level: 'fix',
+      label: '수정 필요',
+      description: '리뷰 본문이 너무 짧습니다. OCR 결과를 직접 보정해주세요.'
+    }
+  }
+
+  if (fieldConfidence && fieldConfidence.content < 0.62) {
+    return {
+      level: 'fix',
+      label: '수정 필요',
+      description: '본문 인식 품질이 낮습니다. 원문과 대조해서 직접 보정해주세요.'
+    }
+  }
+
+  if (fieldConfidence && (fieldConfidence.business < 0.45 || fieldConfidence.author < 0.45 || fieldConfidence.reviewDate < 0.55)) {
+    return {
+      level: 'review',
+      label: '메타 확인',
+      description: '업체명, 작성자, 작성일 중 일부가 불안정합니다. 저장 전에 확인해주세요.'
+    }
+  }
+
+  if (fieldConfidence && fieldConfidence.platform < 0.55) {
+    return {
+      level: 'review',
+      label: '플랫폼 확인',
+      description: '플랫폼 인식이 불안정합니다. 선택한 플랫폼과 일치하는지 확인해주세요.'
+    }
+  }
+
+  if (confidence > 0 && confidence < 0.72) {
+    return {
+      level: 'review',
+      label: '검토 권장',
+      description: 'OCR 신뢰도가 낮습니다. 본문과 날짜를 한 번 더 확인해주세요.'
+    }
+  }
+
+  if (missingFields.length >= 2) {
+    return {
+      level: 'review',
+      label: '메타 확인',
+      description: `${missingFields.join(', ')} 정보가 비어 있습니다.`
+    }
+  }
+
+  if (confidence >= 0.88 && contentLength >= 25) {
+    return {
+      level: 'ready',
+      label: '바로 저장 가능',
+      description: '본문과 핵심 필드가 비교적 안정적으로 인식되었습니다.'
+    }
+  }
+
+  return {
+    level: 'review',
+    label: '검토 권장',
+    description: '저장 전 본문과 메타 정보를 한 번 확인하는 것이 좋습니다.'
+  }
 }
 
 export default function BulkUploadPage() {
@@ -70,6 +344,24 @@ export default function BulkUploadPage() {
   const [activeResultId, setActiveResultId] = useState<string | null>(null)
   const [editingData, setEditingData] = useState<Record<string, ReviewFormState>>({})
   const ocrVersion = 'v2' // OCR 알고리즘 버전 (V2 영역기반 - 가장 정확함)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const params = new URLSearchParams(window.location.search)
+    const platformParam = params.get('platform')
+    const businessParam = params.get('business')
+
+    if (platformParam && !selectedPlatform) {
+      setSelectedPlatform(platformParam)
+      setShowPlatformEdit(false)
+    }
+
+    if (businessParam && !batchBusinessName) {
+      setBatchBusinessName(businessParam)
+      setShowBusinessEdit(false)
+    }
+  }, [batchBusinessName, selectedPlatform])
 
   const updateResult = (id: string, updater: Partial<OCRResult> | ((result: OCRResult) => Partial<OCRResult>)) => {
     setOcrResults(prev => prev.map(result => {
@@ -125,9 +417,8 @@ export default function BulkUploadPage() {
     setActiveResultId(null)
   }
 
-  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target?.files || [])
-    const imageFiles = selectedFiles.filter(file => 
+  const prepareImageFiles = (selectedFiles: File[]) => {
+    const imageFiles = selectedFiles.filter(file =>
       file.type.startsWith('image/')
     )
 
@@ -139,20 +430,26 @@ export default function BulkUploadPage() {
       })
     }
 
+    if (imageFiles.length > LAUNCH_OCR_IMPORT_LIMIT) {
+      toast({
+        title: `최대 ${LAUNCH_OCR_IMPORT_LIMIT}개까지 직접 가져올 수 있어요`,
+        description: `첫 세팅 기준으로 ${LAUNCH_OCR_IMPORT_LIMIT}개까지만 먼저 올리고, 더 많은 리뷰는 리뷰 옮겨드림으로 이어가면 됩니다.`,
+      })
+    }
+
+    return imageFiles.slice(0, LAUNCH_OCR_IMPORT_LIMIT)
+  }
+
+  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target?.files || [])
+    const imageFiles = prepareImageFiles(selectedFiles)
     initializeImageFiles(imageFiles)
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const droppedFiles = Array.from(e.dataTransfer.files)
-    const imageFiles = droppedFiles.filter(file => file.type.startsWith('image/'))
-    if (imageFiles.length !== droppedFiles.length) {
-      toast({
-        title: "일부 파일이 제외되었습니다",
-        description: "이미지 파일만 업로드 가능합니다",
-        variant: "default"
-      })
-    }
+    const imageFiles = prepareImageFiles(droppedFiles)
     initializeImageFiles(imageFiles)
   }
 
@@ -196,6 +493,13 @@ export default function BulkUploadPage() {
             date?: string
             confidence?: number
             originalUrl?: string
+            fieldConfidence?: {
+              platform: number
+              business: number
+              author: number
+              reviewDate: number
+              content: number
+            }
           }
         }
 
@@ -216,6 +520,7 @@ export default function BulkUploadPage() {
           text: parsedData.content,
           parsed: parsedData,
           confidence: payload.confidence,
+          fieldConfidence: payload.fieldConfidence,
         })
 
         setEditingData(prev => {
@@ -275,9 +580,18 @@ export default function BulkUploadPage() {
       // 이미지를 base64로 변환 (있는 경우)
       let imageUrl = ''
       if (reviewData.imageFile) {
-        const bytes = await reviewData.imageFile.arrayBuffer()
-        const buffer = Buffer.from(bytes)
-        imageUrl = `data:${reviewData.imageFile.type};base64,${buffer.toString('base64')}`
+        imageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result)
+              return
+            }
+            reject(new Error('이미지 인코딩에 실패했습니다.'))
+          }
+          reader.onerror = () => reject(new Error('이미지 인코딩에 실패했습니다.'))
+          reader.readAsDataURL(reviewData.imageFile!)
+        })
       }
 
       const payload = {
@@ -346,9 +660,10 @@ export default function BulkUploadPage() {
             }
             break
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           retries--
-          if (error.message?.includes('너무 많습니다') || error.message?.includes('429')) {
+          const message = error instanceof Error ? error.message : String(error)
+          if (message.includes('너무 많습니다') || message.includes('429')) {
             // Rate limit 에러인 경우 2초 대기 후 재시도
             if (retries > 0) {
               console.log(`Rate limit 에러, ${2}초 후 재시도... (남은 시도: ${retries})`)
@@ -398,6 +713,23 @@ export default function BulkUploadPage() {
   const activeResult = activeResultId ? ocrResults.find(r => r.id === activeResultId) : undefined
   const activeIndex = activeResult ? ocrResults.findIndex(r => r.id === activeResult.id) : -1
   const activeForm = activeResultId ? editingData[activeResultId] : undefined
+  const duplicateCandidates = useMemo(
+    () => buildDuplicateCandidates(ocrResults, editingData),
+    [editingData, ocrResults]
+  )
+  const qualityById = useMemo<Record<string, QualityState>>(
+    () =>
+      Object.fromEntries(
+        ocrResults.map((result) => [result.id, getQualityState(result, editingData[result.id])])
+      ),
+    [editingData, ocrResults]
+  )
+  const analyzedResults = ocrResults.filter((result) => result.status === 'success' || result.saved)
+  const duplicateCount = Object.keys(duplicateCandidates).length
+  const reviewNeededCount = analyzedResults.filter((result) => qualityById[result.id]?.level !== 'ready').length
+  const activeDuplicate = activeResultId ? duplicateCandidates[activeResultId] : undefined
+  const activeDuplicateTarget = activeDuplicate ? ocrResults.find((result) => result.id === activeDuplicate.targetId) : undefined
+  const activeQuality = activeResultId ? qualityById[activeResultId] : undefined
 
   const updateEditingField = (id: string, field: keyof ReviewFormState, value: string) => {
     setEditingData(prev => ({
@@ -459,6 +791,19 @@ export default function BulkUploadPage() {
       return
     }
 
+    const duplicateCandidate = duplicateCandidates[activeResultId]
+    if (duplicateCandidate) {
+      const shouldContinue = window.confirm(
+        `"${activeResult.fileName}"가 "${activeDuplicateTarget?.fileName || '다른 리뷰'}"와 ${Math.round(
+          duplicateCandidate.similarity * 100
+        )}% 유사합니다. 그래도 저장할까요?`
+      )
+
+      if (!shouldContinue) {
+        return
+      }
+    }
+
     try {
       await saveReview({
         platform: form.platform,
@@ -477,15 +822,15 @@ export default function BulkUploadPage() {
         description: `${activeResult.fileName} 리뷰가 성공적으로 저장되었습니다.`,
       })
 
-      // 모든 리뷰를 저장한 경우 리뷰 관리 페이지로 이동
+      // 모든 후기를 저장한 경우 대표 후기 페이지로 이동
       const nextIndex = ocrResults.findIndex(r => r.id === activeResultId) + 1
       const allSaved = ocrResults.filter(r => r.saved || r.id === activeResultId).length === ocrResults.length
       
       if (allSaved) {
-        // 모두 저장 완료 - 리뷰 관리 페이지로 이동
+        // 모두 저장 완료 - 대표 후기 페이지로 이동
         toast({
           title: '🎉 전체 저장 완료!',
-          description: '모든 리뷰가 저장되었습니다. 리뷰 관리 페이지로 이동합니다.',
+          description: '모든 후기가 저장되었습니다. 대표 후기 페이지로 이동합니다.',
         })
         setTimeout(() => {
           router.push('/dashboard/reviews')
@@ -510,39 +855,6 @@ export default function BulkUploadPage() {
     const currentIdx = ocrResults.findIndex(r => r.id === activeResultId)
     if (currentIdx >= 0 && currentIdx < ocrResults.length - 1) {
       goToResultIndex(currentIdx + 1)
-    }
-  }
-
-  const handlePasteText = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const pastedText = e.clipboardData.getData('text')
-    if (pastedText) {
-      const reviewData: ReviewInput = {
-        content: pastedText,
-        platform: '직접입력',
-        author: '고객',
-        reviewDate: new Date().toISOString()
-      }
-
-      const platformMatch = pastedText.match(/(네이버|카카오|구글|인스타|당근)/)
-      if (platformMatch) {
-        const mapping: Record<string, string> = {
-          '카카오': '카카오맵',
-          '인스타': '인스타그램',
-          '당근': '당근'
-        }
-        reviewData.platform = mapping[platformMatch[1]] || platformMatch[1]
-      }
-
-      await saveReview(reviewData)
-
-      toast({
-        title: "리뷰 추가됨",
-        description: "텍스트가 성공적으로 저장되었습니다",
-      })
-
-      if (e.currentTarget) {
-        e.currentTarget.value = ''
-      }
     }
   }
 
@@ -572,6 +884,9 @@ export default function BulkUploadPage() {
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">리뷰 빠른 등록</h1>
           <p className="text-gray-600 text-sm md:text-base lg:text-lg">
             여러 개의 리뷰 이미지를 한번에 올리고 몇 초 만에 저장 완료 ✨
+          </p>
+          <p className="mt-2 text-xs md:text-sm text-[#FF6B35] font-medium">
+            첫 세팅 기준으로 스크린샷 리뷰는 최대 {LAUNCH_OCR_IMPORT_LIMIT}개까지 직접 가져올 수 있어요.
           </p>
         </div>
 
@@ -642,7 +957,7 @@ export default function BulkUploadPage() {
             {(!selectedPlatform || showPlatformEdit) && (
               <CardContent>
                 <div className="grid grid-cols-2 gap-2">
-                  {['네이버', '카카오맵', '당근', '크몽', '구글', '인스타그램', 'Re:cord', '기타'].map((platform) => (
+                  {PLATFORM_OPTIONS.map((platform) => (
                     <Button
                       key={platform}
                       variant={selectedPlatform === platform ? 'default' : 'outline'}
@@ -696,7 +1011,7 @@ export default function BulkUploadPage() {
                 <CardContent>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="예: 클라우딘뮤직, 서울 맛집 등..."
+                      placeholder="예: 성수 살롱 하루, 연남 1인 헤어샵 등..."
                       value={batchBusinessName}
                       onChange={(e) => {
                         const value = e.target.value
@@ -781,7 +1096,7 @@ export default function BulkUploadPage() {
                       리뷰 이미지를 드래그하세요
                     </h3>
                     <p className="text-gray-500 mb-6">
-                      또는 클릭하여 파일을 선택하세요
+                      또는 클릭하여 파일을 선택하세요 · 최대 {LAUNCH_OCR_IMPORT_LIMIT}개
                     </p>
                     <Button className="bg-[#FF6B35] hover:bg-[#E55A2B] text-lg px-8 py-6">
                       파일 선택하기
@@ -807,11 +1122,22 @@ export default function BulkUploadPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900">
-                        업로드된 리뷰 <span className="text-[#FF6B35]">{ocrResults.length}</span>개
+                        불러온 리뷰 <span className="text-[#FF6B35]">{ocrResults.length}</span>개
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
                         카드를 클릭하여 리뷰를 확인하고 저장하세요
                       </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-[#FF6B35]/10 px-3 py-1 text-xs font-semibold text-[#FF6B35]">
+                          검토 필요 {reviewNeededCount}개
+                        </span>
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                          중복 후보 {duplicateCount}개
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                          직접 후기 후보 포함 여부를 저장 전 확인
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-4">
                       {isProcessing && (
@@ -912,6 +1238,8 @@ export default function BulkUploadPage() {
                         }
 
                         const colors = getCardColors()
+                        const duplicateCandidate = duplicateCandidates[result.id]
+                        const quality = qualityById[result.id]
                         // 아래로 쌓이되 윗부분이 보이도록
                         const offset = index * 70
                         const scale = 1 - (index * 0.03)
@@ -1003,6 +1331,26 @@ export default function BulkUploadPage() {
                                         신뢰도: {Math.round(result.confidence * 100)}%
                                       </p>
                                     )}
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      {quality && (
+                                        <span
+                                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                            quality.level === 'ready'
+                                              ? 'bg-emerald-100 text-emerald-700'
+                                              : quality.level === 'fix'
+                                              ? 'bg-red-100 text-red-700'
+                                              : 'bg-white/20 text-white'
+                                          }`}
+                                        >
+                                          {quality.label}
+                                        </span>
+                                      )}
+                                      {duplicateCandidate && (
+                                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                                          중복 후보 {Math.round(duplicateCandidate.similarity * 100)}%
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
 
@@ -1052,6 +1400,31 @@ export default function BulkUploadPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
+                      <div className="mb-6 space-y-3">
+                        {activeQuality && (
+                          <div
+                            className={`rounded-2xl border px-4 py-3 ${
+                              activeQuality.level === 'ready'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                : activeQuality.level === 'fix'
+                                ? 'border-red-200 bg-red-50 text-red-800'
+                                : 'border-amber-200 bg-amber-50 text-amber-800'
+                            }`}
+                          >
+                            <p className="text-sm font-semibold">{activeQuality.label}</p>
+                            <p className="mt-1 text-sm">{activeQuality.description}</p>
+                          </div>
+                        )}
+                        {activeDuplicate && (
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+                            <p className="text-sm font-semibold">중복 후보 감지</p>
+                            <p className="mt-1 text-sm">
+                              {activeDuplicateTarget?.fileName || '다른 리뷰'}와 {Math.round(activeDuplicate.similarity * 100)}% 유사합니다.
+                              {` ${activeDuplicate.reason}`}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                       <div className="grid gap-6 lg:grid-cols-2">
                         {/* 원본 이미지 */}
                         <div>
@@ -1076,7 +1449,7 @@ export default function BulkUploadPage() {
                           <div>
                             <p className="text-xs font-semibold text-gray-600 mb-2">플랫폼</p>
                             <div className="flex flex-wrap gap-2">
-                              {['네이버', '카카오맵', '구글', '인스타그램', '당근', 'Re:cord', '크몽', '기타'].map(option => (
+                              {PLATFORM_OPTIONS.map(option => (
                                 <Button
                                   key={option}
                                   variant={activeForm.platform === option ? 'default' : 'outline'}
@@ -1153,8 +1526,9 @@ export default function BulkUploadPage() {
                                     formData.append('image', activeResult.file)
                                     formData.append('version', ocrVersion) // 같은 버전 사용
                                     formData.append('retry', 'true') // 재시도 모드 활성화
-                                    if (selectedPlatform) {
-                                      formData.append('platform', selectedPlatform) // 사용자가 선택한 플랫폼 전달
+                                    const retryPlatform = activeForm.platform || selectedPlatform
+                                    if (retryPlatform) {
+                                      formData.append('platform', retryPlatform)
                                     }
 
                                     try {
@@ -1164,7 +1538,27 @@ export default function BulkUploadPage() {
                                       })
                                       
                                       if (response.ok) {
-                                        const json = await response.json()
+                                        const json = await response.json() as {
+                                          success?: boolean
+                                          data?: {
+                                            text?: string
+                                            normalizedText?: string
+                                            reviewText?: string
+                                            platform?: string
+                                            business?: string
+                                            author?: string
+                                            date?: string
+                                            confidence?: number
+                                            originalUrl?: string
+                                            fieldConfidence?: {
+                                              platform: number
+                                              business: number
+                                              author: number
+                                              reviewDate: number
+                                              content: number
+                                            }
+                                          }
+                                        }
                                         const payload = json.data ?? {}
                                         const parsedData: ParsedReview = {
                                           platform: payload.platform,
@@ -1178,8 +1572,10 @@ export default function BulkUploadPage() {
                                         updateResult(activeResultId, {
                                           status: 'success',
                                           progress: 100,
+                                          text: parsedData.content,
                                           parsed: parsedData,
-                                          confidence: payload.confidence
+                                          confidence: payload.confidence,
+                                          fieldConfidence: payload.fieldConfidence
                                         })
                                         
                                         setEditingData(prev => ({
@@ -1203,7 +1599,7 @@ export default function BulkUploadPage() {
                                       } else {
                                         throw new Error('OCR 실패')
                                       }
-                                    } catch (error) {
+                                    } catch {
                                       updateResult(activeResultId, {
                                         status: 'error',
                                         error: '2차 OCR 실패'

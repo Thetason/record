@@ -7,12 +7,11 @@ import Link from "next/link"
 import { 
   HomeIcon, 
   PersonIcon, 
-  PlusIcon, 
   BarChartIcon,
-  GearIcon,
   ExitIcon,
   ChevronLeftIcon,
-  CheckIcon
+  CheckIcon,
+  Share1Icon
 } from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
@@ -28,6 +27,7 @@ interface Review {
   author: string
   reviewDate: string
   createdAt: string
+  isPublic: boolean
 }
 
 export default function EditReviewPage() {
@@ -44,7 +44,8 @@ export default function EditReviewPage() {
     business: "",
     content: "",
     author: "",
-    reviewDate: ""
+    reviewDate: "",
+    isPublic: false
   })
 
   useEffect(() => {
@@ -64,7 +65,8 @@ export default function EditReviewPage() {
           business: data.business,
           content: data.content,
           author: data.author,
-          reviewDate: data.reviewDate.split('T')[0] // Format for date input
+          reviewDate: data.reviewDate.split('T')[0], // Format for date input
+          isPublic: Boolean(data.isPublic)
         })
       } else if (res.status === 404) {
         alert("리뷰를 찾을 수 없습니다.")
@@ -140,11 +142,10 @@ export default function EditReviewPage() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
-            <NavItem icon={<HomeIcon />} label="대시보드" href="/dashboard" />
-            <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" active />
-            <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" />
-            <NavItem icon={<PlusIcon />} label="리뷰 추가" href="/dashboard/bulk-upload" />
-            <NavItem icon={<GearIcon />} label="설정" href="/dashboard/settings" />
+            <NavItem icon={<HomeIcon />} label="작업실" href="/dashboard" />
+            <NavItem icon={<BarChartIcon />} label="대표 후기" href="/dashboard/reviews" active />
+            <NavItem icon={<PersonIcon />} label="내 링크" href="/dashboard/profile" />
+            <NavItem icon={<Share1Icon />} label="공유하기" href="/dashboard/share" />
           </nav>
 
           {/* User Profile */}
@@ -180,18 +181,18 @@ export default function EditReviewPage() {
               className="mb-4"
             >
               <ChevronLeftIcon className="w-4 h-4 mr-2" />
-              리뷰 목록으로 돌아가기
+              대표 후기 목록으로 돌아가기
             </Button>
-            <h1 className="text-3xl font-bold text-gray-900">리뷰 수정</h1>
+            <h1 className="text-3xl font-bold text-gray-900">후기 수정</h1>
             <p className="text-gray-600 mt-2">
-              리뷰 정보를 수정하세요
+              고객에게 보여줄 후기 문장과 공개 상태를 함께 다듬으세요
             </p>
           </div>
 
           {/* Edit Form */}
           <Card>
             <CardHeader>
-              <CardTitle>리뷰 정보</CardTitle>
+              <CardTitle>후기 정보</CardTitle>
               <CardDescription>
                 아래 정보를 수정한 후 저장 버튼을 클릭하세요
               </CardDescription>
@@ -269,6 +270,18 @@ export default function EditReviewPage() {
                     placeholder="고객님이 남긴 리뷰 내용을 입력하세요 (최대 2000자)"
                     required
                   />
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                  <label className="flex items-center gap-3 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.isPublic}
+                      onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
+                      className="h-4 w-4 rounded border-gray-300 text-[#FF6B35] focus:ring-[#FF6B35]"
+                    />
+                    신뢰 페이지에 이 후기를 공개합니다
+                  </label>
                 </div>
 
                 <div className="flex justify-end gap-4">

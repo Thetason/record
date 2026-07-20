@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
-import { EyeIcon, EyeOffIcon } from "@radix-ui/react-icons"
+import { Eye, EyeOff } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -184,9 +184,9 @@ export default function SignupPage() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOffIcon className="h-4 w-4" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <EyeIcon className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
@@ -239,9 +239,9 @@ export default function SignupPage() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOffIcon className="h-4 w-4" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <EyeIcon className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>

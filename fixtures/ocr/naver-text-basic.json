@@ -1,0 +1,21 @@
+{
+  "name": "naver-text-basic",
+  "kind": "text",
+  "parser": "analyzeReviewText",
+  "input": "세타쓴\n세타쓴 보컬 스튜디오\n리뷰 13 · 사진 7\n팔로우\n2025.11.06.\n기초 발성부터 하나씩 잡아주셔서 초보자인 저도 부담 없이 배울 수 있었어요.\n무대에 서는 과정까지 친절하게 알려주셔서 만족했습니다.\n접기",
+  "expected": {
+    "platform": "naver",
+    "author": "세타쓴",
+    "business": "세타쓴 보컬 스튜디오",
+    "date": "2025-11-06",
+    "reviewTextIncludes": [
+      "기초 발성부터",
+      "무대에 서는 과정"
+    ],
+    "reviewTextExcludes": [
+      "리뷰 13",
+      "팔로우",
+      "접기"
+    ]
+  }
+}

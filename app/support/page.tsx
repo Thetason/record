@@ -73,7 +73,7 @@ export default function SupportPage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold mb-2">고객 지원</h1>
             <p className="text-gray-600">
-              문의사항이나 문제를 알려주세요. 빠르게 도와드리겠습니다.
+              문의사항, 계정 문제, 결제 이슈, 또는 초기 세팅 도움이 필요하면 알려주세요. 빠르게 도와드리겠습니다.
             </p>
           </div>
 
@@ -171,19 +171,25 @@ export default function SupportPage() {
             <div>
               <h3 className="font-medium mb-1">리뷰는 어떻게 업로드하나요?</h3>
               <p className="text-sm text-gray-600">
-                대시보드에서 "리뷰 추가" 버튼을 클릭하고 스크린샷을 업로드하면 자동으로 분석됩니다.
+                지금은 대시보드에서 직접 후기를 입력하거나, 리뷰 캡처와 원문 링크를 참고해 대표 후기부터 정리하는 방식이 가장 빠릅니다.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium mb-1">자료가 흩어져 있는데 어떻게 시작하나요?</h3>
+              <p className="text-sm text-gray-600">
+                처음부터 모든 후기를 옮길 필요는 없습니다. 대표 후기 3개, 작업 사진 2장, 상담 버튼부터 정리하면 충분하고, 필요하면 초기 세팅 도움을 요청할 수 있습니다.
               </p>
             </div>
             <div>
               <h3 className="font-medium mb-1">무료 플랜의 제한은 무엇인가요?</h3>
               <p className="text-sm text-gray-600">
-                무료 플랜은 최대 50개의 리뷰를 저장할 수 있습니다.
+                무료 플랜은 최대 20개의 리뷰를 정리하고 공개 프로필 링크를 운영할 수 있습니다.
               </p>
             </div>
             <div>
               <h3 className="font-medium mb-1">환불은 가능한가요?</h3>
               <p className="text-sm text-gray-600">
-                결제 후 7일 이내에 고객센터로 문의하시면 전액 환불이 가능합니다.
+                환불과 취소는 사용 이력과 결제 상태를 확인한 뒤 안내해드립니다. support@record.kr 로 먼저 문의해 주세요.
               </p>
             </div>
           </div>

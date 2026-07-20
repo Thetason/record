@@ -1,12 +1,28 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { getRemainingReviews, type PlanType } from '@/lib/plan-limits'
+
+const publicReviewLimiter = rateLimit({
+  interval: 60 * 1000,
+  uniqueTokenPerInterval: 1000,
+})
 
 export async function POST(
   request: Request,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    const { username } = params
+    const { username } = await params
+    const forwarded = request.headers.get('x-forwarded-for') || 'unknown'
+    const ip = forwarded.split(',')[0]?.trim() || 'unknown'
+
+    try {
+      await publicReviewLimiter.check({ headers: request.headers } as never, 5, `public-review:${username}:${ip}`)
+    } catch {
+      return rateLimitResponse()
+    }
+
     if (!username) {
       return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
     }
@@ -15,7 +31,8 @@ export async function POST(
       where: { username },
       select: {
         id: true,
-        isPublic: true
+        isPublic: true,
+        plan: true
       }
     })
 
@@ -53,6 +70,18 @@ export async function POST(
     const verificationNote = contactInfo
       ? `Submitted via public request form. Contact: ${contactInfo}`
       : 'Submitted via public request form.'
+
+    const currentReviewCount = await prisma.review.count({
+      where: { userId: user.id }
+    })
+    const remainingReviews = getRemainingReviews(currentReviewCount, (user.plan || 'free') as PlanType)
+
+    if (remainingReviews !== 'unlimited' && remainingReviews <= 0) {
+      return NextResponse.json(
+        { error: '현재 이 프로필은 새 후기를 더 받을 수 없습니다.' },
+        { status: 403 }
+      )
+    }
 
     await prisma.review.create({
       data: {

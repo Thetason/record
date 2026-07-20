@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import type { Session } from "next-auth"
 import { Button } from "./button"
 import { Cross1Icon, HamburgerMenuIcon } from "@radix-ui/react-icons"
 
 interface MobileMenuProps {
-  session: any
-  status: string
+  session: Session | null
+  status: "authenticated" | "unauthenticated" | "loading"
 }
 
 export function MobileMenu({ session, status }: MobileMenuProps) {
@@ -60,20 +61,6 @@ export function MobileMenu({ session, status }: MobileMenuProps) {
               {/* 메뉴 항목 */}
               <nav className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-1">
-                  <Link
-                    href="/guide"
-                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                    onClick={closeMenu}
-                  >
-                    사용 가이드
-                  </Link>
-                  <Link
-                    href="/pricing"
-                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                    onClick={closeMenu}
-                  >
-                    요금 안내
-                  </Link>
                   <button
                     className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     onClick={() => {
@@ -82,7 +69,7 @@ export function MobileMenu({ session, status }: MobileMenuProps) {
                       closeMenu()
                     }}
                   >
-                    라이브데모
+                    예시 보기
                   </button>
                   <button
                     className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -92,27 +79,26 @@ export function MobileMenu({ session, status }: MobileMenuProps) {
                       closeMenu()
                     }}
                   >
-                    사용방법
+                    시작 방법
                   </button>
-                  <button
-                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                    onClick={() => {
-                      const section = document.getElementById('before-after')
-                      section?.scrollIntoView({ behavior: 'smooth' })
-                      closeMenu()
-                    }}
+                  <Link
+                    href="/pricing"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={closeMenu}
                   >
-                    효과비교
-                  </button>
+                    요금
+                  </Link>
                 </div>
               </nav>
 
               {/* 하단 CTA */}
               <div className="p-4 border-t space-y-3">
                 {status === "loading" ? (
-                  <Button variant="ghost" className="w-full" disabled>
-                    로딩중...
-                  </Button>
+                  <Link href="/signup" onClick={closeMenu} className="block">
+                    <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
+                      시작하기
+                    </Button>
+                  </Link>
                 ) : session ? (
                   <Link href="/dashboard" onClick={closeMenu} className="block">
                     <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
@@ -121,15 +107,13 @@ export function MobileMenu({ session, status }: MobileMenuProps) {
                   </Link>
                 ) : (
                   <>
-                    <Link href="/login" onClick={closeMenu} className="block">
-                      <Button variant="outline" className="w-full">
-                        로그인
-                      </Button>
-                    </Link>
                     <Link href="/signup" onClick={closeMenu} className="block">
                       <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
-                        무료 시작하기
+                        시작하기
                       </Button>
+                    </Link>
+                    <Link href="/login" onClick={closeMenu} className="block text-center text-sm text-gray-500">
+                      로그인
                     </Link>
                   </>
                 )}

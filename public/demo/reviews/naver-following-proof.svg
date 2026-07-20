@@ -1,0 +1,17 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="40" fill="#F5F8F6"/>
+  <rect x="58" y="52" width="1084" height="656" rx="32" fill="white" stroke="#D7E4DB" stroke-width="4"/>
+  <rect x="96" y="92" width="160" height="46" rx="23" fill="#0AC75A"/>
+  <text x="176" y="122" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="26" font-weight="700" fill="white">네이버 리뷰</text>
+  <circle cx="130" cy="214" r="36" fill="#DCE8E0"/>
+  <text x="130" y="225" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#3B5A46">예</text>
+  <text x="186" y="205" font-family="Pretendard, sans-serif" font-size="30" font-weight="700" fill="#141A28">예약 전환 고객</text>
+  <text x="186" y="244" font-family="Pretendard, sans-serif" font-size="22" fill="#6B7280">2025. 2. 24 · 성수 1인샵 준비</text>
+  <text x="96" y="326" font-family="Pretendard, sans-serif" font-size="54" font-weight="700" fill="#FFB400">★★★★★</text>
+  <text x="96" y="406" font-family="Pretendard, sans-serif" font-size="34" font-weight="700" fill="#111827">“후기와 작업 이미지가 같이 정리돼 있어서 바로 예약했어요.”</text>
+  <text x="96" y="462" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">샵을 옮긴 뒤에도 링크 하나로 이전 후기와 최근 작업을 같이 볼 수 있어</text>
+  <text x="96" y="504" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">첫 방문인데도 망설임이 적었고, 상담 요청도 훨씬 쉬웠습니다.</text>
+  <text x="96" y="546" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">간판보다 사람을 보고 예약하게 된 케이스예요.</text>
+  <rect x="96" y="600" width="378" height="60" rx="30" fill="#EEF8F1"/>
+  <text x="285" y="638" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#0F9F49">후기 자산 정리 · 예약 전환</text>
+</svg>

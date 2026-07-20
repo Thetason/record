@@ -13,23 +13,23 @@ const emailTemplates = {
       <div style="font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 40px;">
           <h1 style="color: #1a1a1a; font-size: 28px; margin: 0;">Re:cord</h1>
-          <p style="color: #666; margin-top: 10px;">리뷰 포트폴리오 플랫폼</p>
+          <p style="color: #666; margin-top: 10px;">전문가용 후기 자산 관리 플랫폼</p>
         </div>
         
         <div style="background: #f8f9fa; border-radius: 12px; padding: 30px;">
           <h2 style="color: #1a1a1a; font-size: 20px; margin-top: 0;">안녕하세요, ${name}님! 👋</h2>
           <p style="color: #666; line-height: 1.6;">
             Re:cord 가입을 진심으로 환영합니다!<br><br>
-            이제 여러 플랫폼에 흩어진 리뷰를 한 곳에서 관리하고,<br>
-            멋진 포트폴리오로 만들어보세요.
+            이제 여러 플랫폼에 흩어진 후기를 한 곳에 모으고,<br>
+            내 이름의 신뢰 페이지로 정리해보세요.
           </p>
           
           <div style="margin: 30px 0; padding: 20px; background: white; border-radius: 8px;">
             <h3 style="color: #1a1a1a; font-size: 16px; margin-top: 0;">🚀 시작하기</h3>
             <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
-              <li>첫 리뷰 업로드하기</li>
-              <li>프로필 꾸미기</li>
-              <li>공개 URL 공유하기</li>
+              <li>첫 후기 업로드하기</li>
+              <li>신뢰 페이지 정리하기</li>
+              <li>공개 링크 공유하기</li>
             </ul>
           </div>
           
@@ -120,14 +120,18 @@ export async function sendEmail<T extends EmailTemplate>(
     
     switch (template) {
       case 'welcome':
-        emailContent = emailTemplates.welcome(data.name);
+        emailContent = emailTemplates.welcome((data as EmailDataMap['welcome']).name);
         break;
-      case 'resetPassword':
-        emailContent = emailTemplates.resetPassword(data.name, data.resetUrl);
+      case 'resetPassword': {
+        const resetData = data as EmailDataMap['resetPassword']
+        emailContent = emailTemplates.resetPassword(resetData.name, resetData.resetUrl);
         break;
-      case 'reviewNotification':
-        emailContent = emailTemplates.reviewNotification(data.name, data.reviewCount);
+      }
+      case 'reviewNotification': {
+        const notificationData = data as EmailDataMap['reviewNotification']
+        emailContent = emailTemplates.reviewNotification(notificationData.name, notificationData.reviewCount);
         break;
+      }
       default:
         throw new Error('Invalid email template');
     }

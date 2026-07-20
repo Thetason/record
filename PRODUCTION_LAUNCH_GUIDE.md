@@ -1,5 +1,9 @@
 # 🚀 Re:cord 프로덕션 런칭 가이드
 
+> 상태: 과거 스냅샷 문서
+> 이 문서는 이전 런칭 절차를 기록한 문서입니다. 현재 운영 기준으로 바로 사용하지 마세요.
+> 현재 기준은 `START_HERE.md`, `DEPLOY_STATUS.md`, `GLOBAL_LAUNCH_READINESS.md`, `PRODUCTION_OPERATOR_CHECKLIST.md`, `PRODUCTION_MIGRATION_BASELINE.md` 입니다.
+
 ## 📅 D-3 런칭 체크리스트
 
 ### ✅ 완료된 작업

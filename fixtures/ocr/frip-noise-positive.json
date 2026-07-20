@@ -1,0 +1,9 @@
+{
+  "name": "frip-noise-positive",
+  "kind": "noise",
+  "input": {
+    "platform": "frip",
+    "text": "후기 12"
+  },
+  "expected": true
+}

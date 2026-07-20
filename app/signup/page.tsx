@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
+import type { LaunchOfferSnapshot } from "@/lib/launch-offer-config"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -27,6 +28,30 @@ export default function SignupPage() {
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
   const [allChecked, setAllChecked] = useState(false)
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false)
+  const [launchOffer, setLaunchOffer] = useState<LaunchOfferSnapshot | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadLaunchOffer = async () => {
+      try {
+        const response = await fetch("/api/launch-offer", { cache: "no-store" })
+        if (!response.ok) return
+        const data = await response.json() as LaunchOfferSnapshot
+        if (!cancelled) {
+          setLaunchOffer(data)
+        }
+      } catch (error) {
+        console.error("Failed to load launch offer:", error)
+      }
+    }
+
+    void loadLaunchOffer()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Validation helper functions
   const validateEmail = (email: string): string | null => {
@@ -134,8 +159,11 @@ export default function SignupPage() {
 
       // 회원가입 성공 후 자동 로그인
       console.log("Attempting auto-login...")
+      const loginUsername = typeof data.username === 'string' && data.username.trim()
+        ? data.username.trim()
+        : formData.username
       const result = await signIn("credentials", {
-        email: formData.email,
+        username: loginUsername,
         password: formData.password,
         redirect: false
       })
@@ -149,7 +177,7 @@ export default function SignupPage() {
         return
       }
 
-      router.push("/dashboard")
+      router.push("/dashboard/profile?from=signup")
     } catch (error) {
       console.error("Signup error:", error)
       const message = error instanceof Error ? error.message : "회원가입 중 오류가 발생했습니다"
@@ -227,7 +255,7 @@ export default function SignupPage() {
             <span className="text-[#FF6B35] text-xl sm:text-2xl md:text-3xl">*</span>
           </Link>
           <p className="text-gray-600 mt-2 text-sm md:text-base">
-            나만의 리뷰 포트폴리오를 시작하세요
+            샵을 옮겨도 남는 내 신뢰 페이지를 시작하세요
           </p>
         </div>
 
@@ -237,15 +265,26 @@ export default function SignupPage() {
               회원가입
             </h1>
             <p className="text-center text-sm sm:text-base text-gray-600">
-              몇 분만에 프로필을 만들고 리뷰를 관리하세요
+              몇 분만에 이전 후기를 옮기고 내 이름의 신뢰 페이지를 만드세요
             </p>
           </div>
+
+          {launchOffer?.active && (
+            <div className="mb-5 rounded-2xl border border-[#FFD9CF] bg-[#FFF4EF] p-4">
+              <p className="text-sm font-semibold text-[#FF6B35]">
+                오픈 기념 · 첫 {launchOffer.maxUsers}명 프로 {launchOffer.trialMonths}개월 무료
+              </p>
+              <p className="mt-1 text-sm leading-6 text-gray-700">
+                지금 시작하면 남은 {launchOffer.remaining}자리 안에서 프로 기능을 먼저 써볼 수 있어요. 스크린샷 리뷰도 최대 {launchOffer.ocrImportLimit}개까지 빠르게 가져올 수 있습니다.
+              </p>
+            </div>
+          )}
 
           {/* 소셜 로그인 버튼 */}
           <div className="space-y-3 mb-6">
             <button
               type="button"
-              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+              onClick={() => signIn('google', { callbackUrl: '/dashboard/profile?from=signup' })}
               className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors"
               disabled={isLoading}
             >
@@ -262,7 +301,7 @@ export default function SignupPage() {
             {false && (
               <button
                 type="button"
-                onClick={() => signIn('kakao', { callbackUrl: '/dashboard' })}
+                onClick={() => signIn('kakao', { callbackUrl: '/dashboard/profile?from=signup' })}
                 className="w-full flex items-center justify-center gap-3 bg-[#FEE500] hover:bg-[#FADA0A] text-[#191919] py-3 px-4 rounded-lg font-medium transition-colors"
                 disabled={isLoading}
               >
@@ -716,7 +755,7 @@ export default function SignupPage() {
                   <div className="space-y-4">
                     <div>
                       <h4 className="font-semibold mb-2">제1조 (목적)</h4>
-                      <p className="text-gray-700">이 약관은 Re:cord가 제공하는 리뷰 포트폴리오 서비스의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항을 규정합니다.</p>
+                      <p className="text-gray-700">이 약관은 Re:cord가 제공하는 후기 자산 관리 및 신뢰 페이지 서비스의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항을 규정합니다.</p>
                     </div>
                     <div>
                       <h4 className="font-semibold mb-2">제2조 (정의)</h4>

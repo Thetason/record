@@ -133,7 +133,7 @@ export function ReviewRequestForm({ username, name, bio, avatar }: ReviewRequest
                 id="serviceName"
                 value={serviceName}
                 onChange={(event) => setServiceName(event.target.value)}
-                placeholder="예: 1:1 보컬 트레이닝"
+                placeholder="예: 레이어드컷 · 톤다운 컬러"
                 required
               />
             </div>

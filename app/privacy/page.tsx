@@ -41,7 +41,7 @@ export default function PrivacyPage() {
                 준수하고 있습니다.
               </p>
               <p className="text-gray-700 leading-relaxed">
-                본 개인정보처리방침은 회사가 제공하는 리뷰 포트폴리오 플랫폼 서비스(이하 "서비스")에서 
+                본 개인정보처리방침은 회사가 제공하는 후기 자산 관리 및 신뢰 페이지 플랫폼 서비스(이하 "서비스")에서 
                 개인정보가 어떻게 수집·이용·처리되고 있는지, 특히 OCR(광학 문자 인식) 기술을 
                 통한 이미지 처리 과정에서의 개인정보 처리 방식과 보호 조치에 대해 
                 상세히 알려드립니다.
@@ -121,8 +121,8 @@ export default function PrivacyPage() {
               <div className="border-l-4 border-[#FF6B35] pl-4">
                 <h3 className="font-semibold mb-2">서비스 제공</h3>
                 <p className="text-gray-700">
-                  리뷰 포트폴리오 생성 및 관리, 공개 프로필 페이지 제공, 리뷰 통계 및 분석 제공, 
-                  OCR 기술을 활용한 리뷰 스크린샷 자동 인식 및 텍스트 추출, 
+                  후기 자산 생성 및 관리, 공개 신뢰 페이지 제공, 후기 통계 및 분석 제공, 
+                  OCR 기술을 활용한 후기 스크린샷 자동 인식 및 텍스트 추출, 
                   제3자 플랫폼 리뷰 데이터 연동, 맞춤형 서비스 제공, 콘텐츠 제공
                 </p>
               </div>

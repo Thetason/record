@@ -14,6 +14,8 @@ interface Toast {
   duration?: number;
 }
 
+type ToastEventDetail = Omit<Toast, 'id'>
+
 interface ToastProps {
   toast: Toast;
   onClose: (id: string) => void;
@@ -84,10 +86,10 @@ export function ToastContainer() {
 
   useEffect(() => {
     const listener: EventListener = (event) => {
-      const customEvent = event as CustomEvent<Toast>;
+      const customEvent = event as CustomEvent<ToastEventDetail>;
       const newToast: Toast = {
         ...customEvent.detail,
-        id: Math.random().toString(36).substr(2, 9),
+        id: Math.random().toString(36).slice(2, 11),
         duration: customEvent.detail.duration || 5000,
       };
       setToasts(prev => [...prev, newToast]);
@@ -116,28 +118,28 @@ export function ToastContainer() {
 export const toast = {
   success: (title: string, message?: string) => {
     window.dispatchEvent(
-      new CustomEvent<Toast>('show-toast', {
+      new CustomEvent<ToastEventDetail>('show-toast', {
         detail: { type: 'success', title, message },
       })
     );
   },
   error: (title: string, message?: string) => {
     window.dispatchEvent(
-      new CustomEvent('show-toast', {
+      new CustomEvent<ToastEventDetail>('show-toast', {
         detail: { type: 'error', title, message },
       })
     );
   },
   info: (title: string, message?: string) => {
     window.dispatchEvent(
-      new CustomEvent('show-toast', {
+      new CustomEvent<ToastEventDetail>('show-toast', {
         detail: { type: 'info', title, message },
       })
     );
   },
   warning: (title: string, message?: string) => {
     window.dispatchEvent(
-      new CustomEvent('show-toast', {
+      new CustomEvent<ToastEventDetail>('show-toast', {
         detail: { type: 'warning', title, message },
       })
     );

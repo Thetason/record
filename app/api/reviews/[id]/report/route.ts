@@ -5,15 +5,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: '로그인이 필요합니다' }, { status: 401 });
-    }
-
+    const { id } = await params
     const { reason, description } = await req.json();
 
     // 신고 사유 검증
@@ -40,7 +35,7 @@ export async function POST(
     // 이미 신고한 리뷰인지 확인
     const existingReport = await prisma.report.findFirst({
       where: {
-        reviewId: params.id,
+        reviewId: id,
         reporterIp,
         status: 'pending'
       },
@@ -53,7 +48,7 @@ export async function POST(
     // 신고 생성
     const report = await prisma.report.create({
       data: {
-        reviewId: params.id,
+        reviewId: id,
         reporterIp,
         reason,
         description: description || null,
@@ -61,24 +56,27 @@ export async function POST(
       },
     });
 
-    // 리뷰의 신고 횟수 증가
-    await prisma.review.update({
-      where: { id: params.id },
-      data: { 
-        reportCount: { increment: 1 },
-        // 3회 이상 신고되면 자동으로 비활성화
-        isActive: {
-          set: await prisma.report.count({
-            where: { reviewId: params.id }
-          }) >= 3 ? false : undefined
-        }
-      },
+    const totalReports = await prisma.report.count({
+      where: { reviewId: id }
     });
+
+    if (totalReports >= 3) {
+      await prisma.review.update({
+        where: { id },
+        data: {
+          verificationStatus: 'flagged',
+          isVerified: false,
+          isPublic: false,
+          verificationNote: 'Auto-flagged after repeated public reports.'
+        }
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 
       message: '신고가 접수되었습니다',
-      report 
+      report,
+      totalReports
     });
   } catch (error) {
     console.error('Report error:', error);
@@ -91,9 +89,10 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
@@ -102,7 +101,7 @@ export async function GET(
 
     // 리뷰의 신고 내역 조회 (리뷰 소유자만)
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { user: true },
     });
 
@@ -115,7 +114,7 @@ export async function GET(
     }
 
     const reports = await prisma.report.findMany({
-      where: { reviewId: params.id },
+      where: { reviewId: id },
       orderBy: { createdAt: 'desc' },
     });
 

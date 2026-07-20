@@ -1,0 +1,17 @@
+{
+  "name": "kmong-text-basic",
+  "kind": "text",
+  "parser": "analyzeReviewText",
+  "input": "크몽\n작업일\n24.11.06\n천*****\n설명도 명확했고 결과물 퀄리티도 기대 이상이었습니다.\n수정 요청도 빠르게 반영해주셔서 만족합니다.",
+  "expected": {
+    "platform": "kmong",
+    "date": "2024-11-06",
+    "reviewTextIncludes": [
+      "설명도 명확했고",
+      "수정 요청도 빠르게"
+    ],
+    "reviewTextExcludes": [
+      "작업일"
+    ]
+  }
+}

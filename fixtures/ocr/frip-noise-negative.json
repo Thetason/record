@@ -1,0 +1,9 @@
+{
+  "name": "frip-noise-negative",
+  "kind": "noise",
+  "input": {
+    "platform": "frip",
+    "text": "공간이 편안하고 수업 흐름도 매끄러웠어요"
+  },
+  "expected": false
+}

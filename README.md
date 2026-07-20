@@ -1,62 +1,102 @@
-# Re:cord - 리뷰 포트폴리오 플랫폼
+# Re:cord - Public Trust Link for Professionals
 
 <div align="center">
   <h1>Re:cord 📝</h1>
-  <p><strong>리뷰는 누군가의 기억입니다</strong></p>
-  <p>여러 플랫폼에 흩어진 리뷰를 한 곳에 모아 관리하는 통합 플랫폼</p>
+  <p><strong>Your reputation should move with you.</strong></p>
+  <p>상담 전에 보내는 공개 신뢰 링크를 만드는 전문가용 프로필 제품</p>
 </div>
 
-## 🚀 주요 기능
+## What Re:cord Is
 
-- **📱 멀티 플랫폼 리뷰 통합**: 네이버, 카카오, 인스타그램 등 다양한 플랫폼 리뷰 수집
-- **🔍 OCR 자동 인식**: Google Vision API를 활용한 리뷰 스크린샷 자동 텍스트 추출
-- **📊 통계 대시보드**: 리뷰 현황과 성과를 한눈에 확인
-- **🔗 공개 프로필**: 고객에게 보여줄 수 있는 전문적인 리뷰 포트폴리오
-- **📈 비즈니스 성장**: 리뷰 통합으로 신뢰도 향상 및 매출 증대
+Re:cord is a product for turning scattered reviews, direct testimonials, portfolio images, and a short introduction into one public profile link that can be sent before consultation.
 
-## 🛠 기술 스택
+The current product is not defined by OCR, bulk import, or admin features.
+It is defined by whether one link helps a customer quickly understand:
 
-- **Frontend**: Next.js 15.4, React 19, TypeScript
+- who this professional is
+- why they are credible
+- where to inquire or book
+
+## Current Product Truth
+
+If older documents conflict, use these first:
+
+- [START_HERE.md](./START_HERE.md)
+- [CURRENT_TRUTH_2026-03-27.md](./CURRENT_TRUTH_2026-03-27.md)
+- [FEATURE_KEEP_HIDE_CUT_MATRIX_2026-03-27.md](./FEATURE_KEEP_HIDE_CUT_MATRIX_2026-03-27.md)
+- [PROJECT_A_TO_Z_2026-03-27.md](./PROJECT_A_TO_Z_2026-03-27.md)
+- [PROJECT_STATUS.md](./PROJECT_STATUS.md)
+- [DEVELOPMENT_ROADMAP.md](./DEVELOPMENT_ROADMAP.md)
+- [DEPLOY_STATUS.md](./DEPLOY_STATUS.md)
+- [GLOBAL_LAUNCH_READINESS.md](./GLOBAL_LAUNCH_READINESS.md)
+
+## Core Product Today
+
+- **Public trust profile**: a shareable page with reviews, work images, intro, and CTA
+- **Review vault**: collect and organize archived platform reviews and direct reviews
+- **Profile editing**: prepare the page people will actually receive before consultation
+- **Share flow**: copy link, share to Kakao, use Instagram/Threads profile links, generate QR
+- **Direct review request**: gather new testimonials through a public request link
+
+## Supporting, Not Defining, Layers
+
+These still exist in the repo and matter operationally, but they are not the main product identity:
+
+- OCR-assisted screenshot parsing
+- CSV bulk upload
+- concierge-style migration setup
+- advanced customization and legacy expansion pages
+
+## Current Wedge
+
+The current sharpest wedge is `hair stylists`.
+
+Why:
+
+- trust resets are common when moving salons or going independent
+- reviews and work images strongly influence consultation conversion
+- a shareable link fits the real channels already used today
+
+Other audiences exist in the repo, but the current strategy is still hair-first.
+
+## Tech Stack
+
+- **Frontend**: Next.js 15.5.12, React 19, TypeScript
 - **Styling**: Tailwind CSS, Framer Motion
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: SQLite (개발), PostgreSQL/Supabase (프로덕션)
+- **Backend**: Next.js App Router + API routes, Prisma ORM
+- **Database**: SQLite for local development, PostgreSQL for production
 - **Authentication**: NextAuth.js
-- **OCR**: Google Cloud Vision API
+- **Optional import layer**: Google Cloud Vision API for OCR-assisted parsing
 - **Deployment**: Vercel
 
-## 📦 설치 및 실행
+## Local Setup
 
-### 필수 요구사항
-- Node.js 18.0 이상
-- npm 또는 yarn
+### Requirements
 
-### 설치
+- Node.js 18+
+- npm
+
+### Install
+
 ```bash
-# 저장소 클론
 git clone https://github.com/Thetason/record.git
 cd record
-
-# 의존성 설치
 npm install
-
-# 환경 변수 설정
 cp .env.example .env.local
-# .env.local 파일을 편집하여 필요한 환경 변수 설정
-
-# 데이터베이스 초기화 (로컬 SQLite)
 npm run db:push:dev
-
-# 개발 서버 실행
+npm run seed:demo:dev
 npm run dev
 ```
 
-> ℹ️ `npm run dev` 실행 시 `prisma/schema.dev.prisma`를 기반으로 Prisma Client가 자동으로 재생성되어 로컬 SQLite 데이터베이스(`prisma/dev.db`)와 바로 연결됩니다. 프로덕션 빌드(`npm run build`, `npm run start`)에서는 기본 `prisma/schema.prisma`(PostgreSQL 설정)를 사용합니다.
+Notes:
 
-> ℹ️ `npm run db:push:dev` 스크립트는 로컬 SQLite 데이터베이스를 최신 스키마로 동기화하고 Prisma Client를 같이 재생성합니다.
+- `npm run dev` regenerates the Prisma dev client from `prisma/schema.dev.prisma`
+- local development uses `prisma/dev.db`
+- production build/runtime uses `prisma/schema.prisma`
 
-## 🔐 환경 변수 설정
+## Environment
 
-`.env.local` 파일에 다음 환경 변수를 설정하세요:
+Minimum local environment:
 
 ```env
 # Database
@@ -65,46 +105,71 @@ DATABASE_URL="file:./prisma/dev.db"
 # NextAuth
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000"
-
-# Google Vision API (선택)
-GOOGLE_VISION_API_KEY="your-api-key"
 ```
 
-## 📱 주요 페이지
+Optional:
 
-- `/` - 랜딩 페이지
-- `/login` - 로그인
-- `/signup` - 회원가입
-- `/dashboard` - 사용자 대시보드
-- `/[username]` - 공개 프로필 페이지
-- `/pricing` - 요금제 선택 및 결제 페이지 (실시간 플랜 데이터 연동)
-- `/pricing/guide` - 요금제 기능 비교 및 결제/환불 정책 안내
+```env
+# OCR
+GOOGLE_VISION_API_KEY="your-api-key"
+ENABLE_OCR="true"
 
-## 🚀 배포
+# Email
+ENABLE_EMAIL="false"
+```
 
-Vercel을 통한 자동 배포:
-1. GitHub 저장소를 Vercel과 연결
-2. 환경 변수 설정 (Vercel 대시보드)
-3. 자동 빌드 및 배포
+For production readiness, use:
 
-자세한 배포 가이드는 [DEPLOYMENT.md](./DEPLOYMENT.md) 참조
+- [GLOBAL_LAUNCH_READINESS.md](./GLOBAL_LAUNCH_READINESS.md)
+- [PRODUCTION_OPERATOR_CHECKLIST.md](./PRODUCTION_OPERATOR_CHECKLIST.md)
 
-## 📄 라이선스
+## Verification
 
-이 프로젝트는 비공개 소프트웨어입니다. 무단 복제 및 배포를 금지합니다.
+```bash
+# lint + build + typecheck + OCR fixtures
+npm run verify
 
-## 🤝 기여
+# boot a local app and verify the main public/authenticated flows
+npm run smoke:local
 
-이 프로젝트는 현재 비공개로 운영되고 있습니다.
+# scan tracked files for secrets
+npm run secrets:check
+```
 
-## 📞 문의
+## Main Routes
 
-- 이메일: [문의 이메일]
-- 웹사이트: https://record-rho.vercel.app
+- `/` - landing page
+- `/signup` - sign up
+- `/login` - login
+- `/dashboard` - main workspace
+- `/dashboard/profile` - profile editing and preview
+- `/dashboard/reviews` - review vault and direct-review moderation
+- `/dashboard/share` - sharing workspace
+- `/[username]` - public trust profile
+- `/[username]/review-request` - direct review request page
+- `/pricing` - plan selection and checkout
+- `/migration-request` - beta concierge onboarding
 
----
+## Import and Onboarding
 
-<div align="center">
-  <p>Made with ❤️ by Re:cord Team</p>
-  <p>© 2024 Re:cord. All rights reserved.</p>
-</div>
+- OCR and bulk import are available as supporting workflows
+- CSV is the only structured bulk file format currently supported
+- the current core onboarding path is still:
+  1. create a profile
+  2. choose representative reviews
+  3. add work images and CTA
+  4. share the link
+
+## Deployment
+
+Vercel deployment is supported, but passing CI is not the same as being production-ready.
+Before launch, follow the production readiness docs and run the production preflight checks.
+
+## License
+
+This project is private software. Unauthorized copying and distribution are prohibited.
+
+## Contact
+
+- Email: support@record.kr
+- Website: https://www.recordyours.com

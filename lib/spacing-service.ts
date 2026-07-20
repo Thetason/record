@@ -39,7 +39,9 @@ async function requestSpacing(text: string) {
 
     if (spacingCache.size > 200) {
       const firstKey = spacingCache.keys().next().value;
-      spacingCache.delete(firstKey);
+      if (typeof firstKey === 'string') {
+        spacingCache.delete(firstKey);
+      }
     }
     spacingCache.set(text, result);
     return result;

@@ -1,0 +1,17 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="40" fill="#F3F5F7"/>
+  <rect x="58" y="52" width="1084" height="656" rx="32" fill="white" stroke="#D9DEE5" stroke-width="4"/>
+  <rect x="96" y="92" width="160" height="46" rx="23" fill="#0AC75A"/>
+  <text x="176" y="122" text-anchor="middle" font-family="Pretendard, Apple SD Gothic Neo, sans-serif" font-size="26" font-weight="700" fill="white">네이버 리뷰</text>
+  <circle cx="130" cy="214" r="36" fill="#F8DDCF"/>
+  <text x="130" y="225" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#9C5835">민</text>
+  <text x="186" y="205" font-family="Pretendard, sans-serif" font-size="30" font-weight="700" fill="#141A28">민지 고객</text>
+  <text x="186" y="244" font-family="Pretendard, sans-serif" font-size="22" fill="#6B7280">2025. 2. 18 · 서울숲 헤어</text>
+  <text x="96" y="326" font-family="Pretendard, sans-serif" font-size="54" font-weight="700" fill="#FFB400">★★★★★</text>
+  <text x="96" y="406" font-family="Pretendard, sans-serif" font-size="34" font-weight="700" fill="#111827">“레이어드컷 상담을 정말 세심하게 해주셨어요.”</text>
+  <text x="96" y="462" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">얼굴형과 평소 손질 습관까지 먼저 확인하고 길이를 맞춰줘서</text>
+  <text x="96" y="504" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">컷 한 뒤에도 집에서 스타일이 잘 살아납니다.</text>
+  <text x="96" y="546" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">다음에도 바로 예약하고 싶은 디자이너예요.</text>
+  <rect x="96" y="600" width="314" height="60" rx="30" fill="#EEF8F1"/>
+  <text x="253" y="638" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#0F9F49">상담 꼼꼼함 · 손질 쉬운 컷</text>
+</svg>

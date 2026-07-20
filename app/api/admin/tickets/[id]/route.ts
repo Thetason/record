@@ -6,16 +6,17 @@ import { Prisma } from '@prisma/client'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const ticket = await prisma.ticket.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         messages: {
           orderBy: { createdAt: 'asc' }
@@ -43,9 +44,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -81,7 +83,7 @@ export async function PATCH(
     }
 
     const ticket = await prisma.ticket.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         messages: {
@@ -94,7 +96,7 @@ export async function PATCH(
     if (status) {
       await prisma.ticketMessage.create({
         data: {
-          ticketId: params.id,
+          ticketId: id,
           authorName: '시스템',
           authorRole: 'system',
           content: `티켓 상태가 '${status}'로 변경되었습니다.`
@@ -109,7 +111,7 @@ export async function PATCH(
         userEmail: session.user.email,
         action: `ticket_status_change`,
         category: 'admin',
-        details: { ticketId: params.id, newStatus: status }
+        details: { ticketId: id, newStatus: status }
       }
     })
 

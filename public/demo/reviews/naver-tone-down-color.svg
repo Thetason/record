@@ -1,0 +1,17 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="40" fill="#F4F1EE"/>
+  <rect x="58" y="52" width="1084" height="656" rx="32" fill="white" stroke="#DDD5CF" stroke-width="4"/>
+  <rect x="96" y="92" width="160" height="46" rx="23" fill="#0AC75A"/>
+  <text x="176" y="122" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="26" font-weight="700" fill="white">네이버 리뷰</text>
+  <circle cx="130" cy="214" r="36" fill="#E9D2CB"/>
+  <text x="130" y="225" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#8C4E40">컬</text>
+  <text x="186" y="205" font-family="Pretendard, sans-serif" font-size="30" font-weight="700" fill="#141A28">컬러 단골</text>
+  <text x="186" y="244" font-family="Pretendard, sans-serif" font-size="22" fill="#6B7280">2025. 1. 29 · 톤다운 컬러 전문</text>
+  <text x="96" y="326" font-family="Pretendard, sans-serif" font-size="54" font-weight="700" fill="#FFB400">★★★★★</text>
+  <text x="96" y="406" font-family="Pretendard, sans-serif" font-size="34" font-weight="700" fill="#111827">“붉은 기 없이 차분하게 톤을 잡아줬어요.”</text>
+  <text x="96" y="462" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">모발 상태랑 얼굴톤 먼저 보고 컬러 방향을 추천해줘서</text>
+  <text x="96" y="504" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">과하지 않으면서도 오래 유지되는 색으로 잘 나왔습니다.</text>
+  <text x="96" y="546" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">다음 컬러도 같은 디자이너에게 맡길 거예요.</text>
+  <rect x="96" y="600" width="332" height="60" rx="30" fill="#FFF3E8"/>
+  <text x="262" y="638" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#D36B1C">톤다운 컬러 · 얼굴톤 상담</text>
+</svg>

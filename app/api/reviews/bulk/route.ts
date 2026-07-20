@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import * as XLSX from 'xlsx'
 import { parse } from 'csv-parse/sync'
+import { getRemainingReviews, type PlanType } from '@/lib/plan-limits'
 
 type ReviewRow = Record<string, unknown>
 
@@ -15,7 +15,10 @@ interface BulkReview {
   reviewDate: Date
   userId: string
   isVerified: boolean
+  isPublic: boolean
   verifiedBy: string
+  verificationStatus: string
+  verificationNote: string
 }
 
 export async function POST(req: NextRequest) {
@@ -26,6 +29,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: '로그인이 필요합니다' },
         { status: 401 }
+      )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { plan: true }
+    })
+
+    const plan = (user?.plan || 'free') as PlanType
+    const currentReviewCount = await prisma.review.count({
+      where: { userId: session.user.id }
+    })
+    const remainingReviews = getRemainingReviews(currentReviewCount, plan)
+
+    if (remainingReviews !== 'unlimited' && remainingReviews <= 0) {
+      return NextResponse.json(
+        {
+          error: '현재 플랜의 리뷰 등록 한도를 모두 사용했습니다. 업그레이드 후 다시 시도해주세요.',
+          reviewLimit: currentReviewCount
+        },
+        { status: 403 }
       )
     }
 
@@ -43,11 +67,10 @@ export async function POST(req: NextRequest) {
     // 파일 타입 체크
     const fileName = file.name.toLowerCase()
     const isCSV = fileName.endsWith('.csv')
-    const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
-    
-    if (!isCSV && !isExcel) {
+
+    if (!isCSV) {
       return NextResponse.json(
-        { error: 'CSV 또는 Excel 파일만 지원됩니다' },
+        { error: '현재는 CSV 파일만 지원됩니다' },
         { status: 400 }
       )
     }
@@ -66,53 +89,36 @@ export async function POST(req: NextRequest) {
     
     let reviews: ReviewRow[] = []
     
-    if (isCSV) {
-      // CSV 파싱 - 다양한 인코딩 지원
-      let text = ''
-      try {
-        // UTF-8 시도
-        text = buffer.toString('utf-8')
-        // BOM 제거
-        if (text.charCodeAt(0) === 0xFEFF) {
-          text = text.slice(1)
-        }
-      } catch (error) {
-        console.warn('CSV UTF-8 디코딩 실패, 다른 인코딩 시도', error)
-        try {
-          // EUC-KR 시도 (Node.js 기본 지원하지 않아 대체 방식 사용)
-          text = buffer.toString('latin1')
-        } catch (fallbackError) {
-          console.warn('CSV latin1 디코딩 실패, UTF-8 재시도 사용', fallbackError)
-          text = buffer.toString('utf-8')
-        }
+    // CSV 파싱 - 다양한 인코딩 지원
+    let text = ''
+    try {
+      // UTF-8 시도
+      text = buffer.toString('utf-8')
+      // BOM 제거
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1)
       }
-
-      // CSV 파싱 옵션 개선
-      reviews = parse(text, {
-        columns: true,
-        skip_empty_lines: true,
-        bom: true,
-        relax_quotes: true,
-        trim: true,
-        skip_records_with_error: true,
-        relax_column_count: true
-      }) as ReviewRow[]
-    } else {
-      // Excel 파싱 - 옵션 개선
-      const workbook = XLSX.read(buffer, { 
-        type: 'buffer',
-        cellDates: true,
-        cellNF: false,
-        cellText: false,
-        raw: false
-      })
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-      reviews = XLSX.utils.sheet_to_json(firstSheet, {
-        defval: '',
-        raw: false,
-        dateNF: 'yyyy-mm-dd'
-      }) as ReviewRow[]
+    } catch (error) {
+      console.warn('CSV UTF-8 디코딩 실패, 다른 인코딩 시도', error)
+      try {
+        // EUC-KR 시도 (Node.js 기본 지원하지 않아 대체 방식 사용)
+        text = buffer.toString('latin1')
+      } catch (fallbackError) {
+        console.warn('CSV latin1 디코딩 실패, UTF-8 재시도 사용', fallbackError)
+        text = buffer.toString('utf-8')
+      }
     }
+
+    // CSV 파싱 옵션 개선
+    reviews = parse(text, {
+      columns: true,
+      skip_empty_lines: true,
+      bom: true,
+      relax_quotes: true,
+      trim: true,
+      skip_records_with_error: true,
+      relax_column_count: true
+    }) as ReviewRow[]
 
     console.log(`파싱된 리뷰 수: ${reviews.length}`)
 
@@ -256,19 +262,34 @@ export async function POST(req: NextRequest) {
           reviewDate,
           userId: session.user.id,
           isVerified: false,
-          verifiedBy: 'bulk_upload'
+          // Private Vault 기본값: 대량 업로드는 우선 비공개 저장
+          isPublic: false,
+          verifiedBy: 'bulk_upload',
+          verificationStatus: 'approved',
+          verificationNote: 'Imported by the owner via bulk upload.'
         })
         
       } catch (rowError) {
         console.error(`Row ${rowNumber} processing error:`, rowError)
-        errors.push(`${rowNumber}행: 데이터 처리 중 오류 발생 - ${rowError instanceof Error ? rowError.message : '알 수 없는 오류'}`)
+        errors.push(`${rowNumber}행: 데이터 처리 중 오류가 발생했습니다`)
       }
     }
     
     console.log(`유효한 리뷰 수: ${validReviews.length}, 오류 수: ${errors.length}`)
+
+    let reviewsToCreate = validReviews
+    let planLimitSkipped = 0
+
+    if (remainingReviews !== 'unlimited' && validReviews.length > remainingReviews) {
+      reviewsToCreate = validReviews.slice(0, remainingReviews)
+      planLimitSkipped = validReviews.length - reviewsToCreate.length
+      errors.unshift(
+        `현재 플랜 한도로 인해 ${planLimitSkipped}개의 리뷰는 저장되지 않았습니다.`
+      )
+    }
     
     // 유효한 리뷰가 없으면 에러
-    if (validReviews.length === 0) {
+    if (reviewsToCreate.length === 0) {
       return NextResponse.json(
         { 
           error: '유효한 리뷰가 없습니다',
@@ -284,38 +305,41 @@ export async function POST(req: NextRequest) {
     let totalCreated = 0
     const processingErrors: string[] = []
     
-    for (let i = 0; i < validReviews.length; i += batchSize) {
-      const batch = validReviews.slice(i, i + batchSize)
+    for (let i = 0; i < reviewsToCreate.length; i += batchSize) {
+      const batch = reviewsToCreate.slice(i, i + batchSize)
       
       try {
         const result = await prisma.review.createMany({
-          data: batch,
-          skipDuplicates: true
+          data: batch
         })
         totalCreated += result.count
       } catch (batchError) {
         console.error(`Batch ${Math.floor(i/batchSize) + 1} error:`, batchError)
-        processingErrors.push(`배치 ${Math.floor(i/batchSize) + 1} 처리 실패: ${batchError instanceof Error ? batchError.message : '알 수 없는 오류'}`)
+        processingErrors.push(`배치 ${Math.floor(i / batchSize) + 1} 처리 실패`)
       }
     }
     
-    const skipped = validReviews.length - totalCreated
+    const skipped = reviewsToCreate.length - totalCreated
     
     return NextResponse.json({
       success: true,
       message: `${totalCreated}개의 리뷰가 성공적으로 추가되었습니다`,
       total: reviews.length,
       valid: validReviews.length,
+      reviewLimitRemaining: remainingReviews === 'unlimited' ? 'unlimited' : Math.max(0, remainingReviews - totalCreated),
       created: totalCreated,
       skipped,
+      planLimitSkipped,
       validationErrors: errors.length,
       processingErrors: processingErrors.length,
       errors: [...errors.slice(0, 5), ...processingErrors].slice(0, 10), // 최대 10개 오류만 표시
       summary: {
         totalProcessed: reviews.length,
         validReviews: validReviews.length,
+        attemptedCreate: reviewsToCreate.length,
         successfullyCreated: totalCreated,
         duplicatesSkipped: skipped,
+        planLimitSkipped,
         validationErrors: errors.length,
         processingErrors: processingErrors.length
       }
@@ -326,7 +350,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         error: '일괄 업로드 중 오류가 발생했습니다',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined,
         stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : '') : undefined
       },
       { status: 500 }

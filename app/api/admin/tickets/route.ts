@@ -21,8 +21,12 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status') || 'all'
+    const category = searchParams.get('category') || 'all'
 
-    const where = status === 'all' ? {} : { status }
+    const where = {
+      ...(status === 'all' ? {} : { status }),
+      ...(category === 'all' ? {} : { category })
+    }
 
     const tickets = await prisma.ticket.findMany({
       where,

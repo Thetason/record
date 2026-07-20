@@ -1,10 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  getMigrationContactLabel,
+  getMigrationRequestFieldLabel,
+  getMigrationSourceLabel,
+  getMigrationUrgencyLabel,
+  parseMigrationRequestDescription,
+} from '@/lib/migration-request'
 import { 
   MessageSquare, 
   Clock, 
@@ -47,6 +55,7 @@ export default function AdminSupportPage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('open')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [replyMessage, setReplyMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -54,7 +63,13 @@ export default function AdminSupportPage() {
   const fetchTickets = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/admin/tickets?status=${filter}`)
+      const search = new URLSearchParams()
+      search.set('status', filter)
+      if (categoryFilter !== 'all') {
+        search.set('category', categoryFilter)
+      }
+
+      const res = await fetch(`/api/admin/tickets?${search.toString()}`)
       if (res.ok) {
         const data = await res.json()
         setTickets(data)
@@ -64,7 +79,7 @@ export default function AdminSupportPage() {
     } finally {
       setLoading(false)
     }
-  }, [filter])
+  }, [categoryFilter, filter])
 
   useEffect(() => {
     fetchTickets()
@@ -127,9 +142,24 @@ export default function AdminSupportPage() {
       payment: 'bg-green-100 text-green-700',
       account: 'bg-purple-100 text-purple-700',
       review: 'bg-yellow-100 text-yellow-700',
+      migration_request: 'bg-[#FFF1EB] text-[#FF6B35]',
       other: 'bg-gray-100 text-gray-700'
     }
     return colors[category] || colors.other
+  }
+
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      bug: '버그',
+      feature: '기능 요청',
+      payment: '결제',
+      account: '계정',
+      review: '리뷰',
+      migration_request: '리뷰 이관 리드',
+      other: '기타'
+    }
+
+    return labels[category] || category
   }
 
   const getPriorityColor = (priority: string) => {
@@ -164,7 +194,72 @@ export default function AdminSupportPage() {
              ticket.description.toLowerCase().includes(searchTerm.toLowerCase())
     }
     return true
+  }).sort((a, b) => {
+    const aLead = a.category === 'migration_request' ? parseMigrationRequestDescription(a.description) : null
+    const bLead = b.category === 'migration_request' ? parseMigrationRequestDescription(b.description) : null
+    const aUrgency = aLead?.summary.urgency
+    const bUrgency = bLead?.summary.urgency
+
+    const urgencyScore = (value?: string) => {
+      switch (value) {
+        case 'today':
+          return 4
+        case 'this_week':
+          return 3
+        case 'this_month':
+          return 2
+        case 'exploring':
+          return 1
+        default:
+          return 0
+      }
+    }
+
+    if (a.category === 'migration_request' && b.category !== 'migration_request') return -1
+    if (a.category !== 'migration_request' && b.category === 'migration_request') return 1
+
+    const urgencyDelta = urgencyScore(bUrgency) - urgencyScore(aUrgency)
+    if (urgencyDelta !== 0) return urgencyDelta
+
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
+
+  const migrationLeadCount = tickets.filter((ticket) => ticket.category === 'migration_request').length
+  const urgentMigrationLeadCount = tickets.filter((ticket) => {
+    if (ticket.category !== 'migration_request') return false
+    const parsed = parseMigrationRequestDescription(ticket.description)
+    return parsed?.summary.urgency === 'today' || parsed?.summary.urgency === 'this_week'
+  }).length
+  const selectedMigrationLead = selectedTicket?.category === 'migration_request'
+    ? parseMigrationRequestDescription(selectedTicket.description)
+    : null
+  const selectedMigrationEntries = selectedMigrationLead
+    ? Object.entries(selectedMigrationLead.summary)
+    : []
+
+  const applyMigrationReplyTemplate = () => {
+    if (!selectedMigrationLead) return
+
+    const audience = selectedMigrationLead.summary.audience || '전문가'
+    const method = selectedMigrationLead.summary.preferredMethod || '업로드 자료'
+    const urgency = getMigrationUrgencyLabel(selectedMigrationLead.summary.urgency)
+
+    setReplyMessage(
+      [
+        `안녕하세요. Re:cord 팀입니다.`,
+        '',
+        `${audience} 리뷰 이관 요청 확인했습니다. 우선 ${urgency} 일정으로 가장 빠른 세팅 방향을 먼저 잡겠습니다.`,
+        `${method} 기준으로 자료를 받아 프로필 초안부터 먼저 발행하는 순서로 도와드릴 수 있습니다.`,
+        '',
+        `다음 단계`,
+        `1. 현재 가지고 있는 리뷰 자료를 가장 편한 방식으로 전달`,
+        `2. 초안 페이지 구성안 확인`,
+        `3. 공개 링크 발행 및 직접 후기 수집 시작`,
+        '',
+        `가능하시면 현재 가지고 있는 자료와 함께 가장 먼저 살리고 싶은 리뷰/작업 사례를 알려주세요.`
+      ].join('\n')
+    )
+  }
 
   if (loading) {
     return (
@@ -231,6 +326,26 @@ export default function AdminSupportPage() {
               <ArrowUp className="w-8 h-8 text-red-500" />
             </div>
           </Card>
+
+          <Card className="p-4 md:col-span-4 lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">리뷰 이관 리드</p>
+                <p className="text-2xl font-bold text-[#FF6B35]">{migrationLeadCount}</p>
+              </div>
+              <MessageSquare className="w-8 h-8 text-[#FF6B35]" />
+            </div>
+          </Card>
+
+          <Card className="p-4 md:col-span-4 lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">긴급 이관 리드</p>
+                <p className="text-2xl font-bold text-[#E55A2B]">{urgentMigrationLeadCount}</p>
+              </div>
+              <ArrowUp className="w-8 h-8 text-[#E55A2B]" />
+            </div>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -266,8 +381,46 @@ export default function AdminSupportPage() {
                 ))}
               </div>
 
+              <div className="mb-4 flex flex-wrap gap-2">
+                {[
+                  { value: 'all', label: '전체' },
+                  { value: 'migration_request', label: '리뷰 이관 리드' },
+                  { value: 'review', label: '리뷰 문의' },
+                  { value: 'payment', label: '결제' },
+                  { value: 'other', label: '기타' },
+                ].map((item) => (
+                  <Button
+                    key={item.value}
+                    variant={categoryFilter === item.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCategoryFilter(item.value)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="mb-4 flex items-center justify-between rounded-xl border border-dashed border-[#FF6B35]/30 bg-[#FFF7F3] px-3 py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">이관 리드 내보내기</p>
+                  <p className="text-xs text-gray-600">현재 필터 기준으로 CSV를 내려받아 바로 후속 연락할 수 있습니다.</p>
+                </div>
+                <Link
+                  href={`/api/admin/tickets/export?status=${encodeURIComponent(filter)}&category=${encodeURIComponent(categoryFilter === 'all' ? 'migration_request' : categoryFilter)}`}
+                  target="_blank"
+                  className="inline-flex h-9 items-center rounded-md bg-[#FF6B35] px-3 text-sm font-medium text-white hover:bg-[#E55A2B]"
+                >
+                  CSV 받기
+                </Link>
+              </div>
+
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {filteredTickets.map(ticket => (
+                {filteredTickets.map(ticket => {
+                  const lead = ticket.category === 'migration_request'
+                    ? parseMigrationRequestDescription(ticket.description)
+                    : null
+
+                  return (
                   <div
                     key={ticket.id}
                     onClick={() => setSelectedTicket(ticket)}
@@ -283,7 +436,7 @@ export default function AdminSupportPage() {
                       <div className="flex items-center gap-2">
                         {getStatusIcon(ticket.status)}
                         <span className={`text-xs px-2 py-0.5 rounded-full ${getCategoryColor(ticket.category)}`}>
-                          {ticket.category}
+                          {getCategoryLabel(ticket.category)}
                         </span>
                       </div>
                       <span className={`text-xs ${getPriorityColor(ticket.priority)}`}>
@@ -312,8 +465,28 @@ export default function AdminSupportPage() {
                         {ticket.messages.length}개 메시지
                       </div>
                     )}
+
+                    {lead && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {lead.summary.audience && lead.summary.audience !== '미입력' && (
+                          <span className="rounded-full bg-[#FFF7F3] px-2 py-1 text-[11px] font-medium text-[#FF6B35]">
+                            {lead.summary.audience}
+                          </span>
+                        )}
+                        {lead.summary.platforms && lead.summary.platforms !== '미입력' && (
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700">
+                            {lead.summary.platforms}
+                          </span>
+                        )}
+                        {lead.summary.urgency && lead.summary.urgency !== '미입력' && (
+                          <span className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-medium text-red-600">
+                            {getMigrationUrgencyLabel(lead.summary.urgency)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ))}
+                )})}
               </div>
             </Card>
           </div>
@@ -363,7 +536,7 @@ export default function AdminSupportPage() {
                     <span>{selectedTicket.userName || selectedTicket.userEmail}</span>
                     <span>•</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryColor(selectedTicket.category)}`}>
-                      {selectedTicket.category}
+                      {getCategoryLabel(selectedTicket.category)}
                     </span>
                     <span>•</span>
                     <span className={getPriorityColor(selectedTicket.priority)}>
@@ -375,6 +548,73 @@ export default function AdminSupportPage() {
                 {/* 메시지 목록 */}
                 <div className="border-t pt-4 mb-4 max-h-[400px] overflow-y-auto">
                   <div className="space-y-4">
+                    {selectedMigrationLead && (
+                      <div className="rounded-2xl border border-[#FF6B35]/15 bg-[#FFF7F3] p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[#FF6B35]">Migration Lead Summary</p>
+                            <p className="mt-1 text-sm text-gray-700">이 리드의 현재 상황과 원하는 대응을 한 번에 확인합니다.</p>
+                          </div>
+                          {selectedMigrationLead.summary.currentProfileUrl && selectedMigrationLead.summary.currentProfileUrl !== '미입력' && (
+                            <Link
+                              href={selectedMigrationLead.summary.currentProfileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-medium text-[#FF6B35] underline underline-offset-4"
+                            >
+                              현재 링크 열기
+                            </Link>
+                          )}
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          {selectedMigrationEntries.map(([key, value]) => {
+                            const displayValue = key === 'urgency'
+                              ? getMigrationUrgencyLabel(value)
+                              : key === 'preferredContact'
+                              ? getMigrationContactLabel(value)
+                              : value
+
+                            return (
+                              <div key={key} className="rounded-xl bg-white px-4 py-3">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                  {getMigrationRequestFieldLabel(key)}
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-gray-900">{displayValue}</p>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <Button type="button" size="sm" onClick={applyMigrationReplyTemplate}>
+                            초기 답변 템플릿 넣기
+                          </Button>
+                          {selectedMigrationLead.summary.source && selectedMigrationLead.summary.source !== '미입력' && (
+                            <span className="inline-flex h-9 items-center rounded-md border border-gray-200 px-3 text-sm font-medium text-gray-700">
+                              유입: {getMigrationSourceLabel(selectedMigrationLead.summary.source)}
+                            </span>
+                          )}
+                          {selectedMigrationLead.summary.email && selectedMigrationLead.summary.email !== '미입력' && (
+                            <Link
+                              href={`mailto:${selectedMigrationLead.summary.email}`}
+                              className="inline-flex h-9 items-center rounded-md border border-gray-200 px-3 text-sm font-medium text-gray-700"
+                            >
+                              이메일 열기
+                            </Link>
+                          )}
+                          {selectedMigrationLead.summary.phone && selectedMigrationLead.summary.phone !== '미입력' && (
+                            <Link
+                              href={`tel:${selectedMigrationLead.summary.phone.replace(/[^0-9+]/g, '')}`}
+                              className="inline-flex h-9 items-center rounded-md border border-gray-200 px-3 text-sm font-medium text-gray-700"
+                            >
+                              전화 걸기
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* 초기 메시지 */}
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -393,7 +633,7 @@ export default function AdminSupportPage() {
                           </span>
                         </div>
                         <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                          {selectedTicket.description}
+                          {selectedMigrationLead?.message || selectedTicket.description}
                         </p>
                       </div>
                     </div>

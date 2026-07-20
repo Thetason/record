@@ -5,9 +5,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -32,7 +33,7 @@ export async function POST(
     // 메시지 생성
     const message = await prisma.ticketMessage.create({
       data: {
-        ticketId: params.id,
+        ticketId: id,
         authorId: admin.id,
         authorName: admin.name || admin.username,
         authorRole: 'admin',
@@ -42,13 +43,13 @@ export async function POST(
 
     // 티켓 상태를 'in_progress'로 자동 변경 (open인 경우)
     const ticket = await prisma.ticket.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { status: true, userId: true }
     })
 
     if (ticket?.status === 'open') {
       await prisma.ticket.update({
-        where: { id: params.id },
+        where: { id },
         data: { status: 'in_progress' }
       })
     }
@@ -73,7 +74,7 @@ export async function POST(
         userEmail: session.user.email,
         action: 'ticket_reply',
         category: 'admin',
-        details: { ticketId: params.id }
+        details: { ticketId: id }
       }
     })
 

@@ -1,0 +1,17 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="40" fill="#FBF7DD"/>
+  <rect x="58" y="52" width="1084" height="656" rx="32" fill="white" stroke="#E6DE9E" stroke-width="4"/>
+  <rect x="96" y="92" width="190" height="46" rx="23" fill="#FEE500"/>
+  <text x="191" y="122" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="26" font-weight="700" fill="#191600">카카오맵 후기</text>
+  <circle cx="130" cy="214" r="36" fill="#E5E7EB"/>
+  <text x="130" y="225" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#374151">수</text>
+  <text x="186" y="205" font-family="Pretendard, sans-serif" font-size="30" font-weight="700" fill="#141A28">수현 고객</text>
+  <text x="186" y="244" font-family="Pretendard, sans-serif" font-size="22" fill="#6B7280">2025. 1. 20 · 성수 살롱</text>
+  <text x="96" y="326" font-family="Pretendard, sans-serif" font-size="54" font-weight="700" fill="#FFB400">★★★★★</text>
+  <text x="96" y="406" font-family="Pretendard, sans-serif" font-size="34" font-weight="700" fill="#111827">“커트 후 손질법까지 알려줘서 매일 편해졌어요.”</text>
+  <text x="96" y="462" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">커트 후에 드라이 방향이랑 컬 살리는 방법까지 설명해줘서</text>
+  <text x="96" y="504" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">아침 스타일링 시간이 눈에 띄게 줄었습니다.</text>
+  <text x="96" y="546" font-family="Pretendard, sans-serif" font-size="28" fill="#4B5563">실력뿐 아니라 설명이 명확해서 더 믿음이 갔어요.</text>
+  <rect x="96" y="600" width="296" height="60" rx="30" fill="#FFF9C5"/>
+  <text x="244" y="638" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="24" font-weight="700" fill="#7C6500">손질법 안내 · 첫 방문 신뢰</text>
+</svg>

@@ -42,7 +42,20 @@ fi
 
 # 3. 의존성 설치 및 빌드
 echo "📦 의존성 설치 중..."
-npm ci --production
+npm ci
+
+echo "🧾 추적 중인 시크릿 파일 검사..."
+npm run secrets:check
+
+echo "🧪 런칭 preflight 실행 중..."
+npx prisma validate
+NODE_ENV=production npm run preflight:prod
+
+echo "🔎 타입 체크 중..."
+npx tsc --noEmit
+
+echo "🔒 프로덕션 의존성 감사 중..."
+npm run audit:prod
 
 echo "🔨 프로덕션 빌드 중..."
 npm run build
@@ -50,7 +63,15 @@ npm run build
 # 4. 데이터베이스 마이그레이션
 echo "🗄️  데이터베이스 마이그레이션 실행 중..."
 npx prisma generate
-npx prisma db push
+
+if [ ! -d "prisma/migrations" ] || [ -z "$(find prisma/migrations -mindepth 1 -maxdepth 1 -type d -print -quit)" ]; then
+    echo "❌ prisma/migrations가 없습니다. 운영 배포에서는 prisma db push를 허용하지 않습니다."
+    echo "   먼저 마이그레이션을 생성하고 커밋한 뒤 다시 배포하세요."
+    exit 1
+fi
+
+npx prisma migrate status
+npx prisma migrate deploy
 
 # 5. 빌드 결과 검증
 if [ ! -d ".next" ]; then

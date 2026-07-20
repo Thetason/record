@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { rateLimit } from './rate-limit'
+import { NextRequest } from 'next/server'
+import { rateLimit, rateLimitResponse } from './rate-limit'
 
 // CORS 설정
 const envOrigins = process.env.CORS_ALLOWED_ORIGINS
@@ -35,25 +35,29 @@ export function securityHeaders() {
   }
 }
 
+const sharedRateLimiter = rateLimit({
+  interval: 60 * 1000,
+  uniqueTokenPerInterval: 1000,
+})
+
 // Rate limiting 적용
 export async function withRateLimit(req: NextRequest, identifier: string, limit = 60) {
-  const rateLimitResult = await rateLimit(identifier, limit)
-  
-  if (!rateLimitResult.success) {
-    return NextResponse.json(
-      { error: 'Too many requests', retryAfter: rateLimitResult.retryAfter },
-      { 
-        status: 429,
-        headers: {
-          'Retry-After': rateLimitResult.retryAfter?.toString() || '60',
-          ...corsHeaders(req.headers.get('origin') || undefined),
-          ...securityHeaders(),
-        }
-      }
-    )
+  try {
+    await sharedRateLimiter.check(req, limit, identifier)
+    return null
+  } catch {
+    const response = rateLimitResponse()
+    const origin = req.headers.get('origin') || undefined
+
+    Object.entries({
+      ...corsHeaders(origin),
+      ...securityHeaders(),
+    }).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+
+    return response
   }
-  
-  return null
 }
 
 // 입력 검증

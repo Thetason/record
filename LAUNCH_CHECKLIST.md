@@ -1,5 +1,9 @@
 # 🚀 Re:cord Launch Checklist - January 5, 3PM KST
 
+> Status: Historical snapshot.
+> This checklist reflects an older launch plan and should not be used as the current source of truth.
+> Use `START_HERE.md`, `PROJECT_STATUS.md`, `DEVELOPMENT_ROADMAP.md`, `DEPLOY_STATUS.md`, and `GLOBAL_LAUNCH_READINESS.md` instead.
+
 ## ✅ Completed Features (100%)
 
 ### 🎨 UI/UX Improvements

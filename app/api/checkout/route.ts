@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import { getPolar, getPolarConfig } from '@/lib/polar'
 
-// POST /api/checkout - Polar Checkout URL 생성
+import { authOptions } from '@/lib/auth'
+import {
+  buildLemonCheckoutHref,
+  type LemonBillingPeriod,
+  type LemonPlanId,
+} from '@/lib/lemonsqueezy'
+
+function normalizePlan(plan: unknown): LemonPlanId | null {
+  if (plan === 'premium') return 'premium'
+  if (plan === 'pro' || plan === 'business') return 'pro'
+  return null
+}
+
+function normalizePeriod(period: unknown): LemonBillingPeriod {
+  return period === 'yearly' ? 'yearly' : 'monthly'
+}
+
+// POST /api/checkout - Lemon Squeezy checkout URL 생성
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -13,35 +28,33 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { plan } = body // 'premium' or 'pro' (or 'business')
+    const plan = normalizePlan(body.plan)
+    const period = normalizePeriod(body.period)
 
-    if (!plan || !['premium', 'pro', 'business'].includes(plan)) {
+    if (!plan) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
     }
 
-    // 플랜 매핑 ('pro' → 'business')
-    const polarPlan = plan === 'pro' ? 'business' : plan
-
-    // Polar Checkout 생성
-    const polar = getPolar()
-    const config = getPolarConfig()
-    const checkout = await polar.checkouts.custom.create({
-      productPriceId: config.products[polarPlan as 'premium' | 'business'],
-      successUrl: `${process.env.NEXT_PUBLIC_URL}/dashboard?success=true&plan=${plan}`,
-      customerEmail: session.user.email,
-      customerName: session.user.name || undefined,
-      metadata: {
-        userId: session.user.id,
-        plan: plan,
-      }
+    const checkoutUrl = buildLemonCheckoutHref({
+      plan,
+      period,
+      email: session.user.email,
+      userId: session.user.id,
     })
+
+    if (!checkoutUrl) {
+      return NextResponse.json(
+        { error: 'Lemon checkout URL is not configured for this plan and billing period.' },
+        { status: 503 }
+      )
+    }
 
     return NextResponse.json({
-      checkoutUrl: checkout.url,
-      checkoutId: checkout.id
+      provider: 'lemonsqueezy',
+      checkoutUrl,
     })
   } catch (error) {
-    console.error('Polar checkout error:', error)
+    console.error('Lemon checkout error:', error)
     return NextResponse.json(
       { error: 'Failed to create checkout' },
       { status: 500 }

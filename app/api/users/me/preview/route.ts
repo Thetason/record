@@ -12,7 +12,8 @@ export async function GET() {
 
   const result = await fetchPublicProfile(session.user.username, {
     incrementView: false,
-    includeDemoFallback: true
+    includeDemoFallback: false,
+    allowPrivateProfile: true
   })
 
   if (!result.ok) {

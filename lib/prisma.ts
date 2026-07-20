@@ -1,4 +1,17 @@
-import { PrismaClient } from '@prisma/client'
+import { createRequire } from 'module'
+import type { PrismaClient as PrismaClientType } from '@prisma/client'
+
+type PrismaClientConstructor = new (
+  ...args: ConstructorParameters<typeof import('@prisma/client').PrismaClient>
+) => PrismaClientType
+
+const runtimeRequire = createRequire(import.meta.url)
+
+const PrismaClient = (
+  process.env.NODE_ENV === 'development'
+    ? runtimeRequire('../prisma/generated/dev-client').PrismaClient
+    : runtimeRequire('@prisma/client').PrismaClient
+) as PrismaClientConstructor
 
 // Fall back to known Postgres env vars when DATABASE_URL is absent.
 const resolvedDatabaseUrl =
@@ -11,8 +24,34 @@ if (!process.env.DATABASE_URL && resolvedDatabaseUrl) {
   process.env.DATABASE_URL = resolvedDatabaseUrl
 }
 
+const shouldEnforceProductionDatabase =
+  process.env.NODE_ENV === 'production' &&
+  (
+    process.env.APP_ENV === 'production' ||
+    process.env.VERCEL === '1' ||
+    process.env.VERCEL_ENV === 'production' ||
+    process.env.CI === 'true'
+  )
+
+if (shouldEnforceProductionDatabase) {
+  if (!resolvedDatabaseUrl) {
+    throw new Error('Production DATABASE_URL is missing')
+  }
+
+  if (resolvedDatabaseUrl.startsWith('file:')) {
+    throw new Error('Production DATABASE_URL must use PostgreSQL, not SQLite')
+  }
+
+  if (
+    !resolvedDatabaseUrl.startsWith('postgresql://') &&
+    !resolvedDatabaseUrl.startsWith('postgres://')
+  ) {
+    throw new Error('Production DATABASE_URL must start with postgres:// or postgresql://')
+  }
+}
+
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+  prisma: PrismaClientType | undefined
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({

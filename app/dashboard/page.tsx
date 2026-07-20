@@ -1,35 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { 
-  HomeIcon, 
-  PersonIcon, 
-  PlusIcon, 
-  BarChartIcon,
-  GearIcon,
-  ExitIcon,
-  UploadIcon,
-  ArrowUpIcon,
-  CalendarIcon,
-  EyeOpenIcon,
-  Share2Icon,
-  LockClosedIcon
-} from "@radix-ui/react-icons"
 import {
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart
-} from "recharts"
+  HomeIcon,
+  PersonIcon,
+  BarChartIcon,
+  ExitIcon,
+  Share2Icon,
+  LockClosedIcon,
+  Link2Icon,
+} from "@radix-ui/react-icons"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -48,43 +31,35 @@ interface Review {
 interface DashboardStats {
   overview: {
     totalReviews: number
+    featuredReviews: number
     platforms: number
     thisMonth: number
     profileViews: number
-  }
-  subscription: {
-    plan: string
-    planExpiry: string | null
-    reviewLimit: number
-    reviewsUsed: number
-    reviewsRemaining: number | string
-  }
-  trends: {
-    thisWeekReviews: number
-    thisMonthReviews: number
-    lastMonthReviews: number
-    monthlyChange: number
-    monthlyTrend: Array<{
-      month: string
-      count: number
-    }>
-  }
-  distribution: {
-    platforms: Record<string, {
-      count: number
-    }>
   }
   recent: {
     reviews: Review[]
   }
 }
 
+interface ProfileSnapshot {
+  name: string
+  username: string
+  bio: string
+  location?: string
+  website?: string
+  phone?: string
+  portfolioImages?: string[]
+  isPublic: boolean
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [profile, setProfile] = useState<ProfileSnapshot | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -93,125 +68,147 @@ export default function DashboardPage() {
   }, [status, router])
 
   useEffect(() => {
-    if (session) {
-      fetchDashboardStats()
-    }
-  }, [session])
+    if (!session) return
 
-  const fetchDashboardStats = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const res = await fetch("/api/dashboard/stats")
-      if (res.ok) {
-        const data = await res.json()
-        setStats(data)
-      } else {
-        const errorData = await res.json().catch(() => ({}))
-        setError(errorData.error || `서버 오류 (${res.status})`)
+    const load = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        const [statsRes, profileRes] = await Promise.all([
+          fetch("/api/dashboard/stats"),
+          fetch("/api/users/me"),
+        ])
+
+        if (!statsRes.ok) {
+          const data = await statsRes.json().catch(() => ({}))
+          throw new Error(data.error || `서버 오류 (${statsRes.status})`)
+        }
+
+        if (!profileRes.ok) {
+          const data = await profileRes.json().catch(() => ({}))
+          throw new Error(data.error || `프로필 오류 (${profileRes.status})`)
+        }
+
+        const statsData = await statsRes.json() as DashboardStats
+        const profileData = await profileRes.json() as ProfileSnapshot
+
+        setStats(statsData)
+        setProfile(profileData)
+      } catch (loadError) {
+        console.error("Failed to load dashboard workspace:", loadError)
+        setError(loadError instanceof Error ? loadError.message : "대시보드를 불러오지 못했습니다.")
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error("Failed to fetch dashboard stats:", error)
-      setError("네트워크 오류가 발생했습니다. 다시 시도해주세요.")
-    } finally {
-      setIsLoading(false)
     }
-  }
+
+    void load()
+  }, [session])
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" })
   }
 
-  const getPlatformColor = (platform: string) => {
-    const map: Record<string, string> = {
-      '네이버': 'bg-green-100 text-green-800',
-      '카카오맵': 'bg-yellow-100 text-yellow-800',
-      '카카오': 'bg-yellow-100 text-yellow-800',
-      '구글': 'bg-blue-100 text-blue-800',
-      '인스타그램': 'bg-pink-100 text-pink-800',
-      '인스타': 'bg-pink-100 text-pink-800',
-      '당근': 'bg-orange-100 text-orange-700',
-      '당근마켓': 'bg-orange-100 text-orange-700',
-      'Re:cord': 'bg-[#FF6B35]/10 text-[#FF6B35]',
-      're:cord': 'bg-[#FF6B35]/10 text-[#FF6B35]',
-      '크몽': 'bg-purple-100 text-purple-800'
+  const handleCopyProfileLink = async () => {
+    const username = profile?.username || session?.user?.username
+    if (!username || typeof window === "undefined") return
+
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/${username}`)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch (copyError) {
+      console.error("Failed to copy profile link:", copyError)
     }
-    return map[platform] || "bg-gray-100 text-gray-800"
   }
 
-  // 차트 색상
-  const platformColors: { [key: string]: string } = {
-    "네이버": "#2DB400",
-    "카카오맵": "#FAE100",
-    "구글": "#4285F4",
-    "크몽": "#7C3AED",
-    "인스타그램": "#E4405F",
-    "당근": "#FF8A3D",
-    "Re:cord": "#FF6B35",
-    "기타": "#6B7280"
-  }
+  const profileUrl = useMemo(() => {
+    const username = profile?.username || session?.user?.username
+    if (!username) return "recordyours.com/yourname"
 
-  // 플랫폼별 분포 데이터 준비
-  const platformData = stats ? Object.entries(stats.distribution.platforms).map(([name, data]) => ({
-    name,
-    value: data.count,
-    fill: platformColors[name] || platformColors["기타"]
-  })) : []
+    if (typeof window !== "undefined") {
+      return `${window.location.origin.replace(/\/$/, "")}/${username}`
+    }
+
+    return `recordyours.com/${username}`
+  }, [profile?.username, session?.user?.username])
+
+  const checklist = useMemo(() => {
+    const featuredReviews = stats?.overview.featuredReviews || 0
+
+    return [
+      {
+        label: "고유 링크가 준비되어 있다",
+        done: Boolean(profile?.username),
+        href: "/dashboard/profile",
+        button: "사용자명 확인",
+      },
+      {
+        label: "소개 문장이 3초 안에 읽힌다",
+        done: Boolean(profile?.bio?.trim()),
+        href: "/dashboard/profile",
+        button: "소개 다듬기",
+      },
+      {
+        label: "상담 버튼이 연결되어 있다",
+        done: Boolean(profile?.website?.trim() || profile?.phone?.trim()),
+        href: "/dashboard/profile",
+        button: "상담 링크 연결",
+      },
+      {
+        label: "대표 후기 3개가 골라져 있다",
+        done: featuredReviews >= 3,
+        href: "/dashboard/reviews",
+        button: "대표 후기 정리",
+      },
+      {
+        label: "작업 사진이 2장 이상 올라가 있다",
+        done: Array.isArray(profile?.portfolioImages) && profile.portfolioImages.length >= 2,
+        href: "/dashboard/profile",
+        button: "작업 사진 올리기",
+      },
+      {
+        label: "외부에 공개 상태다",
+        done: profile?.isPublic === true,
+        href: "/dashboard/profile",
+        button: "공개 상태 확인",
+      },
+    ]
+  }, [profile, stats?.overview.featuredReviews])
+
+  const completionCount = checklist.filter((item) => item.done).length
+  const completionPercent = Math.round((completionCount / checklist.length) * 100)
+
+  const sendActions = [
+    {
+      title: "내 링크 복사",
+      description: "상담 전 문자, 카톡, DM에 바로 보낼 링크를 복사합니다.",
+      onClick: handleCopyProfileLink,
+      primary: true,
+    },
+    {
+      title: "공유 화면 열기",
+      description: "카카오톡, 인스타, QR 공유를 바로 준비합니다.",
+      href: "/dashboard/share",
+    },
+    {
+      title: "프로필 완성하기",
+      description: "작업 사진, 소개, 상담 버튼까지 채워서 바로 보낼 링크로 만듭니다.",
+      href: "/dashboard/profile",
+    },
+  ]
 
   if (status === "loading" || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Desktop Sidebar Skeleton */}
-        <div className="hidden md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-64 md:bg-white md:border-r md:border-gray-200 md:block">
-          <div className="flex flex-col h-full">
-            <div className="p-6 border-b border-gray-200">
-              <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-            <div className="flex-1 px-4 py-6 space-y-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-10 bg-gray-200 rounded animate-pulse"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Header Skeleton */}
-        <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
-          <div className="flex items-center justify-between p-4">
-            <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
-          </div>
-        </div>
-
-        {/* Main Content Skeleton */}
-        <div className="md:pl-64 pt-16 md:pt-0 pb-20 md:pb-0">
-          <div className="p-4 md:p-8">
-            <div className="mb-8">
-              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-4"></div>
-              <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-
-            {/* Stats Cards Skeleton */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-white p-4 rounded-lg border">
-                  <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
-                  <div className="h-6 bg-gray-200 rounded animate-pulse mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              ))}
-            </div>
-
-            {/* Charts Skeleton */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="bg-white p-6 rounded-lg border">
-                  <div className="h-6 bg-gray-200 rounded animate-pulse mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse mb-4"></div>
-                  <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              ))}
-            </div>
+        <div className="hidden md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-64 md:bg-white md:border-r md:border-gray-200 md:block" />
+        <div className="md:pl-64 p-4 md:p-8">
+          <div className="h-10 w-64 animate-pulse rounded-xl bg-gray-200" />
+          <div className="mt-4 h-36 animate-pulse rounded-3xl bg-gray-200" />
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="h-96 animate-pulse rounded-3xl bg-gray-200" />
+            <div className="h-96 animate-pulse rounded-3xl bg-gray-200" />
           </div>
         </div>
       </div>
@@ -220,488 +217,304 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg border max-w-md w-full mx-4">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">데이터를 불러올 수 없습니다</h3>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <div className="space-y-3">
-              <Button 
-                onClick={fetchDashboardStats}
-                className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]"
-              >
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <Card className="w-full max-w-md rounded-3xl border border-red-100 shadow-sm">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-lg font-semibold text-slate-900">작업 공간을 불러오지 못했습니다</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{error}</p>
+            <div className="mt-5 flex flex-col gap-3">
+              <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]" onClick={() => window.location.reload()}>
                 다시 시도
               </Button>
-              <Button
-                onClick={() => router.push('/dashboard/bulk-upload')}
-                variant="outline"
-                className="w-full"
-              >
-                리뷰 추가하기
+              <Button variant="outline" onClick={() => router.push("/dashboard/profile")}>
+                프로필 편집으로 이동
               </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
+    <div className="min-h-screen bg-[#faf8f6]">
       <div className="hidden md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-64 md:bg-white md:border-r md:border-gray-200 md:block">
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 border-b border-gray-200">
+        <div className="flex h-full flex-col">
+          <div className="border-b border-gray-200 p-6">
             <Link href="/" className="flex items-center gap-2">
               <span className="text-xl font-bold">Re:cord</span>
               <span className="text-[#FF6B35]">*</span>
             </Link>
+            <p className="mt-2 text-xs leading-5 text-gray-500">링크 하나로 상담 전에 신뢰를 보여주는 작업실</p>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            <NavItem icon={<HomeIcon />} label="대시보드" href="/dashboard" active />
-            <NavItem icon={<BarChartIcon />} label="리뷰 관리" href="/dashboard/reviews" />
-            <NavItem icon={<PersonIcon />} label="내 프로필" href="/dashboard/profile" />
-          <NavItem icon={<UploadIcon />} label="리뷰 추가" href="/dashboard/bulk-upload" />
-          <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
-          <NavItem icon={<GearIcon />} label="커스터마이즈" href="/dashboard/customize" />
-          {(session?.user?.role === 'admin' || session?.user?.role === 'super_admin') && (
-            <NavItem icon={<LockClosedIcon />} label="관리자 센터" href="/admin" />
-          )}
+          <nav className="flex-1 space-y-2 px-4 py-6">
+            <NavItem icon={<HomeIcon />} label="작업실" href="/dashboard" active />
+            <NavItem icon={<PersonIcon />} label="내 링크" href="/dashboard/profile" />
+            <NavItem icon={<BarChartIcon />} label="대표 후기" href="/dashboard/reviews" />
+            <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
+            {(session?.user?.role === "admin" || session?.user?.role === "super_admin") && (
+              <NavItem icon={<LockClosedIcon />} label="관리자 센터" href="/admin" />
+            )}
           </nav>
 
-          {/* User Profile */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="border-t border-gray-200 p-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-medium text-[#FF6B35]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-sm font-semibold text-[#FF6B35]">
                 {session?.user?.name?.charAt(0).toUpperCase() || "U"}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {session?.user?.name || "사용자"}
-                </p>
-                <p className="text-xs text-gray-500 truncate">
-                  @{session?.user?.username || "user"}
-                </p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">{session?.user?.name || "사용자"}</p>
+                <p className="truncate text-xs text-gray-500">@{session?.user?.username || "user"}</p>
               </div>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <ExitIcon className="w-4 h-4" />
+                <ExitIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
-        <div className="flex items-center justify-between p-4">
+      <div className="fixed left-0 right-0 top-0 z-40 border-b border-gray-200 bg-white md:hidden">
+        <div className="flex items-center justify-between px-4 py-4">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl font-bold">Re:cord</span>
             <span className="text-[#FF6B35]">*</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">
-              {session?.user?.name || "사용자"}
-            </span>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <ExitIcon className="w-4 h-4" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={handleSignOut}>
+            <ExitIcon className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="md:pl-64 pt-16 md:pt-0 pb-20 md:pb-0">
-        <div className="p-4 md:p-8">
-          {/* Header */}
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              안녕하세요, {session?.user?.name || "사용자"}님! 👋
+      <div className="pb-20 pt-16 md:pl-64 md:pt-0">
+        <div className="mx-auto max-w-6xl p-4 md:p-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold tracking-[-0.04em] text-slate-900 md:text-3xl">
+              오늘 할 일은 링크를 완성하고 한 명에게 보내는 것입니다.
             </h1>
-            <p className="text-sm md:text-base text-gray-600 mt-2">
-              오늘의 리뷰 현황을 한눈에 확인하세요
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
+              보기 좋은 대시보드보다 중요한 건, 고객이 30초 안에 믿을 수 있는 공개 페이지를 만드는 일입니다.
             </p>
           </div>
 
-          {/* Subscription Status Card */}
-          {stats?.subscription && (
-            <Card className="mb-6 border-[#FF6B35]/30 bg-gradient-to-r from-orange-50 to-red-50">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 md:gap-3 mb-3">
-                      <h3 className="text-lg md:text-xl font-bold text-gray-900">
-                        {
-                          stats.subscription.plan === 'free' ? '프리 플랜' :
-                          stats.subscription.plan === 'premium' ? '프리미엄 플랜' :
-                          stats.subscription.plan === 'pro' ? '비즈니스 플랜' : '플랜'
-                        }
-                      </h3>
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        stats.subscription.plan === 'free' ? 'bg-gray-100 text-gray-700' :
-                        stats.subscription.plan === 'premium' ? 'bg-blue-100 text-blue-700' :
-                        'bg-purple-100 text-purple-700'
-                      }`}>
-                        {stats.subscription.plan === 'free' ? 'FREE' : 
-                         stats.subscription.plan === 'premium' ? 'PREMIUM' : 'BUSINESS'}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl md:text-2xl font-bold text-gray-900">
-                          {stats.subscription.reviewsUsed}
-                        </span>
-                        <span className="text-gray-500">/</span>
-                        <span className="text-base md:text-lg font-semibold text-gray-700">
-                          {stats.subscription.reviewLimit === -1 ? '∞' : stats.subscription.reviewLimit}
-                        </span>
-                        <span className="text-xs md:text-sm text-gray-600">리뷰 사용 중</span>
-                      </div>
-                      
-                      {stats.subscription.reviewLimit !== -1 && (
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                          <div 
-                            className={`h-2.5 rounded-full transition-all ${
-                              (stats.subscription.reviewsUsed / stats.subscription.reviewLimit) >= 0.9 
-                                ? 'bg-red-500' 
-                                : (stats.subscription.reviewsUsed / stats.subscription.reviewLimit) >= 0.7
-                                ? 'bg-orange-500'
-                                : 'bg-green-500'
-                            }`}
-                            style={{ 
-                              width: `${Math.min((stats.subscription.reviewsUsed / stats.subscription.reviewLimit) * 100, 100)}%` 
-                            }}
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-4 text-sm">
-                        {stats.subscription.reviewLimit !== -1 ? (
-                          <span className={`font-medium ${
-                            stats.subscription.reviewsRemaining === 0 ? 'text-red-600' :
-                            Number(stats.subscription.reviewsRemaining) <= 5 ? 'text-orange-600' :
-                            'text-green-600'
-                          }`}>
-                            {stats.subscription.reviewsRemaining === 'unlimited' 
-                              ? '무제한' 
-                              : `${stats.subscription.reviewsRemaining}개 남음`}
-                          </span>
-                        ) : (
-                          <span className="text-green-600 font-medium">무제한 리뷰 등록</span>
-                        )}
-                        
-                        {stats.subscription.planExpiry && (
-                          <span className="text-gray-500">
-                            만료: {new Date(stats.subscription.planExpiry).toLocaleDateString('ko-KR')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {stats.subscription.plan === 'free' && (
-                    <div className="md:text-right">
-                      <Button 
-                        onClick={() => router.push('/pricing')}
-                        size="lg"
-                        className="bg-gradient-to-r from-[#FF6B35] to-[#E55A2B] hover:from-[#E55A2B] hover:to-[#D54A1B] text-white shadow-lg w-full md:w-auto"
-                      >
-                        프리미엄으로 업그레이드 →
-                      </Button>
-                      <p className="text-xs text-gray-600 mt-2">
-                        월 100개 리뷰 + 고급 기능
-                      </p>
-                    </div>
-                  )}
-                  
-                  {stats.subscription.plan === 'premium' && (
-                    <div className="md:text-right">
-                      <Button 
-                        onClick={() => router.push('/pricing')}
-                        size="lg"
-                        variant="outline"
-                        className="border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35] hover:text-white w-full md:w-auto"
-                      >
-                        비즈니스로 업그레이드 →
-                      </Button>
-                      <p className="text-xs text-gray-600 mt-2">
-                        무제한 리뷰 + 프리미엄 기능
-                      </p>
-                    </div>
-                  )}
+          <Card className="overflow-hidden rounded-[32px] border border-[#eed8cf] bg-white shadow-[0_24px_70px_rgba(60,28,16,0.06)]">
+            <CardContent className="p-6 md:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-2xl">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#C76243]">
+                    Sales Link Workspace
+                  </p>
+                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.05em] text-slate-900 md:text-[2rem]">
+                    이 링크 하나가 소개받을 때의 첫인상을 결정합니다.
+                  </h2>
+                  <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">
+                    이름, 전문성, 대표 후기, 상담 버튼만 또렷하면 됩니다. 나머지는 그 다음입니다.
+                  </p>
                 </div>
-                
-                {stats.subscription.plan === 'free' && stats.subscription.reviewsUsed >= stats.subscription.reviewLimit * 0.8 && (
-                  <div className="mt-4 p-4 bg-orange-100 rounded-lg border border-orange-200">
-                    <p className="text-sm text-orange-900 font-medium">
-                      ⚠️ 프리 플랜 한도의 80%를 사용했습니다. 프리미엄 플랜으로 업그레이드하여 월 100개까지 등록하세요!
-                    </p>
+
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                  <div className="rounded-2xl border border-[#eadfd7] bg-[#fcfaf8] px-4 py-3 text-sm text-slate-700">
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B27B68]">
+                      Public URL
+                    </span>
+                    <span className="mt-1 block break-all font-medium">{profileUrl}</span>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <StatCard
-              icon={<BarChartIcon className="w-5 h-5" />}
-              title="총 리뷰"
-              value={stats?.overview.totalReviews || 0}
-              suffix="개"
-              trend={stats?.trends.thisWeekReviews ? `+${stats.trends.thisWeekReviews}` : "0"}
-              trendLabel="이번 주"
-              color="blue"
-            />
-            <StatCard
-              icon={<UploadIcon className="w-5 h-5" />}
-              title="최근 7일 등록"
-              value={stats?.trends.thisWeekReviews || 0}
-              suffix="개"
-              trend=""
-              trendLabel="지난 7일"
-              color="yellow"
-            />
-            <StatCard
-              icon={<CalendarIcon className="w-5 h-5" />}
-              title="이번 달"
-              value={stats?.overview.thisMonth || 0}
-              suffix="개"
-              trend={stats?.trends.monthlyChange ? `${stats.trends.monthlyChange > 0 ? '+' : ''}${stats.trends.monthlyChange}%` : "0%"}
-              trendLabel="전월 대비"
-              color="green"
-            />
-            <StatCard
-              icon={<ArrowUpIcon className="w-5 h-5" />}
-              title="플랫폼"
-              value={stats?.overview.platforms || 0}
-              suffix="개"
-              trend="active"
-              trendLabel="연동됨"
-              color="purple"
-            />
-            <StatCard
-              icon={<EyeOpenIcon className="w-5 h-5" />}
-              title="프로필 조회"
-              value={stats?.overview.profileViews || 0}
-              suffix="회"
-              trend="+12%"
-              trendLabel="증가율"
-              color="orange"
-            />
-          </div>
-
-          {/* Charts Row 1 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* 월별 리뷰 추이 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>월별 리뷰 추이</CardTitle>
-                <CardDescription>최근 6개월간 리뷰 증가 추세</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {stats?.trends.monthlyTrend && stats.trends.monthlyTrend.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={stats.trends.monthlyTrend}>
-                      <defs>
-                        <linearGradient id="colorReviews" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#FF6B35" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#FF6B35" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px'
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="count"
-                        stroke="#FF6B35"
-                        strokeWidth={2}
-                        fill="url(#colorReviews)"
-                        name="리뷰 수"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex flex-col items-center justify-center text-gray-500">
-                    <BarChartIcon className="w-12 h-12 mb-4 opacity-50" />
-                    <p className="text-sm font-medium mb-2">아직 데이터가 없어요</p>
-                    <p className="text-xs">리뷰를 추가하면 차트가 표시됩니다</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 플랫폼별 분포 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>플랫폼별 분포</CardTitle>
-                <CardDescription>리뷰가 등록된 플랫폼 비율</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {platformData && platformData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={platformData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={90}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {platformData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex flex-col items-center justify-center text-gray-500">
-                    <ArrowUpIcon className="w-12 h-12 mb-4 opacity-50" />
-                    <p className="text-sm font-medium mb-2">플랫폼 데이터가 없어요</p>
-                    <p className="text-xs">다양한 플랫폼의 리뷰를 추가해보세요</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Platform summary row removed */}
-
-          {/* Quick Actions */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>빠른 작업</CardTitle>
-              <CardDescription>
-                자주 사용하는 기능들을 바로 실행하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                <Link href="/dashboard/bulk-upload">
-                  <Button className="w-full h-auto p-4 flex flex-col items-center gap-2 bg-[#FF6B35] hover:bg-[#E55A2B]">
-                    <UploadIcon className="w-5 h-5" />
-                    <span className="text-sm">리뷰 추가</span>
+                  <Button className="h-12 rounded-full bg-[#221A24] px-5 text-white hover:bg-[#3a2d3d]" onClick={handleCopyProfileLink}>
+                    <Link2Icon className="mr-2 h-4 w-4" />
+                    {copied ? "복사 완료" : "링크 복사"}
                   </Button>
-                </Link>
-                <Link href="/dashboard/profile">
-                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2">
-                    <PersonIcon className="w-5 h-5" />
-                    <span className="text-sm">프로필 보기</span>
+                  <Button variant="outline" className="h-12 rounded-full border-[#d8cfc8]" asChild>
+                    <Link href="/dashboard/share">공유하기</Link>
                   </Button>
-                </Link>
-                <Link href="/dashboard/reviews">
-                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2">
-                    <BarChartIcon className="w-5 h-5" />
-                    <span className="text-sm">리뷰 관리</span>
-                  </Button>
-                </Link>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Recent Reviews */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>최근 리뷰</CardTitle>
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+            <div className="space-y-6">
+              <Card className="rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle>30초 신뢰 체크리스트</CardTitle>
                   <CardDescription>
-                    최근에 받은 리뷰들을 확인하세요
+                    프로필 완성률보다 중요한 건, 고객이 실제로 보는 핵심 정보가 다 채워졌는지입니다.
                   </CardDescription>
-                </div>
-                <Link href="/dashboard/reviews">
-                  <Button variant="outline" size="sm">
-                    전체 보기
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {stats?.recent.reviews && stats.recent.reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {stats.recent.reviews.slice(0, 3).map((review) => (
-                    <div key={review.id} className="flex gap-3 md:gap-4 p-3 md:p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPlatformColor(review.platform)}`}>
-                            {review.platform}
-                          </span>
-                          <span className="text-xs md:text-sm font-medium truncate">{review.business}</span>
-                        </div>
-                        <p className="text-sm text-gray-600 overflow-hidden" style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}>
-                          {review.content}
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-2xl bg-[#fcfaf8] p-4">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-slate-500">현재 준비도</p>
+                        <p className="mt-1 text-3xl font-bold tracking-[-0.04em] text-slate-900">
+                          {completionPercent}%
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span>{review.author}</span>
-                          <span>{new Date(review.reviewDate).toLocaleDateString()}</span>
-                        </div>
                       </div>
+                      <p className="text-sm font-medium text-slate-600">
+                        {completionCount} / {checklist.length} 완료
+                      </p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p className="mb-4">아직 등록된 리뷰가 없습니다</p>
-                  <Link href="/dashboard/bulk-upload">
-                    <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                      첫 리뷰 추가하기
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#efe6e0]">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#FF6B35] to-[#E45F3C] transition-all"
+                        style={{ width: `${completionPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {checklist.map((item) => (
+                      <div key={item.label} className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                item.done
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {item.done ? "완료" : "확인 필요"}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-medium leading-6 text-slate-900">{item.label}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="shrink-0 text-[#FF6B35] hover:bg-transparent hover:text-[#E55A2B]" asChild>
+                          <Link href={item.href}>{item.button}</Link>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle>최근 정리한 후기</CardTitle>
+                  <CardDescription>
+                    고객에게 먼저 보여줄 만한 증거부터 점검하세요.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {stats?.recent.reviews?.length ? (
+                    <div className="space-y-3">
+                      {stats.recent.reviews.slice(0, 4).map((review) => (
+                        <div key={review.id} className="rounded-2xl border border-slate-200 px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-[#fff0ea] px-2.5 py-1 text-[11px] font-semibold text-[#C76243]">
+                              {review.platform}
+                            </span>
+                            <span className="text-sm font-medium text-slate-700">{review.business}</span>
+                          </div>
+                          <p className="mt-3 line-clamp-2 text-sm leading-7 text-slate-600">{review.content}</p>
+                          <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                            <span>{review.author}</span>
+                            <span>{new Date(review.reviewDate).toLocaleDateString("ko-KR")}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-[#eadfd7] bg-[#fcfaf8] p-6 text-center">
+                      <p className="text-sm font-medium text-slate-900">아직 대표 후기가 없습니다.</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        먼저 3개만 정리해도 링크의 설득력이 확 달라집니다.
+                      </p>
+                      <Button className="mt-4 bg-[#FF6B35] hover:bg-[#E55A2B]" asChild>
+                        <Link href="/dashboard/share">리뷰 요청 링크 보내기</Link>
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card className="rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle>지금 바로 할 수 있는 일</CardTitle>
+                  <CardDescription>
+                    관리 기능보다 실제 전송 행동이 먼저입니다.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {sendActions.map((action) =>
+                    action.href ? (
+                      <Link key={action.title} href={action.href} className="block rounded-2xl border border-slate-200 px-4 py-4 transition hover:bg-slate-50">
+                        <p className="text-sm font-semibold text-slate-900">{action.title}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{action.description}</p>
+                      </Link>
+                    ) : (
+                      <button
+                        key={action.title}
+                        type="button"
+                        onClick={action.onClick}
+                        className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+                          action.primary
+                            ? "border-[#FF6B35] bg-[#fff3ee] hover:bg-[#ffe9df]"
+                            : "border-slate-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-slate-900">{action.title}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{action.description}</p>
+                      </button>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle>현재 링크 상태</CardTitle>
+                  <CardDescription>
+                    링크가 설득하는 데 필요한 핵심 신호만 간단히 확인합니다.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-3 sm:grid-cols-2">
+                  <MetricCard label="대표 후기" value={`${stats?.overview.featuredReviews || 0}개`} />
+                  <MetricCard label="작업 사진" value={`${profile?.portfolioImages?.length || 0}장`} />
+                  <MetricCard label="공개 상태" value={profile?.isPublic ? "공개" : "비공개"} />
+                  <MetricCard label="프로필 열람" value={`${stats?.overview.profileViews || 0}회`} />
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[28px] border border-[#eadfd7] bg-[#fff7f3] shadow-sm">
+                <CardContent className="p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#C76243]">Focus</p>
+                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-900">
+                    지금은 더 많은 기능보다, 더 자주 공유되는 링크가 중요합니다.
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    핵심은 기능이 아니라 공개 링크입니다. 이름, 소개, 대표 후기, 작업 사진, 상담 버튼이 30초 안에 읽히면 충분합니다.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
     </div>
   )
 }
 
-function NavItem({ 
-  icon, 
-  label, 
-  href, 
-  active = false 
-}: { 
+function NavItem({
+  icon,
+  label,
+  href,
+  active = false,
+}: {
   icon: React.ReactNode
   label: string
   href: string
-  active?: boolean 
+  active?: boolean
 }) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors ${
-        active 
-          ? 'bg-[#FF6B35] text-white' 
-          : 'text-gray-700 hover:bg-gray-100'
+      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+        active ? "bg-[#FF6B35] text-white" : "text-gray-700 hover:bg-gray-100"
       }`}
     >
       {icon}
@@ -710,59 +523,11 @@ function NavItem({
   )
 }
 
-function StatCard({ 
-  icon,
-  title, 
-  value, 
-  suffix, 
-  trend, 
-  trendLabel,
-  color = "blue"
-}: {
-  icon: React.ReactNode
-  title: string
-  value: number
-  suffix: string
-  trend: string
-  trendLabel: string
-  color?: string
-}) {
-  const isPositive = trend.startsWith('+')
-  const isNegative = trend.startsWith('-')
-  
-  const colorClasses = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    yellow: "bg-yellow-50 text-yellow-600",
-    purple: "bg-purple-50 text-purple-600",
-    orange: "bg-orange-50 text-orange-600"
-  }
-  
+function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
-            {icon}
-          </div>
-          <div className="text-right">
-            <p className={`text-xs font-medium ${
-              isPositive ? 'text-green-600' : 
-              isNegative ? 'text-red-600' : 
-              'text-gray-600'
-            }`}>
-              {trend !== 'active' && trend !== 'stable' && trend}
-            </p>
-          </div>
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-gray-900">
-            {value}{suffix}
-          </p>
-          <p className="text-xs text-gray-600 mt-1">{title}</p>
-          <p className="text-xs text-gray-500">{trendLabel}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="rounded-2xl border border-slate-200 bg-[#fcfaf8] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-bold tracking-[-0.04em] text-slate-900">{value}</p>
+    </div>
   )
 }

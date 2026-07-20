@@ -18,11 +18,12 @@ Vercel 대시보드에서 다음 환경변수를 설정해야 합니다:
 
 ```bash
 # NextAuth 필수 설정
-NEXTAUTH_URL=https://record-fogzebb0j-bins-projects-304b9405.vercel.app
-NEXTAUTH_SECRET=kO8K3nX9vP2qR5tY7wA1bC4dF6gH8jL0mN2oQ4rS6uV8xZ0
+NEXTAUTH_URL=https://www.recordyours.com
+NEXTAUTH_SECRET=<32자_이상_랜덤_시크릿>
 
-# 데이터베이스 (이미 설정되어 있을 것)
-DATABASE_URL=[현재 값 유지]
+# 데이터베이스
+DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
+DATABASE_URL_UNPOOLED=postgresql://<user>:<password>@<host>:5432/<database>
 ```
 
 ### 3. OAuth 설정 (선택사항)
@@ -43,13 +44,13 @@ KAKAO_CLIENT_SECRET=your-kakao-secret
 1. **Vercel 대시보드에서 Environment Variables 페이지 열기**
 2. **각 변수 추가:**
    - Key: `NEXTAUTH_URL`
-   - Value: `https://record-fogzebb0j-bins-projects-304b9405.vercel.app`
+   - Value: `https://www.recordyours.com`
    - Environment: Production, Preview, Development 모두 체크
    - Add 클릭
 
 3. **NEXTAUTH_SECRET 추가:**
    - Key: `NEXTAUTH_SECRET`
-   - Value: `kO8K3nX9vP2qR5tY7wA1bC4dF6gH8jL0mN2oQ4rS6uV8xZ0`
+   - Value: `<32자_이상_랜덤_시크릿>`
    - Sensitive 체크 (비밀번호이므로)
    - 모든 환경에 적용
 
@@ -64,7 +65,7 @@ KAKAO_CLIENT_SECRET=your-kakao-secret
 
 환경변수 설정 후 확인:
 1. 재배포가 완료될 때까지 기다림 (1-2분)
-2. https://record-fogzebb0j-bins-projects-304b9405.vercel.app/login 접속
+2. https://www.recordyours.com/login 접속
 3. 로그인 테스트
 
 ## 🔍 디버깅
@@ -77,5 +78,5 @@ KAKAO_CLIENT_SECRET=your-kakao-secret
 ## 📌 중요 참고사항
 
 - NEXTAUTH_URL은 배포된 URL과 정확히 일치해야 함
-- NEXTAUTH_SECRET은 로컬과 동일한 값 사용
+- NEXTAUTH_SECRET은 공개 저장소나 문서에 기록하지 않음
 - OAuth는 선택사항 (없어도 일반 로그인 가능)

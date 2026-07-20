@@ -1,277 +1,454 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
+import { NextRequest, NextResponse } from 'next/server'
 
-const prisma = new PrismaClient()
+import { PLANS } from '@/lib/plan-limits'
+import { prisma } from '@/lib/prisma'
 
-// 레몬스퀴즈 서명 검증
-function verifySignature(payload: string, signature: string, secret: string): boolean {
-  const hmac = crypto.createHmac('sha256', secret)
-  const digest = hmac.update(payload).digest('hex')
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))
-}
+type LemonEventName =
+  | 'order_created'
+  | 'subscription_created'
+  | 'subscription_updated'
+  | 'subscription_cancelled'
+  | 'subscription_expired'
+  | 'subscription_payment_failed'
+  | 'subscription_payment_success'
+  | 'subscription_resumed'
+  | 'subscription_unpaused'
+  | 'subscription_paused'
+  | 'order_refunded'
 
-// 레몬스퀴즈 이벤트 타입
+type LemonPlan = 'free' | 'premium' | 'pro'
+type LemonPeriod = 'monthly' | 'yearly'
+
 type LemonSqueezyEvent = {
-  meta: {
-    event_name: string
+  meta?: {
+    event_name?: LemonEventName
     custom_data?: {
       user_id?: string
       user_email?: string
+      plan?: string
+      period?: string
     }
   }
-  data: {
-    id: string
-    type: string
-    attributes: {
-      status: string
-      user_email: string
-      user_name: string
-      product_name: string
-      variant_name: string
-      first_order_item: {
-        product_id: number
-        variant_id: number
+  data?: {
+    id?: string
+    attributes?: {
+      status?: string
+      user_email?: string
+      user_name?: string
+      product_name?: string
+      variant_name?: string
+      first_order_item?: {
+        product_id?: number
+        variant_id?: number
       }
       renews_at?: string
       ends_at?: string
-      customer_id: number
-      order_id: number
-      total: number
-      subtotal: number
-      tax: number
+      customer_id?: number
+      order_id?: number
+      total?: number
+      subtotal?: number
+      tax?: number
     }
+  }
+}
+
+function verifySignature(payload: string, signature: string, secret: string): boolean {
+  const hmac = crypto.createHmac('sha256', secret)
+  const digest = hmac.update(payload).digest('hex')
+  const signatureBuffer = Buffer.from(signature)
+  const digestBuffer = Buffer.from(digest)
+
+  if (signatureBuffer.length !== digestBuffer.length) {
+    return false
+  }
+
+  return crypto.timingSafeEqual(signatureBuffer, digestBuffer)
+}
+
+function parseVariantId(value: string | undefined) {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizePlan(value: unknown): LemonPlan | null {
+  if (value === 'premium') return 'premium'
+  if (value === 'pro' || value === 'business') return 'pro'
+  if (value === 'free') return 'free'
+
+  if (typeof value !== 'string') return null
+
+  const normalized = value.toLowerCase()
+  if (normalized.includes('premium') || normalized.includes('프리미엄')) return 'premium'
+  if (
+    normalized.includes('pro') ||
+    normalized.includes('business') ||
+    normalized.includes('비즈니스')
+  ) {
+    return 'pro'
+  }
+  if (normalized.includes('free') || normalized.includes('프리')) return 'free'
+  return null
+}
+
+function normalizePeriod(value: unknown): LemonPeriod | null {
+  if (value === 'monthly' || value === 'month') return 'monthly'
+  if (value === 'yearly' || value === 'annual' || value === 'year') return 'yearly'
+
+  if (typeof value !== 'string') return null
+
+  const normalized = value.toLowerCase()
+  if (normalized.includes('year') || normalized.includes('annual') || normalized.includes('연간')) {
+    return 'yearly'
+  }
+  if (normalized.includes('month') || normalized.includes('월간')) {
+    return 'monthly'
+  }
+  return null
+}
+
+function inferPlanAndPeriod(event: LemonSqueezyEvent): { plan: LemonPlan; period: LemonPeriod } {
+  const variantId = event.data?.attributes?.first_order_item?.variant_id ?? null
+  const variantName = event.data?.attributes?.variant_name || ''
+  const productName = event.data?.attributes?.product_name || ''
+  const customData = event.meta?.custom_data
+
+  const variantMap = {
+    premiumMonthly: parseVariantId(process.env.LEMONSQUEEZY_PREMIUM_MONTHLY_VARIANT_ID),
+    premiumYearly: parseVariantId(process.env.LEMONSQUEEZY_PREMIUM_YEARLY_VARIANT_ID),
+    proMonthly: parseVariantId(process.env.LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID),
+    proYearly: parseVariantId(process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID),
+  }
+
+  if (variantId && variantId === variantMap.premiumMonthly) {
+    return { plan: 'premium', period: 'monthly' }
+  }
+  if (variantId && variantId === variantMap.premiumYearly) {
+    return { plan: 'premium', period: 'yearly' }
+  }
+  if (variantId && variantId === variantMap.proMonthly) {
+    return { plan: 'pro', period: 'monthly' }
+  }
+  if (variantId && variantId === variantMap.proYearly) {
+    return { plan: 'pro', period: 'yearly' }
+  }
+
+  const planFromMetadata = normalizePlan(customData?.plan)
+  const periodFromMetadata = normalizePeriod(customData?.period)
+
+  const inferredPlan =
+    planFromMetadata ||
+    normalizePlan(variantName) ||
+    normalizePlan(productName) ||
+    'free'
+
+  const inferredPeriod =
+    periodFromMetadata ||
+    normalizePeriod(variantName) ||
+    normalizePeriod(productName) ||
+    'monthly'
+
+  return {
+    plan: inferredPlan,
+    period: inferredPeriod,
+  }
+}
+
+function nextBillingCycle(period: LemonPeriod, renewsAt?: string, endsAt?: string) {
+  const candidate = renewsAt || endsAt
+  if (candidate) {
+    const date = new Date(candidate)
+    if (!Number.isNaN(date.getTime())) {
+      return date
+    }
+  }
+
+  const fallback = new Date()
+  if (period === 'yearly') {
+    fallback.setFullYear(fallback.getFullYear() + 1)
+  } else {
+    fallback.setMonth(fallback.getMonth() + 1)
+  }
+  return fallback
+}
+
+async function findTargetUser(event: LemonSqueezyEvent) {
+  const userId = event.meta?.custom_data?.user_id
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    })
+    if (user) return user
+  }
+
+  const userEmail = event.data?.attributes?.user_email || event.meta?.custom_data?.user_email
+  if (!userEmail) return null
+
+  return prisma.user.findUnique({
+    where: { email: userEmail },
+    select: { id: true, email: true },
+  })
+}
+
+async function persistPaymentEvent(input: {
+  userId: string
+  eventId: string
+  orderId: string
+  amount: number
+  status: string
+  plan: LemonPlan
+  period: LemonPeriod
+  billingCycle: Date
+}) {
+  if (input.plan === 'free') {
+    return
+  }
+
+  await prisma.payment.upsert({
+    where: { paymentId: `ls_${input.eventId}` },
+    update: {
+      orderId: input.orderId,
+      amount: input.amount,
+      method: 'lemonsqueezy',
+      status: input.status,
+      plan: input.plan,
+      period: input.period,
+      billingCycle: input.billingCycle,
+    },
+    create: {
+      userId: input.userId,
+      paymentId: `ls_${input.eventId}`,
+      orderId: input.orderId,
+      amount: input.amount,
+      method: 'lemonsqueezy',
+      status: input.status,
+      plan: input.plan,
+      period: input.period,
+      billingCycle: input.billingCycle,
+    },
+  })
+}
+
+async function logPaymentActivity(input: {
+  userId: string
+  userEmail: string
+  eventName: string
+  plan: LemonPlan
+  period: LemonPeriod
+  productName?: string
+  variantName?: string
+  amount: number
+}) {
+  try {
+    await prisma.activityLog.create({
+      data: {
+        userId: input.userId,
+        userEmail: input.userEmail,
+        action: input.eventName,
+        category: 'payment',
+        details: {
+          event: input.eventName,
+          plan: input.plan,
+          period: input.period,
+          product: input.productName,
+          variant: input.variantName,
+          amount: input.amount,
+        },
+      },
+    })
+  } catch (error) {
+    console.warn('Failed to write payment activity log', error)
+  }
+}
+
+async function notifyPaymentFailure(userId: string, plan: LemonPlan) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'in_app',
+        category: 'payment_failed',
+        title: '결제 실패 알림',
+        content: `${plan} 플랜 결제가 실패했습니다. 결제 수단을 확인해주세요.`,
+      },
+    })
+  } catch (error) {
+    console.warn('Failed to create payment failure notification', error)
+  }
+}
+
+async function notifyPaymentSuccess(userId: string, plan: LemonPlan, renewsAt?: string) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'in_app',
+        category: 'payment_success',
+        title: '결제 완료',
+        content: `${plan} 플랜이 갱신되었습니다.${renewsAt ? ` 다음 결제일은 ${new Date(renewsAt).toLocaleDateString('ko-KR')}입니다.` : ''}`,
+      },
+    })
+  } catch (error) {
+    console.warn('Failed to create payment success notification', error)
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. 요청 본문 읽기
     const rawBody = await request.text()
     const signature = request.headers.get('x-signature') || ''
-    
-    // 2. 서명 검증 (프로덕션에서는 필수)
     const signingSecret = process.env.LEMONSQUEEZY_SIGNING_SECRET
-    if (signingSecret && signature) {
-      const isValid = verifySignature(rawBody, signature, signingSecret)
-      if (!isValid) {
-        console.error('❌ Invalid signature')
+
+    if (signingSecret) {
+      if (!signature || !verifySignature(rawBody, signature, signingSecret)) {
+        console.error('❌ Invalid LemonSqueezy signature')
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
       }
     }
 
-    // 3. JSON 파싱
-    const event: LemonSqueezyEvent = JSON.parse(rawBody)
-    const eventName = event.meta.event_name
-    const { attributes } = event.data
+    const event = JSON.parse(rawBody) as LemonSqueezyEvent
+    const eventName = event.meta?.event_name
+    const eventId = event.data?.id
+    const attributes = event.data?.attributes
 
-    console.log('🍋 레몬스퀴즈 웹훅 수신:', eventName)
-    console.log('📧 사용자 이메일:', attributes.user_email)
-    console.log('📦 제품:', attributes.product_name)
+    if (!eventName || !eventId || !attributes) {
+      return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 })
+    }
 
-    // 4. 사용자 찾기
-    const user = await prisma.user.findUnique({
-      where: { email: attributes.user_email }
-    })
-
+    const user = await findTargetUser(event)
     if (!user) {
-      console.error('❌ 사용자를 찾을 수 없음:', attributes.user_email)
+      console.error('❌ Lemon webhook user not found', {
+        eventName,
+        userEmail: attributes.user_email,
+        customUserId: event.meta?.custom_data?.user_id,
+      })
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // 5. 플랜 결정 (제품명 기반)
-    const productName = attributes.product_name.toLowerCase()
-    let plan: string = 'free'
-    
-    if (productName.includes('premium') || productName.includes('프리미엄')) {
-      plan = 'premium'
-    } else if (productName.includes('pro') || productName.includes('business') || productName.includes('비즈니스')) {
-      plan = 'pro'
-    }
+    const { plan, period } = inferPlanAndPeriod(event)
+    const amount = Number(attributes.total || 0)
+    const orderId = String(attributes.order_id || `ls_order_${eventId}`)
+    const billingCycle = nextBillingCycle(period, attributes.renews_at, attributes.ends_at)
 
-    // 6. 이벤트별 처리
     switch (eventName) {
       case 'order_created':
       case 'subscription_created':
-        // 구독 시작 - 플랜 업그레이드
+      case 'subscription_updated':
+      case 'subscription_resumed':
+      case 'subscription_unpaused':
+      case 'subscription_payment_success':
         await prisma.user.update({
           where: { id: user.id },
           data: {
             plan,
-            reviewLimit: plan === 'premium' ? 100 : -1,
-            planExpiry: attributes.renews_at ? new Date(attributes.renews_at) : null
-          }
+            reviewLimit: PLANS[plan].reviewLimit,
+            planExpiry: billingCycle,
+          },
         })
 
-        // 결제 기록 저장
-        await prisma.payment.create({
-          data: {
-            userId: user.id,
-            paymentId: `ls_${event.data.id}`,
-            orderId: String(attributes.order_id),
-            amount: attributes.total,
-            method: 'lemonsqueezy',
-            status: 'DONE',
-            plan,
-            period: 'monthly',
-            billingCycle: attributes.renews_at ? new Date(attributes.renews_at) : new Date()
-          }
+        await persistPaymentEvent({
+          userId: user.id,
+          eventId,
+          orderId,
+          amount,
+          status: attributes.status || 'paid',
+          plan,
+          period,
+          billingCycle,
         })
 
-        console.log(`✅ ${user.email} → ${plan} 플랜 업그레이드 완료`)
+        if (eventName === 'subscription_payment_success') {
+          await notifyPaymentSuccess(user.id, plan, attributes.renews_at)
+        }
         break
 
-      case 'subscription_updated':
-        // 구독 업데이트 (플랜 변경 등)
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            plan,
-            reviewLimit: plan === 'premium' ? 100 : -1,
-            planExpiry: attributes.renews_at ? new Date(attributes.renews_at) : null
-          }
-        })
-        console.log(`✅ ${user.email} 플랜 업데이트: ${plan}`)
+      case 'subscription_payment_failed':
+        await notifyPaymentFailure(user.id, plan)
         break
 
       case 'order_refunded':
-        // 환불 처리 - 무료 플랜으로 다운그레이드
         await prisma.user.update({
           where: { id: user.id },
           data: {
             plan: 'free',
-            reviewLimit: 50,
-            planExpiry: null
-          }
-        })
-        
-        // 결제 상태 업데이트
-        await prisma.payment.updateMany({
-          where: { 
-            userId: user.id,
-            orderId: String(attributes.order_id)
+            reviewLimit: PLANS.free.reviewLimit,
+            planExpiry: null,
           },
-          data: { status: 'CANCELED' }
         })
-        
-        console.log(`✅ ${user.email} 환불 처리 완료 → 무료 플랜`)
+
+        await prisma.payment.updateMany({
+          where: {
+            userId: user.id,
+            OR: [
+              { orderId },
+              { paymentId: `ls_${eventId}` },
+            ],
+          },
+          data: { status: 'refunded' },
+        })
         break
 
       case 'subscription_cancelled':
       case 'subscription_expired':
-        // 구독 취소/만료 - 무료 플랜으로 다운그레이드
         await prisma.user.update({
           where: { id: user.id },
           data: {
             plan: 'free',
-            reviewLimit: 50,
-            planExpiry: null
-          }
+            reviewLimit: PLANS.free.reviewLimit,
+            planExpiry: null,
+          },
         })
-        console.log(`✅ ${user.email} → 무료 플랜으로 다운그레이드`)
-        break
 
-      case 'subscription_payment_failed':
-        // 결제 실패 - 사용자에게 알림 (플랜 유지)
-        await prisma.notification.create({
-          data: {
-            userId: user.id,
-            type: 'in_app',
-            category: 'payment_failed',
-            title: '결제 실패 알림',
-            content: `${plan} 플랜 결제가 실패했습니다. 카드 정보를 확인해주세요.`
-          }
+        await prisma.payment.updateMany({
+          where: { userId: user.id, orderId },
+          data: { status: eventName },
         })
-        console.log(`⚠️ ${user.email} 결제 실패 알림 전송`)
-        break
-
-      case 'subscription_payment_success':
-        // 결제 성공 - 다음 결제일 업데이트
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            planExpiry: attributes.renews_at ? new Date(attributes.renews_at) : null
-          }
-        })
-        
-        await prisma.notification.create({
-          data: {
-            userId: user.id,
-            type: 'in_app',
-            category: 'payment_success',
-            title: '결제 완료',
-            content: `${plan} 플랜이 갱신되었습니다. 다음 결제일은 ${attributes.renews_at ? new Date(attributes.renews_at).toLocaleDateString('ko-KR') : '미정'}입니다.`
-          }
-        })
-        console.log(`✅ ${user.email} 결제 성공 → 갱신 완료`)
-        break
-
-      case 'subscription_resumed':
-      case 'subscription_unpaused':
-        // 구독 재개
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            plan,
-            reviewLimit: plan === 'premium' ? 100 : -1,
-            planExpiry: attributes.renews_at ? new Date(attributes.renews_at) : null
-          }
-        })
-        console.log(`✅ ${user.email} 구독 재개: ${plan}`)
         break
 
       case 'subscription_paused':
-        // 구독 일시정지 - 플랜은 유지하되 만료일만 업데이트
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            planExpiry: attributes.ends_at ? new Date(attributes.ends_at) : null
-          }
+            planExpiry: attributes.ends_at ? new Date(attributes.ends_at) : null,
+          },
         })
-        console.log(`✅ ${user.email} 구독 일시정지`)
         break
 
       default:
-        console.log(`ℹ️  처리하지 않는 이벤트: ${eventName}`)
+        console.log(`ℹ️ Unhandled LemonSqueezy event: ${eventName}`)
     }
 
-    // 7. 활동 로그 기록
-    await prisma.activityLog.create({
-      data: {
-        userId: user.id,
-        userEmail: user.email,
-        action: eventName,
-        category: 'payment',
-        details: {
-          event: eventName,
-          plan,
-          product: attributes.product_name,
-          amount: attributes.total
-        }
-      }
+    await logPaymentActivity({
+      userId: user.id,
+      userEmail: user.email,
+      eventName,
+      plan,
+      period,
+      productName: attributes.product_name,
+      variantName: attributes.variant_name,
+      amount,
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `이벤트 처리 완료: ${eventName}` 
+    return NextResponse.json({
+      success: true,
+      message: `Processed ${eventName}`,
     })
-
   } catch (error) {
-    console.error('❌ 웹훅 처리 오류:', error)
+    console.error('❌ Lemon webhook processing error:', error)
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
-// GET 요청 (웹훅 테스트용)
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
     message: 'LemonSqueezy webhook endpoint is ready',
-    url: '/api/webhooks/lemonsqueezy'
+    url: '/api/webhooks/lemonsqueezy',
   })
 }
+

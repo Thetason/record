@@ -43,7 +43,10 @@ export async function POST(req: NextRequest) {
     const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`
     
     try {
-      await sendEmail(user.email, 'resetPassword', user.name || user.username, resetUrl)
+      await sendEmail(user.email, 'resetPassword', {
+        name: user.name || user.username,
+        resetUrl,
+      })
       console.log('비밀번호 재설정 이메일 발송:', user.email)
     } catch (emailError) {
       console.error('이메일 발송 실패:', emailError)

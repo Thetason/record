@@ -1,4 +1,9 @@
 # 📊 Re:cord 프로젝트 현황 브리핑
+
+> 상태: 과거 스냅샷 문서
+> 이 문서는 이전 제품/런칭 가정에 기반한 브리핑입니다. 현재 판단 기준으로 사용하지 마세요.
+> 현재 기준은 `START_HERE.md`, `PROJECT_STATUS.md`, `DEVELOPMENT_ROADMAP.md`, `DEPLOY_STATUS.md`, `CURRENT_TRUTH_2026-03-27.md` 입니다.
+
 > 작성일: 2025년 1월 4일
 > 목표 런칭: 2025년 1월 5일 오후 3시
 

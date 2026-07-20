@@ -1,38 +1,58 @@
-# 🚀 Re:cord 배포 상태
+# Re:cord Deploy Status
 
-## 최종 업데이트: 2025-08-09
+기준 날짜: 2026-03-27  
+성격: 현재 기준 배포/운영 readiness 요약
 
-### ✅ 완료된 작업
-- 모든 빌드 오류 해결
-- TypeScript 경로 설정 수정
-- UI 컴포넌트 누락 문제 해결
-- NextAuth 환경 변수 설정
-- 로컬 빌드 성공 확인
+## 1. 현재 결론
 
-### 📊 현재 상태
-- **GitHub**: 모든 코드 푸시 완료 ✅
-- **로컬 빌드**: 성공 ✅
-- **Vercel 배포**: 환경 변수 설정 대기 중 ⏳
+로컬 검증은 상당 부분 통과했지만, 프로덕션 런칭 readiness는 아직 `운영 환경 정리 단계`다.
 
-### 🔧 Vercel 환경 변수 (필수 설정)
-```
-DATABASE_URL=file:./prisma/dev.db
-NEXTAUTH_SECRET=kO8K3nX9vP2qR5tY7wA1bC4dF6gH8jL0mN2oQ4rS6uV8xZ0
-NEXTAUTH_URL=https://record-rho.vercel.app
-```
+## 2. 최근 확인된 상태
 
-### 📝 배포 체크리스트
-- [x] 코드 수정 완료
-- [x] 로컬 테스트 통과
-- [x] GitHub 푸시 완료
-- [ ] Vercel 환경 변수 설정
-- [ ] Vercel 재배포
-- [ ] 프로덕션 테스트
+- `npm run verify` 통과
+- `npm run typecheck` 통과
+- `npm run lint` 통과
+- `npm run build` 통과
+- `npm run smoke:local` 통과
+- `npm run db:push:smoke` 통과
+- `npm run preserve:syb2020:smoke` 통과
+- `npm run secrets:check` 통과
+- `NODE_ENV=production npm run preflight:prod` 실패
 
-### 🎯 다음 단계
-1. Vercel 대시보드에서 환경 변수 설정
-2. 재배포 실행
-3. 회원가입/로그인 기능 테스트
+즉, 코드가 무너진 상태는 아니고 `production env와 rollout 절차`가 아직 닫히지 않은 상태다.
 
----
-*이 문서는 배포 진행 상황을 추적하기 위해 생성되었습니다.*
+추가 메모:
+
+- `syb2020` 라이브 프로필은 smoke DB로 복원 가능한 경로가 확인되었다.
+- 기존 `prisma/dev.db`에는 legacy review columns 가 남아 있어 `db push` 시 data-loss 경고가 발생한다.
+- 반면 새 smoke DB에는 현재 schema 가 정상 적용된다.
+
+## 3. 현재 blocker
+
+- production용 env 값 정리
+- `NEXTAUTH_URL` / `NEXT_PUBLIC_URL` / `NEXTAUTH_SECRET` 확정
+- 운영 DB baseline 적용 여부 확인
+- 기존 dev/prod DB drift 정리 방식 확정
+- remote smoke 계정과 토큰 준비
+- Lemon checkout / webhook 최종 검증
+- OCR를 런칭에 포함할지 여부 결정
+
+## 4. 배포할 때 기준으로 볼 문서
+
+- `GLOBAL_LAUNCH_READINESS.md`
+- `PRODUCTION_OPERATOR_CHECKLIST.md`
+- `PRODUCTION_MIGRATION_BASELINE.md`
+
+## 5. 현재 판단
+
+- 빠른 베타 오픈은 가능하다.
+- 다만 “반복 가능한 운영 배포”라고 부르려면 blocker를 먼저 닫아야 한다.
+- OCR와 이메일은 런칭 시점에 선택적으로 꺼둘 수 있다.
+
+## 6. 다음 운영 작업
+
+1. production env를 실제 값으로 확정
+2. DB baseline 상태 점검
+3. preview / prod smoke 루틴 고정
+4. 결제 redirect와 webhook 실검증
+5. 첫 운영 배포 절차를 문서대로 다시 리허설

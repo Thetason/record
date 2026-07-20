@@ -19,6 +19,12 @@ export default function Navigation() {
           {/* 네비게이션 메뉴 */}
           <div className="hidden md:flex items-center gap-6">
             <Link
+              href="/stylist-demo"
+              className="text-gray-600 hover:text-[#FF6B35] transition-colors"
+            >
+              샘플 페이지
+            </Link>
+            <Link
               href="/guide"
               className="text-gray-600 hover:text-[#FF6B35] transition-colors"
             >
@@ -30,24 +36,6 @@ export default function Navigation() {
             >
               요금 안내
             </Link>
-            <Link
-              href="/#live-demo"
-              className="text-gray-600 hover:text-[#FF6B35] transition-colors"
-            >
-              라이브데모
-            </Link>
-            <Link
-              href="/#how-it-works"
-              className="text-gray-600 hover:text-[#FF6B35] transition-colors"
-            >
-              사용방법
-            </Link>
-            <Link
-              href="/#before-after"
-              className="text-gray-600 hover:text-[#FF6B35] transition-colors"
-            >
-              효과비교
-            </Link>
           </div>
           
           <div className="flex gap-3">
@@ -58,7 +46,7 @@ export default function Navigation() {
                 asChild
                 className="bg-[#FF6B35] hover:bg-[#E55A2B] text-white"
               >
-                <Link href="/dashboard">대시보드</Link>
+                <Link href="/dashboard/profile">내 링크</Link>
               </Button>
             ) : (
               <>
@@ -73,7 +61,7 @@ export default function Navigation() {
                   asChild
                   className="bg-[#FF6B35] hover:bg-[#E55A2B] text-white"
                 >
-                  <Link href="/login">무료 시작하기</Link>
+                  <Link href="/signup">내 링크 만들기</Link>
                 </Button>
               </>
             )}

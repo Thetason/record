@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30; // Vercel Pro: 30초 타임아웃 (Free는 10초 고정)
+import { existsSync } from 'fs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { LAUNCH_OCR_IMPORT_LIMIT } from '@/lib/launch-offer-config';
 import sharp from 'sharp';
 import { LRUCache } from 'lru-cache';
 import cleanKoreanReview, { stripCommonNoiseLines as stripNoiseLocal } from '@/lib/text-clean';
@@ -18,11 +20,261 @@ type Vertex = protos.google.cloud.vision.v1.IVertex;
 type Word = protos.google.cloud.vision.v1.IWord;
 type Symbol = protos.google.cloud.vision.v1.ISymbol;
 type EntityAnnotation = protos.google.cloud.vision.v1.IEntityAnnotation;
+type BoundingPoly = protos.google.cloud.vision.v1.IBoundingPoly;
 
 type CleanServiceResponse = {
   cleaned?: string;
   text?: string;
 };
+
+type OCRFieldConfidence = {
+  platform: number;
+  business: number;
+  author: number;
+  reviewDate: number;
+  content: number;
+};
+
+const PLATFORM_CODE_MAP: Record<string, string> = {
+  '네이버': 'naver',
+  'naver': 'naver',
+  '카카오': 'kakao',
+  '카카오맵': 'kakao',
+  'kakao': 'kakao',
+  '당근': 'danggeun',
+  'danggeun': 'danggeun',
+  'daangn': 'danggeun',
+  '크몽': 'kmong',
+  'kmong': 'kmong',
+  '프립': 'frip',
+  'frip': 'frip',
+  '솜씨당': 'somssidang',
+  'somssidang': 'somssidang',
+  '인스타': 'instagram',
+  '인스타그램': 'instagram',
+  'instagram': 'instagram',
+  '구글': 'google',
+  'google': 'google',
+  're:cord': 'record',
+  'record': 'record',
+  '기타': 'other',
+  'other': 'other',
+  'unknown': 'unknown'
+};
+
+const PLATFORM_DISPLAY_MAP: Record<string, string> = {
+  naver: '네이버',
+  kakao: '카카오맵',
+  danggeun: '당근',
+  kmong: '크몽',
+  frip: '프립',
+  somssidang: '솜씨당',
+  instagram: '인스타그램',
+  google: '구글',
+  record: 'Re:cord',
+  other: '기타',
+  unknown: '기타'
+};
+
+const BUSINESS_KEYWORDS = [
+  '학원',
+  '클래스',
+  '스튜디오',
+  '센터',
+  '샵',
+  '살롱',
+  '바버',
+  '필라테스',
+  'PT',
+  '피티',
+  '네일',
+  '헤어',
+  '보컬',
+  '레슨',
+  '공방',
+  '튜터',
+  '요가',
+  '코치',
+  '원데이',
+  '호스트',
+  '작가'
+];
+
+const BUSINESS_NOISE_PATTERN =
+  /^(홈|소식|예약|리뷰|사진|정보|지도|길찾기|전화|저장|공유|프로필|후기\s*모아보기|팔로우|팔로잉|방문자|뒤로|메뉴|채팅|문의|전체|도움돼요|사장님의?\s*답글)$/;
+
+function normalizePlatformCode(platform: string): string {
+  const normalized = platform.trim().toLowerCase();
+  return PLATFORM_CODE_MAP[platform.trim()] || PLATFORM_CODE_MAP[normalized] || normalized || 'unknown';
+}
+
+function toPlatformLabel(platform: string): string {
+  const code = normalizePlatformCode(platform);
+  return PLATFORM_DISPLAY_MAP[code] || platform || '기타';
+}
+
+function isPlaceholderAuthor(author: string): boolean {
+  const normalized = author.trim();
+  return (
+    normalized === '' ||
+    ['익명', '고객', '고객님', '작성자', 'unknown'].includes(normalized.toLowerCase()) ||
+    normalized.length < 2
+  );
+}
+
+function looksLikeIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+}
+
+function extractBusinessFallback(lines: string[], detectedPlatform: string): string {
+  const platformCode = normalizePlatformCode(detectedPlatform);
+  const topWindow = lines.slice(0, Math.min(lines.length, 16));
+
+  const candidates = topWindow
+    .map(line => line.trim())
+    .filter(Boolean)
+    .filter(line => /[가-힣A-Za-z]{2,}/.test(line))
+    .filter(line => line.length <= 34)
+    .filter(line => !BUSINESS_NOISE_PATTERN.test(line))
+    .filter(line => !/^\d+$/.test(line))
+    .map(line => {
+      let score = 0;
+
+      if (BUSINESS_KEYWORDS.some(keyword => line.includes(keyword))) score += 3;
+      if (/[가-힣]{2,}/.test(line)) score += 1;
+      if (platformCode === 'naver' && /플레이스|살롱|샵|헤어/.test(line)) score += 1;
+      if (platformCode === 'kakao' && /헤어|네일|필라테스|PT|학원|클래스/.test(line)) score += 1;
+      if (platformCode === 'danggeun' && /공방|레슨|수업|클래스/.test(line)) score += 1;
+      if (platformCode === 'frip' && /프립|호스트|원데이|클래스/.test(line)) score += 1;
+      if (platformCode === 'somssidang' && /솜씨당|작가|공방|클래스/.test(line)) score += 1;
+
+      return {
+        line: line.replace(/[†‡★☆✩✭✮✯⭐️]+/g, '').trim(),
+        score
+      };
+    })
+    .filter(candidate => candidate.score > 0)
+    .sort((left, right) => right.score - left.score || right.line.length - left.line.length);
+
+  return candidates[0]?.line || '';
+}
+
+function buildFieldConfidence(input: {
+  platform: string;
+  business: string;
+  author: string;
+  reviewDate: string;
+  reviewText: string;
+  rawText: string;
+  baseConfidence: number;
+  forcedPlatform: boolean;
+}): OCRFieldConfidence {
+  const platformCode = normalizePlatformCode(input.platform);
+  const contentLength = input.reviewText.trim().length;
+
+  const platformConfidence = input.forcedPlatform
+    ? 0.99
+    : platformCode !== 'unknown' && platformCode !== 'other'
+    ? 0.9
+    : 0.45;
+
+  const businessConfidence = input.business.trim()
+    ? BUSINESS_KEYWORDS.some(keyword => input.business.includes(keyword))
+      ? 0.9
+      : 0.72
+    : 0.28;
+
+  const authorConfidence = isPlaceholderAuthor(input.author)
+    ? 0.32
+    : /^[가-힣A-Za-z0-9*_.]{2,20}$/.test(input.author.trim())
+    ? 0.82
+    : 0.55;
+
+  const reviewDateConfidence = looksLikeIsoDate(input.reviewDate) ? 0.9 : 0.42;
+
+  const contentConfidence =
+    contentLength >= 80
+      ? 0.94
+      : contentLength >= 40
+      ? 0.84
+      : contentLength >= 20
+      ? 0.7
+      : 0.45;
+
+  const normalizedBase = Math.max(0.25, Math.min(input.baseConfidence || 0.9, 0.99));
+
+  return {
+    platform: Math.min(0.99, (platformConfidence * 0.7) + (normalizedBase * 0.3)),
+    business: Math.min(0.99, (businessConfidence * 0.8) + (normalizedBase * 0.2)),
+    author: Math.min(0.99, (authorConfidence * 0.8) + (normalizedBase * 0.2)),
+    reviewDate: Math.min(0.99, (reviewDateConfidence * 0.8) + (normalizedBase * 0.2)),
+    content: Math.min(0.99, (contentConfidence * 0.75) + (normalizedBase * 0.25))
+  };
+}
+
+function buildOverallConfidence(fieldConfidence: OCRFieldConfidence): number {
+  const weighted =
+    fieldConfidence.content * 0.45 +
+    fieldConfidence.reviewDate * 0.2 +
+    fieldConfidence.platform * 0.15 +
+    fieldConfidence.business * 0.1 +
+    fieldConfidence.author * 0.1;
+
+  return Math.round(Math.max(0.25, Math.min(0.99, weighted)) * 100) / 100;
+}
+
+function shouldSkipMarketplaceNoise(text: string, platform: string): boolean {
+  const platformCode = normalizePlatformCode(platform);
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return true;
+  }
+
+  if (platformCode === 'frip') {
+    if (
+      /^(프립|FRIP)$/i.test(trimmed) ||
+      /^(호스트|원데이)$/.test(trimmed) ||
+      /^(호스트|클래스)\s*(소개|정보)$/.test(trimmed) ||
+      /^(준비물|소요시간|참여인원|위치|일정|문의|문의하기|메시지|공유|찜|신청하기|예약하기|바로예약)$/.test(trimmed) ||
+      /^후기\s*\d+/.test(trimmed) ||
+      /^평점\s*[\d.]+$/.test(trimmed) ||
+      /^좋아요\s*\d*$/.test(trimmed) ||
+      /^저장\s*\d*$/.test(trimmed) ||
+      /^호스트\s*[가-힣A-Za-z0-9_.-]{1,20}$/.test(trimmed)
+    ) {
+      return true;
+    }
+  }
+
+  if (platformCode === 'somssidang') {
+    if (
+      /^(솜씨당|SOMSSIDANG)$/i.test(trimmed) ||
+      /^(작가|작가님|공방)$/.test(trimmed) ||
+      /^(작가|작가님|공방|작품|클래스)\s*(소개|정보|페이지)$/.test(trimmed) ||
+      /^(주문제작|문의|문의하기|메시지|공유|찜|작가홈|판매중|준비물|소요시간|배송비|옵션)$/.test(trimmed) ||
+      /^후기\s*\d+/.test(trimmed) ||
+      /^평점\s*[\d.]+$/.test(trimmed) ||
+      /^작가\s*[가-힣A-Za-z0-9_.-]{1,20}$/.test(trimmed)
+    ) {
+      return true;
+    }
+  }
+
+  if (platformCode === 'kmong') {
+    if (
+      /^(크몽|KMONG)$/i.test(trimmed) ||
+      /^(작업일|주문|주문금액|옵션|수량|수정|메시지|문의|문의하기|공유|신고)$/.test(trimmed) ||
+      /^\d{2}\.\d{1,2}\.\d{1,2}$/.test(trimmed) ||
+      /^\d{4}\.\d{1,2}\.\d{1,2}$/.test(trimmed) ||
+      /^[가-힣A-Za-z0-9]{1,4}\*{2,}$/.test(trimmed)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 // Google Vision API 클라이언트 초기화
 let visionClient: ImageAnnotatorClient | null = null;
@@ -74,6 +326,10 @@ async function initializeVisionClient() {
     // 로컬 JSON 파일 경로가 있는 경우 (개발 환경)
     else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       console.log('로컬 키 파일 사용:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      if (!existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+        console.warn('⚠️ Google Vision 키 파일을 찾을 수 없습니다. Mock OCR로 폴백합니다.');
+        return null;
+      }
       visionClient = new ImageAnnotatorClient({
         keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
       });
@@ -92,10 +348,13 @@ async function initializeVisionClient() {
 }
 
 export async function POST(req: NextRequest) {
-  let lastUploadedBuffer: Buffer | null = null;
+  let lastUploadedBuffer: Buffer<ArrayBufferLike> | null = null;
+  let forcedPlatform = '';
   try {
     // Feature flag: allow disabling OCR and always return mock
     const ocrEnabled = process.env.ENABLE_OCR !== 'false';
+    const allowMockOcr =
+      process.env.NODE_ENV !== 'production' && process.env.ALLOW_MOCK_OCR !== 'false';
     console.log('📸 OCR API 호출됨');
 
     if (!ocrEnabled) {
@@ -131,7 +390,15 @@ export async function POST(req: NextRequest) {
     // 사용자 정보 조회
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, plan: true, reviewLimit: true }
+      select: {
+        id: true,
+        plan: true,
+        reviewLimit: true,
+        launchOfferClaimedAt: true,
+        _count: {
+          select: { reviews: true }
+        }
+      }
     });
 
     if (!user) {
@@ -141,6 +408,16 @@ export async function POST(req: NextRequest) {
           error: '사용자를 찾을 수 없습니다.'
         },
         { status: 404 }
+      );
+    }
+
+    if (user.launchOfferClaimedAt && user._count.reviews >= LAUNCH_OCR_IMPORT_LIMIT) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `오픈 기념 직접 가져오기는 최대 ${LAUNCH_OCR_IMPORT_LIMIT}개까지 지원합니다. 이후에는 직접 리뷰 받기 또는 리뷰 옮겨드림으로 이어가주세요.`
+        },
+        { status: 403 }
       );
     }
 
@@ -162,7 +439,7 @@ export async function POST(req: NextRequest) {
     const image = formData.get('image') as File;
     const version = (formData.get('version') as string) || 'v2'; // 기본값: v2 (영역기반 - 가장 정확함)
     const retryMode = formData.get('retry') === 'true'; // 2차 재시도 모드
-    const forcedPlatform = (formData.get('platform') as string) || ''; // 사용자가 선택한 플랫폼 (강제)
+    forcedPlatform = (formData.get('platform') as string) || ''; // 사용자가 선택한 플랫폼 (강제)
 
     if (!image) {
       return NextResponse.json(
@@ -188,16 +465,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Build cache key from image hash + version + retry mode
-    const bufRaw = Buffer.from(await image.arrayBuffer());
+    const bufRaw: Buffer<ArrayBufferLike> = Buffer.from(await image.arrayBuffer());
     lastUploadedBuffer = bufRaw;
-    const hash = crypto.createHash('sha256').update(bufRaw).update(version).update(retryMode ? 'retry' : 'normal').digest('hex');
+    const hash = crypto
+      .createHash('sha256')
+      .update(bufRaw)
+      .update(version)
+      .update(retryMode ? 'retry' : 'normal')
+      .update(normalizePlatformCode(forcedPlatform || ''))
+      .digest('hex');
     const cached = cache.get(hash);
     if (cached) {
       return NextResponse.json({ success: true, data: cached, cache: true });
     }
 
     // Preprocess image to improve OCR
-    let processed = bufRaw;
+    let processed: Buffer<ArrayBufferLike> = bufRaw;
     try {
       const img = sharp(bufRaw).resize({ width: 1600, withoutEnlargement: true }).grayscale().normalize();
       // optional threshold to reduce UI noise; avoid over-binarization for photos
@@ -209,14 +492,33 @@ export async function POST(req: NextRequest) {
     
     // Vision API가 초기화되지 않은 경우 Mock 데이터 반환
     if (!client) {
+      if (!allowMockOcr) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'OCR service is not configured',
+            message: 'OCR 서비스가 아직 설정되지 않았습니다. 관리자에게 API 키 설정을 요청해주세요.'
+          },
+          { status: 503 }
+        );
+      }
+
       console.log('Google Vision API가 설정되지 않음. Mock 데이터 반환');
+      const mockPlatform = toPlatformLabel(forcedPlatform || '네이버');
       
       // 개발용 Mock 데이터
       const mockData = {
-        text: '정말 만족스러운 서비스였습니다!\n선생님이 너무 친절하시고 전문적이세요.\n다음에도 꼭 다시 찾고 싶습니다.\n\n2024년 12월 15일\n네이버 리뷰',
-        platform: 'naver',
+        text: `정말 만족스러운 서비스였습니다!\n선생님이 너무 친절하시고 전문적이세요.\n다음에도 꼭 다시 찾고 싶습니다.\n\n2024년 12월 15일\n${mockPlatform} 리뷰`,
+        platform: mockPlatform,
         date: '2024-12-15',
-        confidence: 0.95
+        confidence: 0.95,
+        fieldConfidence: {
+          platform: forcedPlatform ? 0.99 : 0.95,
+          business: 0.72,
+          author: 0.45,
+          reviewDate: 0.94,
+          content: 0.95
+        }
       };
       
       return NextResponse.json({
@@ -283,10 +585,22 @@ export async function POST(req: NextRequest) {
               text: cleanedT,
               rawText: tText,
               normalizedText: cleanedT,
+              platform: toPlatformLabel(tExtract.platform),
+              fieldConfidence: buildFieldConfidence({
+                platform: tExtract.platform,
+                business: tExtract.business || '',
+                author: tExtract.author || '',
+                reviewDate: tExtract.date || '',
+                reviewText: tExtract.reviewText || cleanedT,
+                rawText: tText,
+                baseConfidence: 0.7,
+                forcedPlatform: Boolean(forcedPlatform)
+              }),
               confidence: 0.7,
               engine: 'tesseract',
               postprocess: 'local'
-            }
+            };
+            payload.confidence = buildOverallConfidence(payload.fieldConfidence);
             cache.set(hash, payload);
             return NextResponse.json({ success: true, data: payload });
           }
@@ -365,12 +679,25 @@ export async function POST(req: NextRequest) {
         ? detectionsList[0]!.confidence ?? 0.9
         : 0.9;
 
+    const fieldConfidence = buildFieldConfidence({
+      platform: extractedData.platform,
+      business: extractedData.business || '',
+      author: extractedData.author || '',
+      reviewDate: extractedData.date || '',
+      reviewText: extractedData.reviewText || cleaned,
+      rawText: rawFullText,
+      baseConfidence: topDetectionConfidence,
+      forcedPlatform: Boolean(forcedPlatform)
+    });
+
     const payload = {
       ...extractedData,
+      platform: toPlatformLabel(extractedData.platform),
       text: cleaned,
       rawText: rawFullText,
       normalizedText: cleaned,
-      confidence: topDetectionConfidence,
+      fieldConfidence,
+      confidence: buildOverallConfidence(fieldConfidence),
       engine: 'google',
       postprocess: postSteps.join('+'),
       intermediateText: {
@@ -383,10 +710,51 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('OCR 처리 에러:', error);
-    if (enableTesseractFallback && error instanceof Error && error.message?.startsWith('TIMEOUT_VISION')) {
-      console.error('Vision API timeout 발생, Tesseract fallback 시도');
-    }
-    if (enableTesseractFallback && lastUploadedBuffer) {
+      const allowMockOcr =
+        process.env.NODE_ENV !== 'production' && process.env.ALLOW_MOCK_OCR !== 'false';
+      if (enableTesseractFallback && error instanceof Error && error.message?.startsWith('TIMEOUT_VISION')) {
+        console.error('Vision API timeout 발생, Tesseract fallback 시도');
+      }
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code?: string }).code === 'ENOENT'
+      ) {
+        console.warn('Vision 키 파일 누락으로 Mock OCR 응답을 반환합니다.');
+        if (!allowMockOcr) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'OCR service is not configured',
+              message: 'OCR 서비스가 아직 설정되지 않았습니다. 관리자에게 API 키 설정을 요청해주세요.'
+            },
+            { status: 503 }
+          );
+        }
+        return NextResponse.json({
+          success: true,
+          data: {
+            text: 'OCR 키 파일이 없어 샘플 데이터를 반환합니다. 실제 배포 환경에서는 Vision 또는 다른 OCR 엔진을 연결해주세요.',
+            platform: toPlatformLabel(forcedPlatform || '네이버'),
+            date: new Date().toISOString().split('T')[0],
+            author: '고객',
+            business: '',
+            reviewText: 'OCR 키 파일이 없어 샘플 데이터를 반환합니다. 실제 배포 환경에서는 Vision 또는 다른 OCR 엔진을 연결해주세요.',
+            fieldConfidence: {
+              platform: forcedPlatform ? 0.99 : 0.7,
+              business: 0.25,
+              author: 0.35,
+              reviewDate: 0.9,
+              content: 0.4
+            },
+            confidence: 0.42,
+            engine: 'mock',
+            postprocess: 'fallback'
+          }
+        });
+      }
+      if (enableTesseractFallback && lastUploadedBuffer) {
       try {
         const { default: Tesseract } = await import('tesseract.js');
         const tess = await Tesseract.recognize(lastUploadedBuffer, 'kor+eng');
@@ -427,9 +795,20 @@ export async function POST(req: NextRequest) {
           postSteps.push('local');
           const payload = {
             ...tExtract,
+            platform: toPlatformLabel(tExtract.platform),
             text: cleanedT,
             rawText: tText,
             normalizedText: cleanedT,
+            fieldConfidence: buildFieldConfidence({
+              platform: tExtract.platform,
+              business: tExtract.business || '',
+              author: tExtract.author || '',
+              reviewDate: tExtract.date || '',
+              reviewText: tExtract.reviewText || cleanedT,
+              rawText: tText,
+              baseConfidence: 0.7,
+              forcedPlatform: false
+            }),
             confidence: 0.7,
             engine: 'tesseract',
             postprocess: postSteps.join('+'),
@@ -437,7 +816,8 @@ export async function POST(req: NextRequest) {
               denoised: normalization.denoised,
               base: baseForCleaner
             }
-          }
+          };
+          payload.confidence = buildOverallConfidence(payload.fieldConfidence);
           return NextResponse.json({ success: true, data: payload });
         }
       } catch (e) {
@@ -461,38 +841,67 @@ function analyzeReviewText(text: string) {
     platform = 'naver';
   } else if (text.includes('카카오') || text.includes('kakao')) {
     platform = 'kakao';
+  } else if (
+    text.includes('크몽') ||
+    text.toLowerCase().includes('kmong') ||
+    (cleaned.includes('작업일') && cleaned.includes('주문'))
+  ) {
+    platform = 'kmong';
+  } else if (
+    text.includes('프립') ||
+    text.toLowerCase().includes('frip') ||
+    (cleaned.includes('호스트') && cleaned.includes('클래스'))
+  ) {
+    platform = 'frip';
+  } else if (
+    text.includes('솜씨당') ||
+    text.toLowerCase().includes('somssidang') ||
+    (cleaned.includes('작가님') && cleaned.includes('클래스'))
+  ) {
+    platform = 'somssidang';
   } else if (text.includes('인스타그램') || text.includes('Instagram')) {
     platform = 'instagram';
   } else if (text.includes('구글') || text.includes('Google')) {
     platform = 'google';
   } else if (text.includes('당근') || text.toLowerCase().includes('daangn')) {
-    platform = '당근';
+    platform = 'danggeun';
   }
 
   // 날짜 추출
   let date = new Date().toISOString().split('T')[0];
   const datePatterns = [
     /(\d{4})[년.-](\d{1,2})[월.-](\d{1,2})/,
+    /(\d{2})\.(\d{1,2})\.(\d{1,2})/,
     /(\d{1,2})[월.-](\d{1,2})[일]/,
     /(\d{4})\.(\d{1,2})\.(\d{1,2})/,
     /(\d{1,2})\.(\d{1,2})(?:\.(?:월|\w+))?/,
-    /(\d{1,2})\s*일\s*전/, // 3일 전
+    /(\d{1,2})\s*(년|개월|주|일|시간|분)\s*전/, // 3일 전, 2주 전
     /(어제|그제)/
   ];
   
   for (const pattern of datePatterns) {
     const dateMatch = cleaned.match(pattern);
     if (dateMatch) {
-      if (pattern.source.includes('일\\s*전')) {
-        const days = parseInt(dateMatch[1], 10) || 0;
+      if (pattern.source.includes('(년|개월|주|일|시간|분)')) {
+        const amount = parseInt(dateMatch[1], 10) || 0;
+        const unit = dateMatch[2];
         const d = new Date();
-        d.setDate(d.getDate() - days);
+        if (unit === '년') d.setFullYear(d.getFullYear() - amount);
+        else if (unit === '개월') d.setMonth(d.getMonth() - amount);
+        else if (unit === '주') d.setDate(d.getDate() - (amount * 7));
+        else if (unit === '일') d.setDate(d.getDate() - amount);
+        else if (unit === '시간') d.setHours(d.getHours() - amount);
+        else if (unit === '분') d.setMinutes(d.getMinutes() - amount);
         date = d.toISOString().split('T')[0];
       } else if (dateMatch[1] === '어제' || dateMatch[1] === '그제') {
         const delta = dateMatch[1] === '어제' ? 1 : 2;
         const d = new Date();
         d.setDate(d.getDate() - delta);
         date = d.toISOString().split('T')[0];
+      } else if (pattern.source === '(\\d{2})\\.(\\d{1,2})\\.(\\d{1,2})') {
+        const shortYear = parseInt(dateMatch[1], 10);
+        const fullYear = shortYear >= 70 ? 1900 + shortYear : 2000 + shortYear;
+        date = `${fullYear}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`;
       } else {
         const y = dateMatch[1];
         const year = y && y.length === 4 ? y : String(new Date().getFullYear());
@@ -535,7 +944,7 @@ function analyzeReviewText(text: string) {
     date = k.date || date;
     body = k.body || cleaned;
   } else {
-    body = parseGeneric(cleaned);
+    body = parseGeneric(cleaned, platform);
   }
 
   return {
@@ -563,7 +972,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   // 🎯 fullTextAnnotation의 word 단위 파싱 (띄어쓰기 개선)
   const pages = visionResult?.fullTextAnnotation?.pages || [];
-  const wordsFromPages: Array<{ text: string; boundingBox: any }> = [];
+  const wordsFromPages: Array<{ text: string; boundingBox?: BoundingPoly | null }> = [];
 
   for (const page of pages) {
     for (const block of page.blocks || []) {
@@ -623,7 +1032,12 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
           // 메타데이터 제외
           if (!/^(팔로우|팔로잉|방문자|NAVER|홈|소식|예약|사진|주변|정보)$/.test(candidateText)) {
             extractedAuthor = candidateText;
-            console.log(`👤 작성자 추출 성공: "${extractedAuthor}" (리뷰 위 ${reviewY - candidateY}px)`);
+            if (process.env.OCR_DEBUG === 'true' && process.env.NODE_ENV !== 'production') {
+              console.log('👤 작성자 추출 성공:', {
+                distanceFromReview: reviewY - candidateY,
+                authorLength: extractedAuthor.length
+              });
+            }
             break;
           }
         }
@@ -653,6 +1067,8 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       '카카오': 'kakao',
       '당근': 'danggeun',
       '크몽': 'kmong',
+      '프립': 'frip',
+      '솜씨당': 'somssidang',
       '인스타그램': 'instagram',
       '구글': 'google',
     };
@@ -691,6 +1107,24 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
         (topTexts.includes('후기') && topTexts.includes('도움돼요'))) {
       console.log('🏷️ 플랫폼 감지: 당근');
       return 'danggeun';
+    }
+
+    if (
+      topTexts.includes('프립') ||
+      topTexts.includes('FRIP') ||
+      (topTexts.includes('호스트') && (topTexts.includes('클래스') || topTexts.includes('원데이')))
+    ) {
+      console.log('🏷️ 플랫폼 감지: 프립');
+      return 'frip';
+    }
+
+    if (
+      topTexts.includes('솜씨당') ||
+      topTexts.includes('작가님') ||
+      (topTexts.includes('작가') && topTexts.includes('클래스'))
+    ) {
+      console.log('🏷️ 플랫폼 감지: 솜씨당');
+      return 'somssidang';
     }
 
     // 인스타그램 - "좋아요", "댓글", "instagram" 등
@@ -758,14 +1192,17 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   const detectDateBoundary = (): number => {
     if (detectedPlatform !== 'kakao') return 0;
 
-    // 날짜 패턴: "2025.03.24." 또는 "2022.07.07."
-    const datePattern = /^\d{4}\.\d{2}\.\d{2}\.$/;
+    const datePatterns = [
+      /^\d{4}\.\d{1,2}\.\d{1,2}\.?$/,
+      /^\d{2}\.\d{1,2}\.\d{1,2}\.?$/,
+      /^\d{4}-\d{1,2}-\d{1,2}$/,
+    ];
 
     for (const annotation of annotations.slice(1)) {
       const text = annotation.description ?? '';
       const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
 
-      if (datePattern.test(text)) {
+      if (datePatterns.some((pattern) => pattern.test(text))) {
         // 날짜 텍스트의 높이를 고려하여 날짜 아래부터 본문 시작
         const height = (annotation.boundingPoly?.vertices?.[2]?.y ?? y) - y;
         const dateBottomY = y + height;
@@ -783,8 +1220,8 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   const detectNicknameBoundary = (): number => {
     if (detectedPlatform !== 'kmong') return 0;
 
-    // 닉네임 패턴: "천*****", "슬*****" (한글 1자 + 별표 4개 이상)
-    const nicknamePattern = /^[가-힣][*]{4,}$/;
+    // 닉네임 패턴: "천*****", "sl***9", "a***" 등 마스킹 조합 허용
+    const nicknamePattern = /^(?:[가-힣A-Za-z0-9._-]{1,4})(?:[*•●·ㆍ]){2,}[A-Za-z0-9._-]{0,3}$/;
 
     for (const annotation of annotations.slice(1)) {
       const text = annotation.description ?? '';
@@ -803,6 +1240,62 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
   };
 
   const nicknameBottomY = detectNicknameBoundary();
+
+  const detectFripBoundary = (): number => {
+    if (detectedPlatform !== 'frip') return 0;
+
+    const boundaryPatterns = [
+      /참여\s*후기/,
+      /^후기\s*\d+/,
+      /^클래스\s*후기$/,
+      /^리뷰\s*\d+$/,
+    ];
+
+    for (const annotation of annotations.slice(1)) {
+      const text = (annotation.description ?? '').trim();
+      const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
+
+      if (boundaryPatterns.some((pattern) => pattern.test(text)) && y < maxY * 0.8) {
+        const height = (annotation.boundingPoly?.vertices?.[2]?.y ?? y) - y;
+        const boundaryY = y + height;
+        console.log(`🧭 [프립] 후기 섹션 감지: "${text}" at Y=${y}px, 본문 시작=${boundaryY}px`);
+        return boundaryY;
+      }
+    }
+
+    return 0;
+  };
+
+  const fripBoundaryY = detectFripBoundary();
+
+  const detectSomssidangBoundary = (): number => {
+    if (detectedPlatform !== 'somssidang') return 0;
+
+    const boundaryPatterns = [
+      /참여\s*후기/,
+      /^후기\s*\d+/,
+      /^리뷰\s*\d+$/,
+      /작가\s*소개/,
+      /클래스\s*소개/,
+      /작품\s*소개/,
+    ];
+
+    for (const annotation of annotations.slice(1)) {
+      const text = (annotation.description ?? '').trim();
+      const y = annotation.boundingPoly?.vertices?.[0]?.y ?? 0;
+
+      if (boundaryPatterns.some((pattern) => pattern.test(text)) && y < maxY * 0.75) {
+        const height = (annotation.boundingPoly?.vertices?.[2]?.y ?? y) - y;
+        const boundaryY = y + height;
+        console.log(`🧭 [솜씨당] 상단 정보 섹션 감지: "${text}" at Y=${y}px, 본문 시작=${boundaryY}px`);
+        return boundaryY;
+      }
+    }
+
+    return 0;
+  };
+
+  const somssidangBoundaryY = detectSomssidangBoundary();
 
   // 📅 당근 상대 날짜 영역 감지 (날짜 밑부터 리뷰 본문)
   const detectDanggeunDateBoundary = (): number => {
@@ -873,12 +1366,19 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   // 업체명 추출
   const businessTexts = regions.businessName.map(a => a.description ?? '').filter(Boolean);
-  const business = businessTexts
+  const businessFromRegion = businessTexts
     .filter(text => /[가-힣]{2,}/.test(text))
     .filter(text => !/^(뒤로|메뉴|공유|리뷰|사진|방문자|팔로우)$/.test(text))
     .sort((a, b) => b.length - a.length)[0] ?? '';
+  const business = businessFromRegion || extractBusinessFallback(fullLines, detectedPlatform);
 
-  console.log('🏪 업체명 후보:', businessTexts, '→ 선택:', business);
+  if (process.env.OCR_DEBUG === 'true' && process.env.NODE_ENV !== 'production') {
+    console.log('🏪 업체명 파싱:', {
+      candidateCount: businessTexts.length,
+      selectedLength: business.length,
+      platform: detectedPlatform
+    });
+  }
 
   // 작성자 추출 (fullTextAnnotation에서 추출한 값 우선 사용)
   let author = extractedAuthor;
@@ -897,7 +1397,12 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       .filter(text => !/^\d+$/.test(text))
       .find(text => text.length >= 2) ?? '';
 
-    console.log('👤 작성자 후보 (fallback):', allAuthorTexts, '→ 선택:', author);
+    if (process.env.OCR_DEBUG === 'true' && process.env.NODE_ENV !== 'production') {
+      console.log('👤 작성자 fallback 파싱:', {
+        candidateCount: allAuthorTexts.length,
+        selectedLength: author.length
+      });
+    }
   }
 
   // 날짜 추출
@@ -912,17 +1417,21 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     const year = y.length === 4 ? y : `20${y}`;
     date = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   } else {
-    const relativeMatch = allDateTexts.match(/(\d+)\s*(일|개월|시간|분)\s*전/);
+    const relativeMatch = allDateTexts.match(/(\d+)\s*(년|개월|주|일|시간|분)\s*전/);
     
     if (relativeMatch) {
       const [, num, unit] = relativeMatch;
       const now = new Date();
       const offset = parseInt(num, 10);
       
-      if (unit === '일') {
-        now.setDate(now.getDate() - offset);
+      if (unit === '년') {
+        now.setFullYear(now.getFullYear() - offset);
       } else if (unit === '개월') {
         now.setMonth(now.getMonth() - offset);
+      } else if (unit === '주') {
+        now.setDate(now.getDate() - (offset * 7));
+      } else if (unit === '일') {
+        now.setDate(now.getDate() - offset);
       } else if (unit === '시간') {
         now.setHours(now.getHours() - offset);
       } else if (unit === '분') {
@@ -933,7 +1442,12 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     }
   }
 
-  console.log('📅 날짜 추출:', { allDateTexts, date });
+  if (process.env.OCR_DEBUG === 'true' && process.env.NODE_ENV !== 'production') {
+    console.log('📅 날짜 추출:', {
+      hasDateSignals: Boolean(allDateTexts.trim()),
+      date
+    });
+  }
 
   // 본문 추출
   // 일반 모드: 최소 필터링 (긴 리뷰 텍스트 최대한 보존)
@@ -964,6 +1478,14 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
     // 당근: 상대 날짜 감지된 경우, 날짜 아래 텍스트만 처리
     if (danggeunDateBottomY > 0 && detectedPlatform === 'danggeun') {
       return y >= danggeunDateBottomY;
+    }
+
+    if (fripBoundaryY > 0 && detectedPlatform === 'frip') {
+      return y >= fripBoundaryY;
+    }
+
+    if (somssidangBoundaryY > 0 && detectedPlatform === 'somssidang') {
+      return y >= somssidangBoundaryY;
     }
 
     return true;
@@ -1022,6 +1544,12 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       contentStartY = followWord.boundingBox?.vertices?.[0]?.y ?? 0;
       console.log(`📍 "팔로우" 감지 - Y ${contentStartY} 이후부터 추출`);
     }
+    if (detectedPlatform === 'frip' && fripBoundaryY > 0) {
+      contentStartY = Math.max(contentStartY, fripBoundaryY);
+    }
+    if (detectedPlatform === 'somssidang' && somssidangBoundaryY > 0) {
+      contentStartY = Math.max(contentStartY, somssidangBoundaryY);
+    }
 
     // "접기" 이후 제외
     let wordStopIndex = -1;
@@ -1051,6 +1579,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
       // 필터링 - 제외할 텍스트는 건너뛰기
       if (!text.trim()) continue;
+      if (shouldSkipMarketplaceNoise(text, detectedPlatform)) continue;
 
       // 네이버 필터링
       if (detectedPlatform === 'naver') {
@@ -1148,8 +1677,14 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
       contentStartY = followAnnotation.boundingPoly?.vertices?.[0]?.y ?? 0;
       console.log(`📍 "팔로우" 감지 (fallback) - Y ${contentStartY} 이후부터 추출`);
     }
+    if (detectedPlatform === 'frip' && fripBoundaryY > 0) {
+      contentStartY = Math.max(contentStartY, fripBoundaryY);
+    }
+    if (detectedPlatform === 'somssidang' && somssidangBoundaryY > 0) {
+      contentStartY = Math.max(contentStartY, somssidangBoundaryY);
+    }
 
-    let lastAnnotation: any = null;
+    let lastAnnotation: EntityAnnotation | null = null;
 
     for (let i = 0; i < finalContent.length; i++) {
       const annotation = finalContent[i];
@@ -1161,6 +1696,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
       // 필터링 - 제외할 텍스트는 건너뛰기
       if (!text.trim()) continue;
+      if (shouldSkipMarketplaceNoise(text, detectedPlatform)) continue;
 
       // 네이버 필터링
       if (detectedPlatform === 'naver') {
@@ -1271,7 +1807,7 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
         const prevWidth = prevEndX - prevStartX;
 
         // 이전 단어의 평균 문자 너비 (한글/영문 대략 계산)
-        const prevTextLength = (lastAnnotation.description ?? '').length || 1;
+        const prevTextLength = (lastAnnotation?.description ?? '').length || 1;
         const avgCharWidth = prevWidth / prevTextLength;
 
         // 간격이 평균 문자 너비의 50% 이상이면 띄어쓰기 (기존 30%에서 상향)
@@ -1301,11 +1837,10 @@ function analyzeReviewTextV2(visionResult: AnnotateImageResponse | null | undefi
 
   console.log(`✅ V2 추출 결과${retryMode ? ' [재시도]' : ''}:`, {
     platform: detectedPlatform,
-    business,
-    author,
+    hasBusiness: Boolean(business),
+    hasAuthor: Boolean(author),
     date,
-    textLength: reviewText.length,
-    preview: reviewText.slice(0, 100) + '...'
+    textLength: reviewText.length
   });
 
   return {
@@ -1488,10 +2023,14 @@ function parseKakao(text: string): { author: string; body: string; date: string 
 }
 
 // Generic cleanup for platforms: drop common UI words
-function parseGeneric(text: string): string {
+function parseGeneric(text: string, platform = 'unknown'): string {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const ui = ['접기', '더보기', '공유', '신고', '번역', '팔로우', '프로필'];
-  return lines.filter(l => !ui.includes(l)).join('\n').trim();
+  return lines
+    .filter(l => !ui.includes(l))
+    .filter(l => !shouldSkipMarketplaceNoise(l, platform))
+    .join('\n')
+    .trim();
 }
 
 // Heuristic re-ordering using geometry (blocks/paragraphs/words)
@@ -1607,3 +2146,25 @@ async function normalizeForAnalysis(raw: string) {
     spacingApplied: Boolean(spaced)
   };
 }
+
+const ocrFixtureGlobals = globalThis as typeof globalThis & {
+  __recordOcrTestables?: {
+    analyzeReviewText: typeof analyzeReviewText;
+    analyzeReviewTextV2: typeof analyzeReviewTextV2;
+    shouldSkipMarketplaceNoise: typeof shouldSkipMarketplaceNoise;
+    normalizePlatformCode: typeof normalizePlatformCode;
+    toPlatformLabel: typeof toPlatformLabel;
+    buildFieldConfidence: typeof buildFieldConfidence;
+    buildOverallConfidence: typeof buildOverallConfidence;
+  };
+};
+
+ocrFixtureGlobals.__recordOcrTestables = {
+  analyzeReviewText,
+  analyzeReviewTextV2,
+  shouldSkipMarketplaceNoise,
+  normalizePlatformCode,
+  toPlatformLabel,
+  buildFieldConfidence,
+  buildOverallConfidence
+};

@@ -3,15 +3,16 @@ import { prisma } from '@/lib/prisma'
 import { ReviewRequestForm } from './ReviewRequestForm'
 
 type PageProps = {
-  params: {
+  params: Promise<{
     username: string
-  }
+  }>
 }
 
 export const dynamic = 'force-dynamic'
 
 export default async function ReviewRequestPage({ params }: PageProps) {
-  const username = decodeURIComponent(params.username)
+  const { username: rawUsername } = await params
+  const username = decodeURIComponent(rawUsername)
 
   if (!username) {
     notFound()

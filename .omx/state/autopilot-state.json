@@ -1,0 +1,47 @@
+{
+  "active": false,
+  "current_phase": "completed",
+  "started_at": "2026-04-02T00:00:00+09:00",
+  "task_description": "Prepare Re:cord for a 1-week beta launch with preserved syb2020 profile, reduced messaging confusion, and launch-critical product improvements.",
+  "iteration": 67,
+  "completed_slice": [
+    "P0 stabilization and auth guards",
+    "hairstylist wedge landing/copy alignment",
+    "Trust Page restructuring",
+    "Reboot Pack onboarding",
+    "OCR quality-state and duplicate UX",
+    "runtime hardening for unavailable public profile",
+    "public route typing alignment for critical paths",
+    "user-facing copy cleanup across login/pricing/guide/terms/privacy",
+    "smoke tests for landing/login/pricing/reboot/public profile/api auth guards"
+  ],
+  "remaining_focus": [
+    "authenticated end-to-end upload/save verification against real DB/session",
+    "broader Next 15 dynamic route type migration across admin routes",
+    "legacy payment/webhook/type debt cleanup"
+  ],
+  "last_turn_at": "2026-03-15T09:43:51.144Z",
+  "completed_at": "2026-04-02T09:30:00+09:00",
+  "last_completed_pass": "launch-readiness-hardening",
+  "verify": "passed",
+  "smoke": "passed",
+  "audit_prod_vulnerabilities": {
+    "low": 6,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0
+  },
+  "completed_scope": [
+    "featured review data model and UX",
+    "public profile and homepage featured prioritization",
+    "smoke-safe syb2020 preservation path",
+    "launch docs refresh",
+    "focused verification"
+  ],
+  "remaining_external_blockers": [
+    "production env values",
+    "production DB baseline decision",
+    "remote smoke credentials",
+    "payment/webhook live verification"
+  ]
+}

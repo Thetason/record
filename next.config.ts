@@ -1,11 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     // Sharp를 사용한 이미지 최적화
@@ -47,12 +48,12 @@ const nextConfig: NextConfig = {
   
   // 번들 최적화
   experimental: {
+    devtoolSegmentExplorer: false,
     optimizePackageImports: [
       '@heroicons/react',
       'framer-motion',
       'recharts',
       '@radix-ui/react-icons',
-      'lucide-react',
       'react-hook-form',
       'next-auth'
     ],

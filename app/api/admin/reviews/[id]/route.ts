@@ -5,9 +5,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // 관리자 권한 체크
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
@@ -25,7 +26,7 @@ export async function GET(
 
     // 리뷰 상세 조회
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {
@@ -61,9 +62,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // 관리자 권한 체크
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
@@ -84,7 +86,7 @@ export async function PATCH(
 
     // 리뷰 업데이트
     const updatedReview = await prisma.review.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         verificationStatus,
         verificationNote,
@@ -95,7 +97,7 @@ export async function PATCH(
     })
 
     // 활동 로그 기록 (나중에 활동 로그 테이블 추가 시)
-    console.log(`Admin ${admin.id} updated review ${params.id} status to ${verificationStatus}`)
+    console.log(`Admin ${admin.id} updated review ${id} status to ${verificationStatus}`)
 
     return NextResponse.json(updatedReview)
   } catch (error) {
@@ -106,9 +108,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // 관리자 권한 체크
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
@@ -126,10 +129,10 @@ export async function DELETE(
 
     // 리뷰 삭제
     await prisma.review.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
-    console.log(`Admin ${admin.id} deleted review ${params.id}`)
+    console.log(`Admin ${admin.id} deleted review ${id}`)
 
     return NextResponse.json({ success: true })
   } catch (error) {

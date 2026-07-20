@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
+import { sendEmail } from '@/lib/email'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // 관리자 권한 체크
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
@@ -28,7 +30,7 @@ export async function PATCH(
     const { action } = body
 
     const targetUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true, role: true }
     })
 
@@ -45,7 +47,7 @@ export async function PATCH(
         }
         // 사용자 차단 (role을 'blocked'로 변경)
         await prisma.user.update({
-          where: { id: params.id },
+          where: { id },
           data: { 
             role: 'blocked',
             // 모든 세션 종료
@@ -55,60 +57,70 @@ export async function PATCH(
           }
         })
         
-        console.log(`Admin ${admin.id} blocked user ${params.id}`)
+        console.log(`Admin ${admin.id} blocked user ${id}`)
         return NextResponse.json({ success: true, message: '사용자가 차단되었습니다' })
 
       case 'unblock':
         // 차단 해제
         await prisma.user.update({
-          where: { id: params.id },
+          where: { id },
           data: { role: 'user' }
         })
-        
-        console.log(`Admin ${admin.id} unblocked user ${params.id}`)
+
+        console.log(`Admin ${admin.id} unblocked user ${id}`)
         return NextResponse.json({ success: true, message: '차단이 해제되었습니다' })
 
       case 'reset-password':
-        // 임시 비밀번호 생성
-        const tempPassword = Math.random().toString(36).slice(-8) + 'Aa1!'
-        const hashedPassword = await bcrypt.hash(tempPassword, 10)
-        
+        const resetToken = crypto.randomBytes(32).toString('hex')
+        const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000)
+
         await prisma.user.update({
-          where: { id: params.id },
+          where: { id },
           data: { 
-            password: hashedPassword,
-            // 다음 로그인 시 비밀번호 변경 요구 플래그 설정 가능
+            resetToken,
+            resetTokenExpiry,
           }
         })
-        
-        console.log(`Admin ${admin.id} reset password for user ${params.id}`)
-        return NextResponse.json({ 
-          success: true, 
-          message: '비밀번호가 초기화되었습니다',
-          tempPassword // 실제로는 이메일로 발송해야 함
+
+        const userForReset = await prisma.user.findUnique({
+          where: { id },
+          select: { email: true, name: true, username: true }
+        })
+
+        if (userForReset?.email) {
+          await sendEmail(userForReset.email, 'resetPassword', {
+            name: userForReset.name || userForReset.username,
+            resetUrl: `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`
+          })
+        }
+
+        console.log(`Admin ${admin.id} triggered password reset for user ${id}`)
+        return NextResponse.json({
+          success: true,
+          message: '비밀번호 재설정 이메일을 전송했습니다.'
         })
 
       case 'delete-reviews':
         // 모든 리뷰 삭제
         await prisma.review.deleteMany({
-          where: { userId: params.id }
+          where: { userId: id }
         })
-        
-        console.log(`Admin ${admin.id} deleted all reviews for user ${params.id}`)
+
+        console.log(`Admin ${admin.id} deleted all reviews for user ${id}`)
         return NextResponse.json({ success: true, message: '모든 리뷰가 삭제되었습니다' })
 
       case 'change-plan':
         // 플랜 변경
         const { plan } = body
         await prisma.user.update({
-          where: { id: params.id },
+          where: { id },
           data: { 
             plan,
-            reviewLimit: plan === 'free' ? 50 : -1
+            reviewLimit: plan === 'free' ? 20 : -1
           }
         })
-        
-        console.log(`Admin ${admin.id} changed plan for user ${params.id} to ${plan}`)
+
+        console.log(`Admin ${admin.id} changed plan for user ${id} to ${plan}`)
         return NextResponse.json({ success: true, message: '플랜이 변경되었습니다' })
 
       case 'promote-admin':
@@ -120,11 +132,11 @@ export async function PATCH(
         }
         // 관리자 권한 부여
         await prisma.user.update({
-          where: { id: params.id },
+          where: { id },
           data: { role: 'admin' }
         })
-        
-        console.log(`Admin ${admin.id} promoted user ${params.id} to admin`)
+
+        console.log(`Admin ${admin.id} promoted user ${id} to admin`)
         return NextResponse.json({ success: true, message: '관리자 권한이 부여되었습니다' })
 
       case 'change-role': {
@@ -146,7 +158,7 @@ export async function PATCH(
           const remainingSupers = await prisma.user.count({
             where: {
               role: 'super_admin',
-              NOT: { id: params.id }
+              NOT: { id }
             }
           })
 
@@ -156,11 +168,11 @@ export async function PATCH(
         }
 
         await prisma.user.update({
-          where: { id: params.id },
+          where: { id },
           data: { role: desiredRole }
         })
 
-        console.log(`Super admin ${admin.id} changed role for user ${params.id} to ${desiredRole}`)
+        console.log(`Super admin ${admin.id} changed role for user ${id} to ${desiredRole}`)
         return NextResponse.json({ success: true, message: `역할이 ${desiredRole} 로 변경되었습니다` })
       }
 
@@ -175,9 +187,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // 관리자 권한 체크
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
@@ -196,10 +209,10 @@ export async function DELETE(
 
     // 사용자 및 관련 데이터 모두 삭제
     await prisma.user.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
-    console.log(`Super admin ${admin.id} deleted user ${params.id}`)
+    console.log(`Super admin ${admin.id} deleted user ${id}`)
 
     return NextResponse.json({ success: true, message: '사용자가 삭제되었습니다' })
   } catch (error) {

@@ -1,31 +1,68 @@
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
+import { toImageSrc } from '@/lib/utils';
 
 const POSSIBLE_ID_LENGTH = 16;
 const PROFILE_REVIEW_LIMIT = 32;
 
-const REVIEW_SELECT = {
+const REVIEW_SELECT = Prisma.validator<Prisma.ReviewSelect>()({
   id: true,
   platform: true,
   business: true,
   content: true,
   author: true,
+  rating: true,
   reviewDate: true,
+  isVerified: true,
+  isFeatured: true,
+  featuredAt: true,
   verifiedAt: true,
   verifiedBy: true,
   originalUrl: true,
   imageUrl: true
-} as const;
+});
 
-const USER_SELECT = {
+const PUBLIC_PROFILE_REVIEW_WHERE = Prisma.validator<Prisma.ReviewWhereInput>()({
+  AND: [
+    {
+      isPublic: true
+    },
+    {
+      verificationStatus: {
+        notIn: ['rejected', 'flagged']
+      }
+    },
+    {
+      OR: [
+        {
+          platform: {
+            not: 'Re:cord'
+          }
+        },
+        {
+          verificationStatus: 'approved'
+        }
+      ]
+    }
+  ]
+});
+
+const USER_SELECT = Prisma.validator<Prisma.UserSelect>()({
   id: true,
   username: true,
   name: true,
+  profession: true,
+  experience: true,
   bio: true,
+  isPublic: true,
   avatar: true,
   bgImage: true,
   location: true,
   website: true,
+  phone: true,
+  portfolioImages: true,
+  careerTimeline: true,
   plan: true,
   theme: true,
   layout: true,
@@ -34,11 +71,16 @@ const USER_SELECT = {
   introVideo: true,
   customCss: true,
   reviews: {
-    orderBy: { reviewDate: 'desc' },
+    where: PUBLIC_PROFILE_REVIEW_WHERE,
+    orderBy: [
+      { isFeatured: 'desc' },
+      { featuredAt: 'asc' },
+      { reviewDate: 'desc' }
+    ],
     take: PROFILE_REVIEW_LIMIT,
     select: REVIEW_SELECT
   }
-} as const;
+});
 
 async function buildSuccessResult(
   user: UserWithReviews,
@@ -61,7 +103,7 @@ async function buildSuccessResult(
       });
   }
 
-  const profile = buildProfilePayload(user, options.includeDemoFallback);
+  const profile = buildProfilePayload(user, Boolean(options.includeDemoFallback));
 
   return {
     ok: true,
@@ -77,18 +119,28 @@ export type PublicReview = {
   business: string;
   content: string;
   author: string;
+  rating: number | null;
   reviewDate: string;
   verified: boolean;
-  verifiedAt: Date | null;
+  isFeatured: boolean;
+  verifiedAt: string | null;
   verifiedBy: string | null;
   originalUrl: string | null;
+  proofType: 'direct' | 'archived';
   imageUrl?: string | null;
+};
+
+export type PublicCareerEntry = {
+  period: string;
+  title: string;
+  detail: string;
 };
 
 export type PublicProfile = {
   id: string;
   username: string;
   name: string;
+  isPublic: boolean;
   profession: string;
   bio: string;
   avatar: string;
@@ -97,6 +149,9 @@ export type PublicProfile = {
   platforms: string[];
   experience: string;
   location: string;
+  phone?: string;
+  portfolioImages: string[];
+  careerTimeline: PublicCareerEntry[];
   specialties: string[];
   certifications: string[];
   socialLinks: {
@@ -114,9 +169,132 @@ export type PublicProfile = {
   reviews: PublicReview[];
 };
 
+type ProfileEnhancement = {
+  profession?: string;
+  experience?: string;
+  location?: string;
+  careerTimeline?: PublicCareerEntry[];
+  specialties?: string[];
+  certifications?: string[];
+  portfolioImages?: string[];
+  socialLinks?: {
+    instagram?: string;
+    website?: string;
+  };
+};
+
+const PROFILE_ENHANCEMENTS: Record<string, ProfileEnhancement> = {
+  "stylist-demo": {
+    careerTimeline: [
+      {
+        period: "2017 - 2020",
+        title: "살롱 커리어 시작",
+        detail: "기본 커트와 상담 경험을 쌓으며 단골 고객이 붙기 시작한 시기입니다."
+      },
+      {
+        period: "2020 - 2023",
+        title: "컬러와 레이어드 집중",
+        detail: "톤다운 컬러와 손질 쉬운 레이어드컷으로 소개 예약이 늘어난 시기입니다."
+      },
+      {
+        period: "2023 - NOW",
+        title: "샵 이동 후 고객 유지",
+        detail: "샵이 바뀌어도 기존 고객이 계속 찾아오는 신뢰 기반을 만든 흐름입니다."
+      }
+    ],
+    specialties: [
+      "레이어드컷",
+      "톤다운 컬러",
+      "손질 쉬운 커트",
+      "얼굴형 맞춤 상담"
+    ],
+    certifications: [
+      "9년차 현장 경력",
+      "기존 고객 재방문 후기 보유",
+      "직접 받은 후기 검토 완료"
+    ],
+    portfolioImages: [
+      "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1523264766116-1e09b3145b84?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80"
+    ]
+  },
+  "syb2020": {
+    profession: "보컬트레이너",
+    experience: "10년차",
+    careerTimeline: [
+      {
+        period: "2016 - 2018",
+        title: "Foundation",
+        detail: "발성과 기본기 지도 경험을 쌓으며 레슨의 방향성을 다진 시기입니다."
+      },
+      {
+        period: "2018 - 2021",
+        title: "Science of Voice",
+        detail: "호흡, 공명, 발음 교정을 더 체계적으로 설명하고 지도하는 방식이 자리 잡았습니다."
+      },
+      {
+        period: "2021 - NOW",
+        title: "Practical Coaching",
+        detail: "1:1 맞춤 피드백과 직접 받은 후기들이 쌓이며 신뢰 포트폴리오가 만들어진 단계입니다."
+      }
+    ],
+    specialties: [
+      "보컬 발성 교정",
+      "오디션 준비",
+      "1:1 맞춤 레슨"
+    ],
+    certifications: [
+      "10년차 현장 경력",
+      "직접 받은 후기 검토 완료"
+    ],
+    portfolioImages: [
+      "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=900&q=80"
+    ]
+  }
+};
+
+function parsePortfolioImages(value: string | null | undefined): string[] {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
+function parseCareerTimeline(value: string | null | undefined): PublicCareerEntry[] {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map((item) => ({
+        period: typeof item.period === "string" ? item.period.trim() : "",
+        title: typeof item.title === "string" ? item.title.trim() : "",
+        detail: typeof item.detail === "string" ? item.detail.trim() : "",
+      }))
+      .filter((item) => item.period && item.title && item.detail)
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
 export type FetchPublicProfileOptions = {
   incrementView?: boolean;
   includeDemoFallback?: boolean;
+  allowPrivateProfile?: boolean;
 };
 
 export type FetchPublicProfileSuccess = {
@@ -140,112 +318,136 @@ const DEMO_REVIEWS: PublicReview[] = [
   {
     id: '1',
     platform: '네이버',
-    business: '비너스필라테스',
+    business: '성수 살롱 하루',
     content:
-      '김서연 강사님 정말 최고예요! 자세 하나하나 꼼꼼하게 봐주시고, 제 몸 상태에 맞춰서 운동 강도도 조절해주셔서 너무 좋았어요. 허리 통증이 있었는데 3개월만에 완전히 좋아졌습니다.',
-    author: '정**',
+      '레이어드컷 상담을 정말 세심하게 해주셨어요. 머리 말리는 법까지 알려주셔서 집에서도 스타일이 잘 살아납니다.',
+    author: '단골고객',
+    rating: 5,
     reviewDate: '2024-08-07',
     verified: true,
+    isFeatured: true,
     verifiedAt: null,
     verifiedBy: null,
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'archived'
   },
   {
     id: '2',
-    platform: '카카오',
-    business: '밸런스드필라테스',
+    platform: '카카오맵',
+    business: '로우톤 헤어 압구정',
     content:
-      '서연쌤 수업은 진짜 강추! 기구 필라테스 처음인데도 무리 없이 따라갈 수 있게 지도해주셔서 감사해요. 체형 교정 효과도 확실히 보고 있습니다.',
-    author: '이**',
+      '톤다운 컬러를 맡겼는데 얼굴톤에 맞춰 추천해주셔서 만족도가 높았어요. 과하지 않고 오래 유지됩니다.',
+    author: '혜린',
+    rating: 5,
     reviewDate: '2024-08-06',
     verified: true,
+    isFeatured: true,
     verifiedAt: null,
     verifiedBy: null,
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'archived'
   },
   {
     id: '3',
     platform: '네이버',
-    business: '필라오라인',
+    business: '무드컷 서울숲점',
     content:
-      '6개월째 김서연 강사님께 PT받고 있는데 체형이 정말 많이 개선됐어요. 전문적이면서도 친절하신 최고의 강사님! 운동 처방도 너무 정확해서 만족도 200%입니다.',
-    author: '박**',
+      '처음 방문인데도 원하는 이미지를 빠르게 이해해주셨어요. 커트 이후 주변에서 어디서 했냐고 많이 물어봅니다.',
+    author: '서현',
+    rating: 5,
     reviewDate: '2024-08-05',
     verified: true,
+    isFeatured: true,
     verifiedAt: null,
     verifiedBy: null,
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'archived'
   },
   {
     id: '4',
     platform: '구글',
-    business: '비너스필라테스',
+    business: 'Seongsu Hair Atelier',
     content:
-      'Professional and caring instructor. Kim Seoyeon really knows her stuff. My posture has improved significantly after just 2 months of training.',
-    author: 'Sarah K.',
+      'Professional consultation and a very natural finish. The haircut grows out beautifully, so I keep coming back.',
+    author: 'Mina K.',
+    rating: 5,
     reviewDate: '2024-08-04',
     verified: true,
+    isFeatured: false,
     verifiedAt: null,
     verifiedBy: null,
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'archived'
   },
   {
     id: '5',
     platform: '인스타',
-    business: '필라오라인',
+    business: '1인샵 오픈 준비',
     content:
-      '산후 회복 프로그램으로 김서연 선생님 수업 들었는데 정말 만족스러웠어요! 몸도 마음도 건강해지는 느낌. 강추합니다!',
-    author: '최**',
+      '샵을 옮긴 뒤에도 기존 후기와 작업물을 바로 볼 수 있어서 예약 전에 신뢰하기 쉬웠어요.',
+    author: '팔로워고객',
+    rating: 5,
     reviewDate: '2024-08-03',
     verified: true,
+    isFeatured: false,
     verifiedAt: null,
     verifiedBy: null,
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'archived'
   },
   {
     id: '6',
     platform: '네이버',
-    business: '비너스필라테스',
+    business: '성수 살롱 하루',
     content:
-      '회원님 한 분 한 분 신경써주시는게 느껴져요. 운동 효과도 좋고 무엇보다 재밌게 운동할 수 있어서 좋습니다!',
-    author: '강**',
+      '긴 머리 레이어드컷이 정말 예쁘게 나왔고, 다음 방문 주기까지 알려주셔서 관리가 편했어요.',
+    author: '민주',
+    rating: 5,
     reviewDate: '2024-08-02',
     verified: true,
+    isFeatured: false,
     verifiedAt: null,
     verifiedBy: null,
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'archived'
   },
   {
     id: '7',
     platform: '당근',
-    business: '이웃공방 레터링 클래스',
+    business: '연남 1인 헤어샵',
     content:
-      '동네에서 이렇게 편하게 배울 수 있는 공간이 있다는 게 좋았어요. 수업 후에도 자료를 보내주셔서 혼자 복습하기 편합니다.',
-    author: '당***',
+      '동네에서 믿고 맡길 디자이너 찾다가 알게 됐어요. 상담이 꼼꼼해서 처음인데도 불안하지 않았습니다.',
+    author: '연남단골',
+    rating: 5,
     reviewDate: '2024-07-28',
     verified: false,
+    isFeatured: false,
     verifiedAt: null,
     verifiedBy: null,
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'archived'
   },
   {
     id: '8',
     platform: 'Re:cord',
-    business: '보컬 트레이닝 1:1',
+    business: '레이어드컷 · 톤다운 컬러',
     content:
-      '리뷰 요청 링크를 통해 작성한 후기입니다. 수업 전 상담부터 수업 후 피드백까지 체계적으로 챙겨주셔서 실력이 빠르게 늘었어요.',
-    author: '자체고객',
+      '리뷰 요청 링크를 통해 직접 남긴 후기입니다. 예약 전 스타일 상담이 명확했고 결과도 기대 이상이었어요.',
+    author: '직접후기',
+    rating: 5,
     reviewDate: '2024-07-20',
     verified: false,
+    isFeatured: false,
     verifiedAt: null,
     verifiedBy: 'request',
-    originalUrl: null
+    originalUrl: null,
+    proofType: 'direct'
   }
 ];
 
-type UserWithReviews = NonNullable<
-  Awaited<ReturnType<typeof prisma.user.findUnique>>
->;
+type UserWithReviews = Prisma.UserGetPayload<{
+  select: typeof USER_SELECT;
+}>;
 
 function buildProfilePayload(
   user: UserWithReviews,
@@ -258,7 +460,7 @@ function buildProfilePayload(
   // Use an existing public asset to avoid image optimizer 400s on missing files.
   const fallbackCover = '/sample.png';
   const professionFromBio = user.bio?.split('\n')?.[0]?.trim();
-  const profession = professionFromBio || `${user.name} 전문가`;
+  const profession = user.profession?.trim() || professionFromBio || `${user.name} 전문가`;
   const bio = user.bio ?? '';
 
   const yearsExperience = (() => {
@@ -275,14 +477,18 @@ function buildProfilePayload(
     id: user.id,
     username: user.username,
     name: user.name,
+    isPublic: user.isPublic,
     profession,
     bio,
-    avatar: user.avatar ?? '',
+    avatar: toImageSrc(user.avatar) ?? '',
     coverImage: user.bgImage || fallbackCover,
     totalReviews,
     platforms,
-    experience: yearsExperience,
+    experience: user.experience?.trim() || yearsExperience,
     location: user.location ?? '',
+    phone: user.phone ?? undefined,
+    portfolioImages: parsePortfolioImages(user.portfolioImages),
+    careerTimeline: parseCareerTimeline(user.careerTimeline),
     specialties: [],
     certifications: [],
     socialLinks: {
@@ -303,13 +509,31 @@ function buildProfilePayload(
       business: review.business || '',
       content: review.content,
       author: review.author,
+      rating: review.rating ?? null,
       reviewDate: review.reviewDate.toISOString(),
-      verified: Boolean(review.verifiedAt),
-      verifiedAt: review.verifiedAt,
+      verified: Boolean(review.isVerified || review.verifiedAt),
+      isFeatured: Boolean(review.isFeatured),
+      verifiedAt: review.verifiedAt ? review.verifiedAt.toISOString() : null,
       verifiedBy: review.verifiedBy,
       originalUrl: review.originalUrl,
+      proofType: review.platform === 'Re:cord' ? 'direct' : 'archived',
       imageUrl: review.imageUrl
     }))
+  };
+
+  const enhancements = PROFILE_ENHANCEMENTS[user.username] ?? {};
+  baseProfile.profession = enhancements.profession ?? baseProfile.profession;
+  baseProfile.experience = enhancements.experience ?? baseProfile.experience;
+  baseProfile.location = enhancements.location ?? baseProfile.location;
+  baseProfile.careerTimeline = enhancements.careerTimeline ?? baseProfile.careerTimeline;
+  baseProfile.specialties = enhancements.specialties ?? baseProfile.specialties;
+  baseProfile.certifications = enhancements.certifications ?? baseProfile.certifications;
+  baseProfile.portfolioImages = baseProfile.portfolioImages.length > 0
+    ? baseProfile.portfolioImages
+    : (enhancements.portfolioImages ?? []);
+  baseProfile.socialLinks = {
+    ...baseProfile.socialLinks,
+    ...enhancements.socialLinks
   };
 
   if (includeDemoFallback && baseProfile.reviews.length === 0) {
@@ -327,7 +551,11 @@ export async function fetchPublicProfile(
   username: string,
   options: FetchPublicProfileOptions = {}
 ): Promise<FetchPublicProfileResult> {
-  const { incrementView = false, includeDemoFallback = true } = options;
+  const {
+    incrementView = false,
+    includeDemoFallback = true,
+    allowPrivateProfile = false
+  } = options;
 
   const input = typeof username === 'string' ? username.trim() : '';
 
@@ -339,47 +567,71 @@ export async function fetchPublicProfile(
     };
   }
 
-  // 1) 사용자 ID 기반 조회 (username이 아직 설정되지 않은 계정 공유 대비)
-  if (input.length >= POSSIBLE_ID_LENGTH) {
-    const userById = await prisma.user.findUnique({
-      where: { id: input },
+  try {
+    // 1) 사용자 ID 기반 조회 (username이 아직 설정되지 않은 계정 공유 대비)
+    if (input.length >= POSSIBLE_ID_LENGTH) {
+      const userById = await prisma.user.findUnique({
+        where: { id: input },
+        select: USER_SELECT
+      });
+
+      if (userById) {
+        if (!allowPrivateProfile && userById.isPublic === false) {
+          return {
+            ok: false,
+            status: 404,
+            message: '프로필을 찾을 수 없습니다'
+          };
+        }
+        return buildSuccessResult(userById, { includeDemoFallback }, incrementView, input);
+      }
+    }
+
+    // 2) username 규칙에 맞게 검증 후 조회
+    const validation = validateAndNormalizeUsername(input, {
+      hardMaxLength: 4096
+    });
+
+    if (!validation.ok) {
+      return {
+        ok: false,
+        status: validation.status,
+        message: validation.message
+      };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { username: validation.value },
       select: USER_SELECT
     });
 
-    if (userById) {
-      return buildSuccessResult(userById, { includeDemoFallback }, incrementView, input);
+    if (!user) {
+      return {
+        ok: false,
+        status: 404,
+        message: '프로필을 찾을 수 없습니다'
+      };
     }
-  }
 
-  // 2) username 규칙에 맞게 검증 후 조회
-  const validation = validateAndNormalizeUsername(input, {
-    hardMaxLength: 4096
-  });
+    if (!allowPrivateProfile && user.isPublic === false) {
+      return {
+        ok: false,
+        status: 404,
+        message: '프로필을 찾을 수 없습니다'
+      };
+    }
 
-  if (!validation.ok) {
+    const result = await buildSuccessResult(user, { includeDemoFallback }, incrementView, validation.value);
+    return {
+      ...result,
+      truncated: validation.truncated
+    };
+  } catch (error) {
+    console.error('fetchPublicProfile failed', { username: input, error });
     return {
       ok: false,
-      status: validation.status,
-      message: validation.message
+      status: 503,
+      message: '프로필 데이터를 잠시 불러올 수 없습니다'
     };
   }
-
-  const user = await prisma.user.findUnique({
-    where: { username: validation.value },
-    select: USER_SELECT
-  });
-
-  if (!user) {
-    return {
-      ok: false,
-      status: 404,
-      message: '프로필을 찾을 수 없습니다'
-    };
-  }
-
-  const result = await buildSuccessResult(user, { includeDemoFallback }, incrementView, validation.value);
-  return {
-    ...result,
-    truncated: validation.truncated
-  };
 }

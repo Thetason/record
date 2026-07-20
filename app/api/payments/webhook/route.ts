@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withRateLimit } from '@/lib/security';
 import { verifyLatpeedWebhook, LatpeedWebhookEvent } from '@/lib/latpeed';
+import { PLANS, type PlanType } from '@/lib/plan-limits';
 
 export async function POST(req: NextRequest) {
   // Rate limiting 적용
-  const clientIp = req.ip || req.headers.get('x-forwarded-for') || 'unknown';
+  const clientIp =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown';
   const rateLimitResponse = await withRateLimit(req, `webhook-${clientIp}`, 10); // 웹훅은 분당 10회 제한
   if (rateLimitResponse) return rateLimitResponse;
 
@@ -37,9 +41,9 @@ export async function POST(req: NextRequest) {
       case 'payment.succeeded':
         // 결제 성공 처리
         await handlePaymentSuccess({
-          subscriptionId: event.data.subscriptionId || event.data.paymentId,
-          customerEmail: event.data.customerEmail,
-          plan: event.data.metadata?.plan || 'premium',
+          subscriptionId: event.data.subscriptionId || event.data.paymentId || '',
+          customerEmail: event.data.customerEmail || '',
+          plan: typeof event.data.metadata?.plan === 'string' ? event.data.metadata.plan : 'premium',
         });
         break;
 
@@ -47,16 +51,16 @@ export async function POST(req: NextRequest) {
       case 'payment.failed':
         // 결제 실패 또는 구독 취소 처리
         await handlePaymentFailure({
-          subscriptionId: event.data.subscriptionId || event.data.paymentId,
-          customerEmail: event.data.customerEmail,
+          subscriptionId: event.data.subscriptionId || event.data.paymentId || '',
+          customerEmail: event.data.customerEmail || '',
         });
         break;
 
       case 'subscription.renewed':
         // 구독 갱신 처리
         await handleSubscriptionRenewal({
-          customerEmail: event.data.customerEmail,
-          nextBillingDate: event.data.nextBillingDate,
+          customerEmail: event.data.customerEmail || '',
+          nextBillingDate: event.data.nextBillingDate || '',
         });
         break;
 
@@ -84,6 +88,11 @@ async function handlePaymentSuccess({
   plan: string;
 }) {
   try {
+    if (!subscriptionId || !customerEmail) {
+      console.error('Invalid payment success payload', { subscriptionId, customerEmail });
+      return;
+    }
+
     // 사용자 찾기
     const user = await prisma.user.findUnique({
       where: { email: customerEmail },
@@ -101,8 +110,7 @@ async function handlePaymentSuccess({
         paymentId: subscriptionId,
       },
       data: {
-        status: 'completed',
-        completedAt: new Date(),
+        status: 'DONE',
       },
     });
 
@@ -114,8 +122,9 @@ async function handlePaymentSuccess({
       planExpiry.setMonth(planExpiry.getMonth() + 1);
     }
 
-    const planType = plan.includes('pro') ? 'pro' : 'premium';
-    const reviewLimit = planType === 'pro' ? 999999 : 500;
+    const normalizedPlan = (plan === 'business' ? 'pro' : plan) as PlanType;
+    const planType = normalizedPlan === 'pro' ? 'pro' : 'premium';
+    const reviewLimit = PLANS[planType].reviewLimit;
 
     await prisma.user.update({
       where: { id: user.id },
@@ -141,6 +150,11 @@ async function handlePaymentFailure({
   customerEmail: string;
 }) {
   try {
+    if (!subscriptionId || !customerEmail) {
+      console.error('Invalid payment failure payload', { subscriptionId, customerEmail });
+      return;
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: customerEmail },
     });
@@ -154,7 +168,7 @@ async function handlePaymentFailure({
         paymentId: subscriptionId,
       },
       data: {
-        status: 'failed',
+        status: 'FAILED',
       },
     });
 
@@ -164,7 +178,7 @@ async function handlePaymentFailure({
         where: { id: user.id },
         data: {
           plan: 'free',
-          reviewLimit: 50,
+          reviewLimit: 20,
         },
       });
     }
@@ -183,6 +197,11 @@ async function handleSubscriptionRenewal({
   nextBillingDate: string;
 }) {
   try {
+    if (!customerEmail || !nextBillingDate) {
+      console.error('Invalid subscription renewal payload', { customerEmail, nextBillingDate });
+      return;
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: customerEmail },
     });

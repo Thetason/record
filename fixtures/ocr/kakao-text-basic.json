@@ -1,0 +1,19 @@
+{
+  "name": "kakao-text-basic",
+  "kind": "text",
+  "parser": "analyzeReviewText",
+  "input": "민지\n카카오맵\n2025.11.06.\n상담이 세심하고 커트 결과도 자연스러워서 만족했어요.\n특히 손질 방법까지 자세히 알려주셔서 좋았습니다.\n공유\n신고",
+  "expected": {
+    "platform": "kakao",
+    "author": "민지",
+    "date": "2025-11-06",
+    "reviewTextIncludes": [
+      "상담이 세심하고",
+      "손질 방법까지"
+    ],
+    "reviewTextExcludes": [
+      "공유",
+      "신고"
+    ]
+  }
+}

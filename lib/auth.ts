@@ -6,6 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import type { Adapter } from "next-auth/adapters"
+import { getLaunchOfferCreateData } from "@/lib/launch-offer"
 
 interface ExtendedUser {
   username?: string | null
@@ -13,6 +14,21 @@ interface ExtendedUser {
 }
 
 const USERNAME_MAX_LENGTH = 20
+const AUTH_DEBUG_ENABLED =
+  process.env.NODE_ENV !== 'production' || process.env.AUTH_DEBUG === 'true'
+
+function authDebug(message: string, metadata?: unknown) {
+  if (!AUTH_DEBUG_ENABLED) {
+    return
+  }
+
+  if (metadata) {
+    console.log(message, metadata)
+    return
+  }
+
+  console.log(message)
+}
 
 function extractUserMeta(candidate: unknown): ExtendedUser {
   if (!candidate || typeof candidate !== 'object') {
@@ -77,12 +93,13 @@ export const authOptions: NextAuthOptions = {
                 scope: 'profile_nickname profile_image account_email',
               },
             },
-            profile(profile) {
+            profile(profile, _tokens) {
+              void _tokens
               const account = (profile as Record<string, unknown>).kakao_account as Record<string, unknown> | undefined
               const properties = (profile as Record<string, unknown>).properties as Record<string, unknown> | undefined
 
               const profileId = profile && typeof profile === 'object' && 'id' in profile ? String((profile as { id?: unknown }).id ?? '') : ''
-              const email = (account?.email as string | undefined) ?? null
+              const email = (account?.email as string | undefined) ?? `${profileId || Date.now()}@kakao.local`
               const nickname =
                 (properties?.nickname as string | undefined) ||
                 (account?.profile && typeof account.profile === 'object'
@@ -98,7 +115,8 @@ export const authOptions: NextAuthOptions = {
                 id: profileId || `kakao-${Date.now()}`,
                 name: nickname ?? `카카오사용자_${profile?.id ?? ''}`,
                 email,
-                image: image ?? null,
+                username: (nickname || profileId || 'kakao_user').toString().slice(0, USERNAME_MAX_LENGTH),
+                image: image ?? undefined,
               }
             },
           }),
@@ -113,26 +131,26 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log("🔐 NextAuth authorize 시작:", { 
+        authDebug("🔐 NextAuth authorize 시작:", { 
           username: credentials?.username,
           hasPassword: !!credentials?.password,
           timestamp: new Date().toISOString()
         })
 
         if (!credentials?.username || !credentials?.password) {
-          console.log("❌ 인증 실패: 아이디 또는 비밀번호 누락")
+          authDebug("❌ 인증 실패: 아이디 또는 비밀번호 누락")
           return null
         }
 
         try {
-          console.log("🔍 사용자 조회 중:", credentials.username)
+          authDebug("🔍 사용자 조회 중:", credentials.username)
           const user = await prisma.user.findUnique({
             where: {
               username: credentials.username
             }
           })
 
-          console.log("👤 사용자 조회 결과:", {
+          authDebug("👤 사용자 조회 결과:", {
             found: !!user,
             hasPassword: !!user?.password,
             username: user?.username,
@@ -140,24 +158,24 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user || !user.password) {
-            console.log("❌ 인증 실패: 사용자를 찾을 수 없거나 비밀번호가 없음")
+            authDebug("❌ 인증 실패: 사용자를 찾을 수 없거나 비밀번호가 없음")
             return null
           }
 
-          console.log("🔐 비밀번호 검증 중...")
+          authDebug("🔐 비밀번호 검증 중...")
 
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           )
 
-          console.log("🔑 비밀번호 검증 결과:", {
+          authDebug("🔑 비밀번호 검증 결과:", {
             isValid: isPasswordValid
             // 보안상 비밀번호 관련 정보는 로깅하지 않음
           })
 
           if (!isPasswordValid) {
-            console.log("❌ 인증 실패: 비밀번호 불일치")
+            authDebug("❌ 인증 실패: 비밀번호 불일치")
             return null
           }
 
@@ -169,7 +187,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role
           }
 
-          console.log("✅ 인증 성공:", returnUser)
+          authDebug("✅ 인증 성공:", returnUser)
           return returnUser
         } catch (error) {
           console.error("💥 Auth error:", error)
@@ -181,7 +199,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       try {
-        console.log('🔐 SignIn callback started:', {
+        authDebug('🔐 SignIn callback started:', {
           provider: account?.provider,
           email: user.email,
           name: user.name
@@ -201,7 +219,7 @@ export const authOptions: NextAuthOptions = {
           const existingUser = await prisma.user.findUnique({
             where: { email }
           })
-          console.log('👤 Existing user check:', {
+          authDebug('👤 Existing user check:', {
             found: !!existingUser,
             username: existingUser?.username
           })
@@ -211,18 +229,20 @@ export const authOptions: NextAuthOptions = {
           if (!username) {
             const base = email.split('@')[0] || 'user'
             username = await findAvailableUsername(base)
-            console.log('✨ Generated new username:', username)
+            authDebug('✨ Generated new username:', username)
           }
 
           const nameToUse = user.name || existingUser?.name || username
           const avatar = user.image ?? existingUser?.avatar ?? null
 
-          console.log('💾 Upserting user:', {
+          authDebug('💾 Upserting user:', {
             email,
             username,
             nameToUse,
             hasAvatar: !!avatar
           })
+
+          const launchOffer = existingUser ? null : await getLaunchOfferCreateData(prisma)
 
           await prisma.user.upsert({
             where: { email },
@@ -236,16 +256,22 @@ export const authOptions: NextAuthOptions = {
               username,
               name: nameToUse,
               avatar,
-              plan: 'free',
-              reviewLimit: 50,
-              password: null,
+              // Production DB still has a NOT NULL password column in some baselines.
+              // Empty string keeps credentials login disabled because authorize() rejects falsy passwords.
+              password: '',
+              ...(launchOffer?.createData ?? {
+                plan: 'free',
+                reviewLimit: 20,
+                planExpiry: null,
+                launchOfferClaimedAt: null,
+              }),
             },
           })
 
-          console.log('✅ User upserted successfully')
+          authDebug('✅ User upserted successfully')
         }
 
-        console.log('✅ SignIn callback completed successfully')
+        authDebug('✅ SignIn callback completed successfully')
         return true
       } catch (error) {
         console.error('💥 SignIn callback error:', error)
@@ -261,7 +287,7 @@ export const authOptions: NextAuthOptions = {
     },
     
     async jwt({ token, user, account }) {
-      console.log("🎫 JWT callback 시작:", { 
+      authDebug("🎫 JWT callback 시작:", { 
         hasUser: !!user, 
         tokenUsername: token.username,
         userId: user?.id,
@@ -269,30 +295,38 @@ export const authOptions: NextAuthOptions = {
       })
 
       if (user) {
-        token.id = user.id
-        token.email = user.email
+        if (typeof user.id === 'string') {
+          token.id = user.id
+        }
+        if (typeof user.email === 'string') {
+          token.email = user.email
+        }
 
         // OAuth 로그인인 경우 DB에서 username 가져오기
-        if (account?.provider !== "credentials") {
+        if (account?.provider !== "credentials" && typeof user.email === 'string') {
           const dbUser = await prisma.user.findUnique({
-            where: { email: user.email! },
+            where: { email: user.email },
             select: { username: true, role: true, plan: true }
           })
-          token.username = dbUser?.username
+          token.username = dbUser?.username || token.username || 'user'
           token.role = dbUser?.role || 'user'
           token.plan = dbUser?.plan || 'free'
         } else {
           const meta = extractUserMeta(user)
-          token.username = meta.username
+          token.username = meta.username || token.username || 'user'
           token.role = meta.role ?? 'user'
           // Credentials 로그인 시에도 plan 정보 가져오기
-          const dbUser = await prisma.user.findUnique({
-            where: { username: meta.username! },
-            select: { plan: true }
-          })
-          token.plan = dbUser?.plan || 'free'
+          if (meta.username) {
+            const dbUser = await prisma.user.findUnique({
+              where: { username: meta.username },
+              select: { plan: true }
+            })
+            token.plan = dbUser?.plan || 'free'
+          } else {
+            token.plan = token.plan || 'free'
+          }
         }
-        console.log("👤 JWT에 사용자 정보 추가:", {
+        authDebug("👤 JWT에 사용자 정보 추가:", {
           id: token.id,
           username: token.username,
           role: token.role,
@@ -308,36 +342,10 @@ export const authOptions: NextAuthOptions = {
             select: { id: true, role: true, email: true, plan: true }
           })
           if (dbUser) {
-            let effectiveRole = dbUser.role
-
-            // 슈퍼 관리자가 없는 경우 현재 사용자를 승격해 접근 차단을 방지
-            if (effectiveRole !== 'super_admin') {
-              const existingSuperAdmin = await prisma.user.findFirst({
-                where: {
-                  role: 'super_admin',
-                  NOT: { id: dbUser.id }
-                },
-                select: { id: true }
-              })
-
-              if (!existingSuperAdmin) {
-                const promoted = await prisma.user.update({
-                  where: { id: dbUser.id },
-                  data: { role: 'super_admin' },
-                  select: { role: true }
-                })
-                effectiveRole = promoted.role
-                console.log('🚀 자동 슈퍼 관리자 승격:', {
-                  username: token.username,
-                  role: effectiveRole
-                })
-              }
-            }
-
-            token.role = effectiveRole
+            token.role = dbUser.role
             token.email = dbUser.email
             token.plan = dbUser.plan || 'free'
-            console.log("🔄 DB에서 최신 정보 업데이트:", {
+            authDebug("🔄 DB에서 최신 정보 업데이트:", {
               role: token.role,
               email: token.email,
               plan: token.plan
@@ -348,7 +356,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
-      console.log("🎫 JWT callback 완료:", {
+      authDebug("🎫 JWT callback 완료:", {
         id: token.id,
         username: token.username,
         role: token.role
@@ -356,7 +364,7 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
-      console.log("📱 Session callback 시작:", {
+      authDebug("📱 Session callback 시작:", {
         sessionUser: !!session?.user,
         tokenId: token.id,
         tokenUsername: token.username
@@ -376,7 +384,7 @@ export const authOptions: NextAuthOptions = {
           session.user.plan = token.plan
         }
 
-        console.log("📱 Session 정보 설정:", {
+        authDebug("📱 Session 정보 설정:", {
           id: session.user.id,
           username: session.user.username,
           role: session.user.role,
@@ -384,7 +392,7 @@ export const authOptions: NextAuthOptions = {
         })
       }
       
-      console.log("📱 Session callback 완료")
+      authDebug("📱 Session callback 완료")
       return session
     }
   },

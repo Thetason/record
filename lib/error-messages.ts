@@ -18,7 +18,7 @@ export const errorMessages: Record<string, string> = {
   'Invalid file type': '지원하지 않는 파일 형식입니다.',
   
   // 리뷰 관련
-  'Review limit exceeded': '무료 플랜의 리뷰 한도(50개)를 초과했습니다.',
+  'Review limit exceeded': '무료 플랜의 리뷰 한도(20개)를 초과했습니다.',
   'Duplicate review': '이미 등록된 리뷰입니다.',
   'Review not found': '리뷰를 찾을 수 없습니다.',
   'Invalid review data': '리뷰 정보가 올바르지 않습니다.',
