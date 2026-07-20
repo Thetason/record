@@ -86,3 +86,7 @@ test-*.js
 *.tmp
 temp/
 tmp/
+
+# Local session/cookie files (curl login jars, etc.)
+cookies.txt
+*.cookies
