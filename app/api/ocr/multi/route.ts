@@ -58,7 +58,13 @@ export async function POST(req: NextRequest) {
       images.push({ base64: normalized.toString('base64'), mediaType: 'image/png' })
     }
 
-    const { reviews, engine } = await extractReviewsFromImages(images)
+    const { reviews, engine, model, usage } = await extractReviewsFromImages(images)
+
+    if (usage) {
+      console.log(
+        `multi OCR ok: model=${model} images=${images.length} reviews=${reviews.length} in=${usage.inputTokens} out=${usage.outputTokens}`
+      )
+    }
 
     return NextResponse.json({ success: true, engine, count: reviews.length, reviews })
   } catch (error) {
@@ -67,6 +73,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: '리뷰 자동 인식이 아직 설정되지 않았습니다. 관리자에게 문의해주세요.' },
         { status: 503 }
+      )
+    }
+    if (message === 'VISION_REFUSED') {
+      return NextResponse.json(
+        { success: false, error: '이 이미지는 자동 인식이 어려워요. 리뷰 화면만 담기게 다시 캡처해 주세요.' },
+        { status: 422 }
       )
     }
     console.error('multi OCR failed:', error)

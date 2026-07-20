@@ -17,7 +17,8 @@
 2026-07-03 세션에서 추가/수정된 코드(미커밋·미배포):
 - 가입 크래시 버그 수정(avatar 이니셜→next/image), Lemon USD 체크아웃 기본 비활성화(컨시어지 라우팅), metadataBase, 취약점 축소.
 - 리뷰 한 번에 가져오기: `lib/claude-vision.ts`(Claude 비전 다중 추출) · `lib/review-platforms.ts`(플랫폼별 해부 프로필: 네이버·카카오·당근·숨고·크몽·DM) · `app/api/ocr/multi` · `app/api/reviews/import` · `app/dashboard/import/page.tsx`.
-- 배포 전 필수: 프로덕션에 `ANTHROPIC_API_KEY`(비용 절감 시 `ANTHROPIC_VISION_MODEL=claude-haiku-4-5`), prod DB에 `scripts/fix-legacy-avatar-initials.ts` 실행. GitHub 원격은 2026-03-04 이후 미푸시.
+- 2026-07-20 모델 실측(상세: AUTO_IMPORT_STRATEGY): 기본 모델 = **claude-fable-5**(열화 캡처에서 본문 정합 100%, opus는 81~84%로 환각). haiku는 한글 붕괴로 금지. 폴백: refusal→opus 서버사이드, 조직 400→opus 클라이언트 재시도. 재검증은 `scripts/test-vision-extract.ts`.
+- 배포 전 필수: 프로덕션에 `ANTHROPIC_API_KEY` 세팅, prod DB에 `scripts/fix-legacy-avatar-initials.ts` 실행.
 
 ---
 

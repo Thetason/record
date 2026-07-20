@@ -107,15 +107,16 @@ const PROFILES: PlatformProfile[] = [
 
 const GENERAL_PROFILE = '기타 플랫폼: 별점이 보이면 1~5로, 없으면 null. 작성자 닉네임과 본문을 중심으로 추출하고 UI/광고/답글은 제외한다.'
 
+// Longest-alias-first so "카카오톡"(DM) doesn't get swallowed by "카카오"(맵).
+const ALIAS_INDEX: Array<{ alias: string; id: PlatformId }> = PROFILES.flatMap((p) =>
+  p.aliases.map((a) => ({ alias: a.toLowerCase(), id: p.id }))
+).sort((a, b) => b.alias.length - a.alias.length)
+
 export function normalizePlatform(raw: string | null | undefined): PlatformId {
   const s = (raw || '').trim().toLowerCase()
   if (!s) return '기타'
-  for (const p of PROFILES) {
-    if (p.aliases.some((a) => s.includes(a.toLowerCase()))) {
-      return p.id
-    }
-  }
-  return '기타'
+  const hit = ALIAS_INDEX.find(({ alias }) => s.includes(alias))
+  return hit ? hit.id : '기타'
 }
 
 // Assembled anatomy guide injected into the extraction system prompt.

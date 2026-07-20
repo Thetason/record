@@ -24,7 +24,13 @@ export type ExtractedReview = {
   confidence: number // 0..1
 }
 
-const VISION_MODEL = process.env.ANTHROPIC_VISION_MODEL || 'claude-opus-4-8'
+// Default measured on fixtures/vision-captures (2026-07-20): clean captures
+// fable=opus 23/23, but on degraded captures (blur+jpeg, i.e. real messenger
+// re-compression) fable kept 100% content fidelity while opus paraphrased
+// blurred text (81~84% match). Review wording is the product's trust promise,
+// so fable-5 is the default; opus-4-8 is the automatic fallback.
+const VISION_MODEL = process.env.ANTHROPIC_VISION_MODEL || 'claude-fable-5'
+const FALLBACK_MODEL = 'claude-opus-4-8'
 
 // json_schema structured output — guarantees a parseable shape back.
 // (Range/length limits aren't expressible here, so they're enforced below.)
@@ -63,7 +69,9 @@ const EXTRACTION_SCHEMA = {
   required: ['reviews'],
 } as const
 
-const SYSTEM_PROMPT = `You extract customer reviews from Korean review screenshots for a reputation-portfolio product.
+// Exported so test harnesses (scripts/test-vision-extract.ts, model comparisons)
+// exercise the exact production prompt.
+export const SYSTEM_PROMPT = `You extract customer reviews from Korean review screenshots for a reputation-portfolio product.
 
 The image is usually a long scroll-capture that may contain MANY separate reviews, and a single upload can even mix platforms (네이버, 카카오, 당근, 숨고, 크몽, 인스타/카톡 DM). Each platform lays reviews out differently — FIRST identify which platform each review is from (by its logo, colors, and layout), THEN apply that platform's rules below.
 
@@ -165,10 +173,17 @@ function mockReviews(): ExtractedReview[] {
   ]
 }
 
-export async function extractReviewsFromImages(images: VisionImage[]): Promise<{
+export type ExtractionResult = {
   reviews: ExtractedReview[]
   engine: 'claude' | 'mock'
-}> {
+  model?: string
+  usage?: { inputTokens: number; outputTokens: number }
+}
+
+export async function extractReviewsFromImages(
+  images: VisionImage[],
+  modelOverride?: string
+): Promise<ExtractionResult> {
   const anthropic = getClient()
 
   if (!anthropic) {
@@ -178,29 +193,65 @@ export async function extractReviewsFromImages(images: VisionImage[]): Promise<{
     return { reviews: mockReviews(), engine: 'mock' }
   }
 
+  const model = modelOverride || VISION_MODEL
+
   const imageBlocks = images.map((img) => ({
     type: 'image' as const,
     source: { type: 'base64' as const, media_type: img.mediaType, data: img.base64 },
   }))
 
-  const response = await anthropic.messages.create({
-    model: VISION_MODEL,
-    max_tokens: 16000,
-    system: SYSTEM_PROMPT,
-    output_config: { format: { type: 'json_schema', schema: EXTRACTION_SCHEMA } },
-    messages: [
+  const userMessage = {
+    role: 'user' as const,
+    content: [
+      ...imageBlocks,
       {
-        role: 'user',
-        content: [
-          ...imageBlocks,
-          {
-            type: 'text',
-            text: '이 캡처들에서 모든 개별 리뷰를 스키마에 맞춰 추출하세요.',
-          },
-        ],
+        type: 'text' as const,
+        text: '이 캡처들에서 모든 개별 리뷰를 스키마에 맞춰 추출하세요.',
       },
     ],
-  })
+  }
+
+  // Fable 5: thinking is always on (omit the param) and safety classifiers can
+  // decline with stop_reason "refusal" — opt into the server-side fallback so a
+  // false-positive decline retries on Opus 4.8 within the same request.
+  const callModel = (m: string) => {
+    const isFable = m.startsWith('claude-fable') || m.startsWith('claude-mythos')
+    const base = {
+      model: m,
+      max_tokens: 16000,
+      system: SYSTEM_PROMPT,
+      output_config: { format: { type: 'json_schema' as const, schema: EXTRACTION_SCHEMA } },
+      messages: [userMessage],
+    }
+    return isFable
+      ? anthropic.beta.messages.create({
+          ...base,
+          betas: ['server-side-fallback-2026-06-01'],
+          fallbacks: [{ model: FALLBACK_MODEL }],
+        })
+      : anthropic.messages.create(base)
+  }
+
+  let response
+  try {
+    response = await callModel(model)
+  } catch (error) {
+    // Org-level 400s (e.g. fable requires 30-day retention; ZDR orgs are
+    // rejected) shouldn't kill the feature — retry once on the fallback model.
+    const canFallback = !modelOverride && model !== FALLBACK_MODEL
+    if (canFallback && error instanceof Anthropic.BadRequestError) {
+      console.warn(`vision model ${model} rejected (400); retrying with ${FALLBACK_MODEL}`)
+      response = await callModel(FALLBACK_MODEL)
+    } else {
+      throw error
+    }
+  }
+
+  if (response.stop_reason === 'refusal') {
+    // Whole fallback chain declined (or non-fable model refused) — surface as
+    // a retryable condition instead of silently returning zero reviews.
+    throw new Error('VISION_REFUSED')
+  }
 
   const textBlock = response.content.find((b) => b.type === 'text')
   const raw = textBlock && 'text' in textBlock ? textBlock.text : '{"reviews":[]}'
@@ -213,5 +264,13 @@ export async function extractReviewsFromImages(images: VisionImage[]): Promise<{
   }
 
   const reviews = sanitize((parsed as { reviews?: unknown }).reviews)
-  return { reviews, engine: 'claude' }
+  return {
+    reviews,
+    engine: 'claude',
+    model: response.model,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+  }
 }

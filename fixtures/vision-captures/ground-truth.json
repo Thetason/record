@@ -1,0 +1,87 @@
+{
+  "naver-scroll.png": {
+    "platform": "네이버",
+    "expectReviews": 3,
+    "traps": [
+      "키워드 태그 집계(레슨이 체계적이에요 42 등) 제외",
+      "사장님 답글 제외",
+      "더보기/탭 UI 제외"
+    ],
+    "reviews": [
+      {
+        "author": "민지언니",
+        "rating": 5,
+        "date": "2026-05-02",
+        "contentHint": "축가 준비로 8주"
+      },
+      {
+        "author": "노래하는곰",
+        "rating": 4,
+        "date": "2026-03-15",
+        "contentHint": "노래방에서 칭찬"
+      },
+      {
+        "author": "하이디",
+        "rating": null,
+        "date": null,
+        "contentHint": "입시 상담"
+      }
+    ]
+  },
+  "mixed-daangn-kmong.png": {
+    "platform": "당근+크몽 혼합",
+    "expectReviews": 4,
+    "traps": [
+      "당근 후기 rating=null(별점 지어내기 금지)",
+      "크몽 마스킹 닉네임 유지",
+      "전문가 답변 제외",
+      "구매옵션/집계(4.9) 제외"
+    ],
+    "reviews": [
+      {
+        "platform": "당근",
+        "author": "당근이웃22",
+        "rating": null,
+        "date": "2026-01-20",
+        "contentHint": "중고 마이크"
+      },
+      {
+        "platform": "당근",
+        "author": "상도동주민",
+        "rating": null,
+        "date": "2025-12-03",
+        "contentHint": "약속 시간"
+      },
+      {
+        "platform": "크몽",
+        "author": "ho****",
+        "rating": 5,
+        "date": "2026-02-11",
+        "contentHint": "오디션 곡"
+      },
+      {
+        "platform": "크몽",
+        "author": "si***2",
+        "rating": 4,
+        "date": "2026-01-28",
+        "contentHint": "두번째 구매"
+      }
+    ]
+  },
+  "kakao-dm.png": {
+    "platform": "카톡 DM",
+    "expectReviews": "1~2 (고객 말풍선만; 연속 말풍선 병합 허용)",
+    "traps": [
+      "내(노란) 말풍선 제외",
+      "단순 인사(\"감사합니다 쌤\") 단독 추출은 감점 아님이지만 리뷰 본문은 합격 말풍선이어야 함"
+    ],
+    "reviews": [
+      {
+        "author": "지현",
+        "rating": null,
+        "date": "2026-06-14",
+        "contentHint": "오디션 2차 합격"
+      }
+    ]
+  }
+}
