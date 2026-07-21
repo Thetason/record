@@ -150,7 +150,7 @@ const SHOWCASE_CAREER_CONTENT: Record<
       },
       {
         year: "2026",
-        title: "Re:cord로 신뢰 링크 운영",
+        title: "Re:cord 공개 프로필 운영",
         detail: "샵을 옮겨도 리뷰와 포트폴리오를 한 링크로 전달합니다."
       }
     ]
@@ -176,7 +176,7 @@ const SHOWCASE_CAREER_CONTENT: Record<
       },
       {
         year: "2026",
-        title: "Re:cord로 공개 신뢰 프로필 운영",
+        title: "Re:cord 공개 프로필 운영",
         detail: "리뷰, 포트폴리오, 문의 링크를 한 번에 전달합니다."
       }
     ]
