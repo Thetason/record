@@ -25,4 +25,7 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 export DATABASE_URL
 
+BLOB_READ_WRITE_TOKEN=$(grep -E '^BLOB_READ_WRITE_TOKEN=' .env.vercel.production.local | head -1 | cut -d= -f2- | tr -d '"')
+[ -n "$BLOB_READ_WRITE_TOKEN" ] && export BLOB_READ_WRITE_TOKEN
+
 exec npx tsx "scripts/$1"

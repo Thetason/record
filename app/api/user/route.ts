@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { ensureBlobUrl } from "@/lib/blob-storage"
 
 // GET - 사용자 정보 조회
 export async function GET() {
@@ -61,7 +62,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, username, bio, location, website, phone, avatar } = body
+    const { name, username, bio, location, website, phone } = body
+    // 클라이언트가 base64 데이터 URI를 보내면 Blob에 올리고 URL만 저장
+    const avatar = await ensureBlobUrl(body.avatar, 'avatar')
 
     // 사용자명 중복 확인 (본인 제외)
     if (username) {

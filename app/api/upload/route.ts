@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { hasBlobToken, uploadBufferToBlob } from '@/lib/blob-storage';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,26 +24,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '파일 크기는 5MB 이하여야 합니다' }, { status: 400 });
     }
 
-    // 파일을 Base64로 변환
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = `data:${file.type};base64,${buffer.toString('base64')}`;
+
+    // Vercel Blob에 업로드하고 URL만 저장한다 (base64를 DB에 넣으면 공개
+    // 페이지 SSR 페이로드가 수 MB로 부풀어 로딩이 느려진다). 토큰이 없는
+    // 로컬 환경에서만 base64로 폴백.
+    const contentType = file.type || 'image/jpeg';
+    const stored = hasBlobToken()
+      ? await uploadBufferToBlob(buffer, contentType, kind === 'portfolio' ? 'portfolio' : 'avatar')
+      : `data:${contentType};base64,${buffer.toString('base64')}`;
 
     if (kind === 'portfolio') {
       return NextResponse.json({
         success: true,
-        url: base64
+        url: stored
       });
     }
 
     await prisma.user.update({
       where: { email: session.user.email },
-      data: { avatar: base64 }
+      data: { avatar: stored }
     });
 
     return NextResponse.json({
       success: true,
-      avatar: base64
+      avatar: stored
     });
 
   } catch (error) {

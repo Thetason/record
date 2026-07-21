@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ensureBlobUrl } from '@/lib/blob-storage'
 
 const REVIEW_DEBUG = process.env.NODE_ENV !== 'production' && process.env.REVIEW_DEBUG === 'true'
 
@@ -127,7 +128,9 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    const { platform, business, content, author, rating, reviewDate, imageUrl, originalUrl, verifiedBy, isPublic } = body
+    const { platform, business, content, author, rating, reviewDate, originalUrl, verifiedBy, isPublic } = body
+    // 리뷰 캡처가 base64로 오면 Blob에 올리고 URL만 저장 (페이로드 다이어트)
+    const imageUrl = await ensureBlobUrl(body.imageUrl, 'review')
     const normalizedPlatform = typeof platform === 'string' ? platform.trim().toLowerCase() : ''
     const isDirectReview = normalizedPlatform === 're:cord'
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ensureBlobUrl, ensureBlobUrls } from '@/lib/blob-storage'
 
 const SAFE_REVIEW_SELECT = {
   id: true,
@@ -173,11 +174,19 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { 
-      name, username, profession, experience, bio, location, website, phone, avatar, isPublic,
-      theme, layout, bgImage, bgColor, accentColor, introVideo, customCss, portfolioImages, careerTimeline
+    const {
+      name, username, profession, experience, bio, location, website, phone, isPublic,
+      theme, layout, bgColor, accentColor, introVideo, customCss, portfolioImages, careerTimeline
     } = body
-    const safePortfolioImages = normalizePortfolioImages(portfolioImages)
+    // base64 데이터 URI로 도착한 이미지들은 Blob에 올리고 URL만 저장
+    // (base64를 DB에 넣으면 공개 페이지 SSR 페이로드가 수 MB로 커진다)
+    const avatar = await ensureBlobUrl(body.avatar, 'avatar')
+    const bgImage = await ensureBlobUrl(body.bgImage, 'cover')
+    const normalizedPortfolio = normalizePortfolioImages(portfolioImages)
+    const safePortfolioImages =
+      portfolioImages !== undefined
+        ? ((await ensureBlobUrls(normalizedPortfolio, 'portfolio')) ?? normalizedPortfolio)
+        : normalizedPortfolio
     const safeCareerTimeline = normalizeCareerTimeline(careerTimeline)
 
     // 사용자명 중복 확인 (본인 제외)
