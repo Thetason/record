@@ -90,3 +90,4 @@ tmp/
 # Local session/cookie files (curl login jars, etc.)
 cookies.txt
 *.cookies
+.env*
