@@ -19,6 +19,12 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        {/* Pretendard was already referenced in CSS but never actually loaded */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
         <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
           integrity="sha384-TiCUE00h+gopKjg4s1aOtQHOKBEgLQRZk/i6RnUWfxY7FdWaZW5fmZPNIPPeM37g"
           crossOrigin="anonymous"

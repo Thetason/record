@@ -238,8 +238,8 @@
 
 /* 폰트 설정 */
 body {
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 
-    'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
     'Malgun Gothic', sans-serif;
 }
 
@@ -261,7 +261,7 @@ body {
   --rc-border: #e8ebed;
   --rc-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
 
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', system-ui, 'Noto Sans KR', sans-serif;
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', system-ui, 'Noto Sans KR', sans-serif;
   color: var(--rc-ink);
   background: var(--rc-bg);
   -webkit-font-smoothing: antialiased;
@@ -495,3 +495,27 @@ body {
 .rc-link-primary .rc-link-sub { color: rgba(255,255,255,0.75); }
 
 .rc-panel { padding: 2px 0 4px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Landing safety net — same philosophy as .rc-rise: content must
+   never depend on JS to become visible. framer-motion SSRs its
+   enter states as inline opacity:0; if hydration/animation never
+   runs, this CSS animation force-reveals everything after 1.4s.
+   (CSS animations outrank inline styles while active; `forwards`
+   keeps the final visible state.) Decorative elements that are
+   MEANT to rest at opacity:0 must carry aria-hidden.
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes ld-safety {
+  to { opacity: 1; transform: none; }
+}
+html:not([data-ld-js]) main [style*="opacity:0"]:not([aria-hidden], [aria-hidden] *),
+html:not([data-ld-js]) main [style*="opacity: 0"]:not([aria-hidden], [aria-hidden] *) {
+  animation: ld-safety 0.6s ease 1.4s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-ld-js]) main [style*="opacity:0"]:not([aria-hidden], [aria-hidden] *),
+  html:not([data-ld-js]) main [style*="opacity: 0"]:not([aria-hidden], [aria-hidden] *) {
+    animation-delay: 0s;
+    animation-duration: 0.01s;
+  }
+}

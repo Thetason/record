@@ -10,6 +10,18 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "'Pretendard Variable'",
+          "Pretendard",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "'Apple SD Gothic Neo'",
+          "system-ui",
+          "'Noto Sans KR'",
+          "sans-serif",
+        ],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
