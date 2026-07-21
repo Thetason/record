@@ -100,8 +100,11 @@ GLOBAL RULES:
 
 let client: Anthropic | null = null
 function getClient(): Anthropic | null {
-  if (!process.env.ANTHROPIC_API_KEY) return null
-  if (!client) client = new Anthropic()
+  // Keys pasted into dashboards often pick up stray whitespace/newlines/quotes,
+  // which Anthropic rejects as "invalid x-api-key" — sanitize before use.
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim().replace(/^["']|["']$/g, '')
+  if (!apiKey) return null
+  if (!client) client = new Anthropic({ apiKey })
   return client
 }
 
