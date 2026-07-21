@@ -442,11 +442,18 @@ body {
 }
 .rc-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
 
-/* reveal */
-.rc-rise { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
-.rc-rise.is-in { opacity: 1; transform: none; }
+/* reveal — with a pure-CSS safety net: if JS/hydration is slow or blocked,
+   content still fades in on its own after 1.2s. is-in (added by JS) simply
+   takes over earlier. Content must never depend on JS to be visible. */
+.rc-rise {
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  animation: rc-safety 0.5s ease 1.2s forwards;
+}
+.rc-rise.is-in { opacity: 1; transform: none; animation: none; }
+@keyframes rc-safety { to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .rc-rise { opacity: 1; transform: none; transition: none; }
+  .rc-rise { opacity: 1; transform: none; transition: none; animation: none; }
   .rc-frame img { transition: none; }
 }
 
