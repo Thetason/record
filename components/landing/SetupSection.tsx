@@ -19,8 +19,8 @@ export function SetupSection({ launchOffer, isLoggedIn }: SetupSectionProps) {
   const steps = [
     {
       no: '01',
-      title: '스크린샷 가져오기',
-      body: `위에서 본 그 AI가 최대 ${launchOffer.ocrImportLimit}개까지 읽어 드립니다. 캡처만 올리면 끝.`,
+      title: '캡처 올리면 끝',
+      body: `위에서 본 그 AI가 최대 ${launchOffer.ocrImportLimit}개까지 읽어 드립니다. PC에서는 스크롤 캡처 도우미가 캡처까지 대신 찍어드려요.`,
       tint: 'from-[#fff4ef] to-white',
     },
     {

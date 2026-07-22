@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
+import { ScrollCaptureHelper } from "@/components/import/ScrollCaptureHelper"
 
 type ExtractedReview = {
   platform: string
@@ -44,14 +45,58 @@ export default function ImportPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [error, setError] = useState("")
 
-  const onPick = useCallback((picked: FileList | null) => {
-    if (!picked) return
-    const images = Array.from(picked)
-      .filter((f) => f.type.startsWith("image/"))
-      .slice(0, 5)
-    setFiles(images)
-    setError("")
+  // Every input path (picker, drag-drop, paste, scroll-capture helper)
+  // appends into one list, capped at the API's 5-image limit. Anything we
+  // can't take (non-images, overflow) is reported, never silently dropped.
+  const addFiles = useCallback(
+    (incoming: File[] | FileList | null) => {
+      if (!incoming) return
+      const picked = Array.from(incoming)
+      const images = picked.filter((f) => f.type.startsWith("image/"))
+
+      if (images.length === 0) {
+        if (picked.length > 0) {
+          setError(
+            "이미지 파일만 올릴 수 있어요. 아이폰 '전체 페이지' 캡처가 PDF로 저장됐다면, 이미지로 저장하거나 일반 캡처를 여러 장 올려주세요."
+          )
+        }
+        return
+      }
+
+      const room = Math.max(0, 5 - files.length)
+      const accepted = images.slice(0, room)
+      const dropped = images.length - accepted.length
+
+      if (accepted.length > 0) {
+        setFiles((prev) => [...prev, ...accepted].slice(0, 5))
+      }
+      setError("")
+      if (dropped > 0) {
+        toast({
+          title: "5장까지만 올릴 수 있어요",
+          description: `${dropped}장은 담지 못했어요. 먼저 인식하고 나서 이어서 올려주세요.`,
+        })
+      }
+    },
+    [files.length, toast]
+  )
+
+  const removeFile = useCallback((idx: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx))
   }, [])
+
+  // Desktop nicety: screenshots can be pasted straight from the clipboard.
+  useEffect(() => {
+    if (status !== "idle") return
+    const onPaste = (e: ClipboardEvent) => {
+      const images = Array.from(e.clipboardData?.files ?? []).filter((f) =>
+        f.type.startsWith("image/")
+      )
+      if (images.length > 0) addFiles(images)
+    }
+    document.addEventListener("paste", onPaste)
+    return () => document.removeEventListener("paste", onPaste)
+  }, [status, addFiles])
 
   const analyze = async () => {
     if (files.length === 0) return
@@ -87,7 +132,10 @@ export default function ImportPage() {
 
   const save = async () => {
     const chosen = rows.filter((r) => r.include && r.content.trim().length >= 4)
-    if (chosen.length === 0) return
+    if (chosen.length === 0) {
+      setError("저장할 수 있는 리뷰가 없어요. 선택한 리뷰의 내용이 4자 이상인지 확인해 주세요.")
+      return
+    }
     setStatus("saving")
     try {
       const res = await fetch("/api/reviews/import", {
@@ -139,14 +187,18 @@ export default function ImportPage() {
                 <p className="text-sm font-semibold text-gray-900">이렇게 캡처하세요</p>
                 <ol className="mt-2 space-y-1.5 text-sm leading-6 text-gray-700">
                   <li>1. 네이버·카카오·당근·숨고·크몽 등에서 <b>내 리뷰 목록 화면</b>을 엽니다.</li>
-                  <li>2. 휴대폰 <b>스크롤 캡처</b>(아이폰: 전체 페이지 · 삼성: 길게 캡처)로 리뷰가 많이 담기게 찍어요.</li>
-                  <li>3. 캡처 1~5장을 아래에 올리면 끝. 나머지는 저희가 정리합니다.</li>
+                  <li>2. 휴대폰은 <b>스크롤 캡처</b>(아이폰: 전체 페이지 → <b>이미지로 저장</b> · 삼성: 길게 캡처), PC는 아래 <b>스크롤 캡처 도우미</b>로 저희가 대신 찍어드려요.</li>
+                  <li>3. 캡처 1~5장을 올리면 끝. 붙여넣기(Ctrl+V)나 끌어다 놓기도 됩니다. 나머지는 저희가 정리합니다.</li>
                 </ol>
                 <p className="mt-3 text-xs leading-5 text-gray-500">
                   플랫폼마다 형식이 달라도 괜찮아요. 네이버·카카오·당근·숨고·크몽을 <b>섞어서 올려도</b> 각 리뷰가 어느 플랫폼인지 알아서 구분하고, 당근처럼 별점이 없는 후기는 별점 없이 그대로 가져옵니다.
                 </p>
               </CardContent>
             </Card>
+
+            <div className="mb-4">
+              <ScrollCaptureHelper onCaptured={addFiles} disabled={files.length >= 5} />
+            </div>
 
             <Card>
               <CardContent className="p-5">
@@ -155,7 +207,7 @@ export default function ImportPage() {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault()
-                    onPick(e.dataTransfer.files)
+                    addFiles(e.dataTransfer.files)
                   }}
                   className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center transition hover:border-[#FF6B35] hover:bg-[#FF6B35]/5"
                 >
@@ -167,7 +219,7 @@ export default function ImportPage() {
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={(e) => onPick(e.target.files)}
+                    onChange={(e) => { addFiles(e.target.files); e.target.value = "" }}
                   />
                 </div>
 
@@ -176,8 +228,19 @@ export default function ImportPage() {
                     <p className="mb-2 text-sm text-gray-700">{files.length}장 선택됨</p>
                     <div className="flex flex-wrap gap-2">
                       {files.map((f, i) => (
-                        <span key={i} className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+                        <span
+                          key={`${f.name}-${i}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600"
+                        >
                           {f.name.length > 20 ? f.name.slice(0, 20) + "…" : f.name}
+                          <button
+                            type="button"
+                            aria-label={`${f.name} 제거`}
+                            onClick={() => removeFile(i)}
+                            className="rounded-full text-gray-400 transition hover:text-rose-500"
+                          >
+                            ✕
+                          </button>
                         </span>
                       ))}
                     </div>

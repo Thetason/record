@@ -105,7 +105,7 @@ function dispatch(action: Action) {
 
 function toast(props: Omit<ToasterToast, "id">) {
   const id = Date.now().toString()
-  
+
   dispatch({
     type: "ADD_TOAST",
     toast: {
@@ -113,7 +113,22 @@ function toast(props: Omit<ToasterToast, "id">) {
       id,
     },
   })
-  
+
+  // Bridge to the event-based ToastContainer in the root layout — nothing
+  // renders this store directly, so without this every useToast() call was
+  // silently dropped.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("show-toast", {
+        detail: {
+          type: props.variant === "destructive" ? "error" : "success",
+          title: typeof props.title === "string" ? props.title : "",
+          message: typeof props.description === "string" ? props.description : "",
+        },
+      })
+    )
+  }
+
   return id
 }
 
