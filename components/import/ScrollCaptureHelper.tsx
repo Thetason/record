@@ -15,7 +15,10 @@ import { Button } from '@/components/ui/button'
 // Frames are handed to the parent as File objects so the existing upload
 // flow (5-image cap, /api/ocr/multi) stays the single source of truth.
 
-const MAX_FRAMES = 5
+// Generous safety bound (memory) — the user scrolls as much as they want and
+// we keep capturing new screens; the import page then processes them in
+// 5-image batches. Not a "5 at a time" limit anymore.
+const MAX_FRAMES = 60
 const SAMPLE_MS = 500
 const GRID = 24
 // Mean absolute grayscale difference (0-255 scale) thresholds:
@@ -232,8 +235,8 @@ export function ScrollCaptureHelper({
         PC로 보고 계시다면 — 캡처도 저희가 찍어드려요
       </p>
       <p className="mt-1 text-xs leading-5 text-gray-600">
-        리뷰가 열린 <b>브라우저 탭(또는 창)을 공유</b>하고, <b>한 화면씩 잠깐 멈추며</b> 내려주세요.
-        멈출 때마다 자동으로 찍고, 겹치는 장면은 걸러냅니다. (최대 {MAX_FRAMES}장)
+        리뷰가 열린 <b>브라우저 탭(또는 창)을 공유</b>하고, <b>한 화면씩 잠깐 멈추며</b> 끝까지 내려주세요.
+        멈출 때마다 자동으로 찍고 겹치는 장면은 걸러냅니다. 리뷰가 수백 개라도 <b>스크롤만</b> 하면 돼요.
       </p>
 
       {state !== 'capturing' && (
@@ -248,7 +251,7 @@ export function ScrollCaptureHelper({
         </Button>
       )}
       {state !== 'capturing' && disabled && (
-        <p className="mt-2 text-xs text-gray-500">업로드 목록이 5장으로 가득 찼어요. 아래에서 몇 장을 지우면 다시 캡처할 수 있어요.</p>
+        <p className="mt-2 text-xs text-gray-500">업로드 목록이 가득 찼어요. 먼저 인식한 뒤 이어서 캡처할 수 있어요.</p>
       )}
 
       {state === 'capturing' && (
@@ -259,7 +262,7 @@ export function ScrollCaptureHelper({
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
             </span>
             <p className="text-sm font-medium text-gray-800">
-              지켜보는 중 — 한 화면씩 멈추며 내려주세요 ({frameCount}/{MAX_FRAMES}장)
+              지켜보는 중 — 한 화면씩 멈추며 끝까지 내려주세요 (지금까지 {frameCount}장)
             </p>
           </div>
           <Button type="button" onClick={finish} variant="outline" size="sm" className="mt-3">

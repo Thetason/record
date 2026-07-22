@@ -76,8 +76,9 @@ export const apiLimits = {
   write: 30,       // 분당 30회
   upload: 10,      // 분당 10회
   
-  // OCR
-  ocr: 20,         // 분당 20회 (대량 업로드 지원)
+  // OCR — a 60-image scroll import is 12 batches; 40 leaves headroom for one
+  // full retry within the same minute without tripping the limit.
+  ocr: 40,         // 분당 40회 (대량 스크롤 캡처 배치 지원)
   
   // 결제
   payment: 5,      // 분당 5회

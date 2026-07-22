@@ -813,7 +813,7 @@ export default function ReviewsPage() {
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button asChild size="sm" className="bg-[#FF6B35] hover:bg-[#E55A2B]">
-                        <Link href="/dashboard/bulk-upload">리뷰 옮기기 시작</Link>
+                        <Link href="/dashboard/import">리뷰 옮기기 시작</Link>
                       </Button>
                     </div>
                   </div>
@@ -939,7 +939,7 @@ export default function ReviewsPage() {
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="h-9 text-xs md:text-sm">
-                    <Link href="/dashboard/bulk-upload">
+                    <Link href="/dashboard/import">
                       스크린샷으로 추가
                     </Link>
                   </Button>
@@ -1095,7 +1095,7 @@ export default function ReviewsPage() {
                         </Link>
                       </Button>
                       <Button asChild variant="outline">
-                        <Link href="/dashboard/bulk-upload">
+                        <Link href="/dashboard/import">
                           스크린샷으로 첫 후기 추가
                         </Link>
                       </Button>

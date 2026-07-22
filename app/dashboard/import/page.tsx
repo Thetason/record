@@ -25,6 +25,29 @@ type Row = ExtractedReview & { include: boolean }
 
 const PLATFORMS = ["네이버", "카카오", "당근", "숨고", "크몽", "인스타그램", "기타"]
 
+// Batch pipeline: capture as many screens as the user scrolls, then process
+// them 5-at-a-time (the OCR route's per-request cap, kept for accuracy) with
+// a small concurrency pool, dedupe boundary repeats, and save in 100-chunks.
+const MAX_IMAGES = 60
+const OCR_BATCH = 5
+const OCR_CONCURRENCY = 3
+const SAVE_CHUNK = 100
+
+// Only fold away boundary repeats — the SAME review captured twice in
+// overlapping scroll frames. That means every distinguishing field must match:
+// platform, author, rating, date, and the FULL normalized content. Masked
+// names ("김**") and short reviews ("감사합니다") from different customers keep
+// their own rows because their date/rating/content still differ. A 40-char
+// prefix (the old key) collapsed those into one — silent review loss.
+const dedupeKey = (r: ExtractedReview) =>
+  [
+    r.platform,
+    (r.author || "").trim(),
+    r.rating ?? "",
+    r.date ?? "",
+    r.content.replace(/\s+/g, ""),
+  ].join("|")
+
 // Platforms whose reviews normally have no star rating — so "별점 없음" is
 // correct, not a miss.
 const NO_RATING_PLATFORMS = new Set(["당근", "인스타그램"])
@@ -44,10 +67,12 @@ export default function ImportPage() {
   const [status, setStatus] = useState<"idle" | "analyzing" | "review" | "saving">("idle")
   const [rows, setRows] = useState<Row[]>([])
   const [error, setError] = useState("")
+  const [progress, setProgress] = useState({ done: 0, total: 0, reviews: 0 })
 
   // Every input path (picker, drag-drop, paste, scroll-capture helper)
-  // appends into one list, capped at the API's 5-image limit. Anything we
-  // can't take (non-images, overflow) is reported, never silently dropped.
+  // appends into one list, capped at MAX_IMAGES (60). The 5-image limit is
+  // per OCR request; analyze() batches this list into 5s. Anything we can't
+  // take (non-images, overflow) is reported, never silently dropped.
   const addFiles = useCallback(
     (incoming: File[] | FileList | null) => {
       if (!incoming) return
@@ -63,17 +88,17 @@ export default function ImportPage() {
         return
       }
 
-      const room = Math.max(0, 5 - files.length)
+      const room = Math.max(0, MAX_IMAGES - files.length)
       const accepted = images.slice(0, room)
       const dropped = images.length - accepted.length
 
       if (accepted.length > 0) {
-        setFiles((prev) => [...prev, ...accepted].slice(0, 5))
+        setFiles((prev) => [...prev, ...accepted].slice(0, MAX_IMAGES))
       }
       setError("")
       if (dropped > 0) {
         toast({
-          title: "5장까지만 올릴 수 있어요",
+          title: `한 번에 최대 ${MAX_IMAGES}장까지예요`,
           description: `${dropped}장은 담지 못했어요. 먼저 인식하고 나서 이어서 올려주세요.`,
         })
       }
@@ -102,26 +127,78 @@ export default function ImportPage() {
     if (files.length === 0) return
     setStatus("analyzing")
     setError("")
-    try {
-      const form = new FormData()
-      files.forEach((f) => form.append("images", f))
-      const res = await fetch("/api/ocr/multi", { method: "POST", body: form })
-      const data = await res.json()
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "리뷰 인식에 실패했습니다.")
+
+    // Split into 5-image batches (the OCR route's per-request cap) and run a
+    // few concurrently. Results are kept per-batch so the final list stays in
+    // scroll order regardless of which batch finishes first.
+    const batches: File[][] = []
+    for (let i = 0; i < files.length; i += OCR_BATCH) batches.push(files.slice(i, i + OCR_BATCH))
+    setProgress({ done: 0, total: batches.length, reviews: 0 })
+
+    const results: ExtractedReview[][] = batches.map(() => [])
+    let failed = 0
+    let liveCount = 0
+    let cursor = 0
+
+    const runOne = async (idx: number) => {
+      try {
+        const form = new FormData()
+        batches[idx].forEach((f) => form.append("images", f))
+        const res = await fetch("/api/ocr/multi", { method: "POST", body: form })
+        const data = await res.json()
+        if (res.ok && data.success && Array.isArray(data.reviews)) {
+          results[idx] = data.reviews
+          liveCount += data.reviews.length
+        } else {
+          failed++
+        }
+      } catch {
+        failed++
+      } finally {
+        setProgress((p) => ({ ...p, done: p.done + 1, reviews: liveCount }))
       }
-      const extracted: ExtractedReview[] = data.reviews || []
-      if (extracted.length === 0) {
-        setError("이미지에서 리뷰를 찾지 못했어요. 리뷰 목록이 잘 보이게 다시 캡처해 주세요.")
-        setStatus("idle")
-        return
-      }
-      setRows(extracted.map((r) => ({ ...r, include: true })))
-      setStatus("review")
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "리뷰 인식 중 오류가 발생했습니다.")
-      setStatus("idle")
     }
+
+    const worker = async () => {
+      while (cursor < batches.length) {
+        const idx = cursor++
+        await runOne(idx)
+      }
+    }
+    await Promise.all(
+      Array.from({ length: Math.min(OCR_CONCURRENCY, batches.length) }, () => worker())
+    )
+
+    // Flatten in scroll order, dropping reviews that repeat across overlapping
+    // captures (same platform + author + content prefix).
+    const seen = new Set<string>()
+    const collected: ExtractedReview[] = []
+    for (const batch of results) {
+      for (const r of batch) {
+        const key = dedupeKey(r)
+        if (seen.has(key)) continue
+        seen.add(key)
+        collected.push(r)
+      }
+    }
+
+    if (collected.length === 0) {
+      setError(
+        failed > 0
+          ? "리뷰 인식에 실패했어요. 잠시 후 다시 시도하거나 리뷰 화면이 잘 보이게 다시 캡처해 주세요."
+          : "이미지에서 리뷰를 찾지 못했어요. 리뷰 목록이 잘 보이게 다시 캡처해 주세요."
+      )
+      setStatus("idle")
+      return
+    }
+
+    setRows(collected.map((r) => ({ ...r, include: true })))
+    setError(
+      failed > 0
+        ? `${failed}개 묶음은 인식에 실패했어요. 확인된 ${collected.length}건은 아래에서 검토하세요.`
+        : ""
+    )
+    setStatus("review")
   }
 
   const update = (idx: number, patch: Partial<Row>) => {
@@ -137,34 +214,64 @@ export default function ImportPage() {
       return
     }
     setStatus("saving")
-    try {
-      const res = await fetch("/api/reviews/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reviews: chosen.map((r) => ({
-            platform: r.platform,
-            business: r.business,
-            author: r.author,
-            rating: r.rating,
-            date: r.date,
-            content: r.content.trim(),
-          })),
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "저장에 실패했습니다.")
+    const payload = chosen.map((r) => ({
+      platform: r.platform,
+      business: r.business,
+      author: r.author,
+      rating: r.rating,
+      date: r.date,
+      content: r.content.trim(),
+    }))
+    // The import route caps at 100 per call — send in 100-chunks, stopping
+    // early on plan limit. If a chunk fails AFTER earlier chunks committed, we
+    // must not leave the user to re-click save (that would re-insert the saved
+    // rows) — navigate to reviews with whatever landed instead.
+    let saved = 0
+    let truncated = false
+    let hardError = ""
+    for (let i = 0; i < payload.length; i += SAVE_CHUNK) {
+      try {
+        const res = await fetch("/api/reviews/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reviews: payload.slice(i, i + SAVE_CHUNK) }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success) {
+          if (res.status === 403) {
+            truncated = true
+            break
+          }
+          hardError = data.error || "저장에 실패했습니다."
+          break
+        }
+        saved += data.saved
+        if (data.truncated) {
+          truncated = true
+          break
+        }
+      } catch {
+        hardError = "저장 중 네트워크 오류가 발생했습니다."
+        break
       }
-      toast({
-        title: `${data.saved}개 리뷰를 가져왔어요`,
-        description: data.truncated ? "플랜 한도까지만 저장했어요." : "이제 대표 후기를 골라 공개하세요.",
-      })
-      router.push("/dashboard/reviews")
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "저장 중 오류가 발생했습니다.")
-      setStatus("review")
     }
+
+    if (saved === 0) {
+      setError(
+        hardError ||
+          "플랜 한도를 모두 사용해 저장하지 못했어요. 업그레이드 후 다시 시도해주세요."
+      )
+      setStatus("review")
+      return
+    }
+
+    const description = hardError
+      ? `일부는 저장에 실패했어요(${saved}개 저장됨). 대표 후기에서 확인하고 나머지는 다시 시도해 주세요.`
+      : truncated
+        ? "플랜 한도까지만 저장했어요."
+        : "이제 대표 후기를 골라 공개하세요."
+    toast({ title: `${saved}개 리뷰를 가져왔어요`, description })
+    router.push("/dashboard/reviews")
   }
 
   return (
@@ -188,7 +295,7 @@ export default function ImportPage() {
                 <ol className="mt-2 space-y-1.5 text-sm leading-6 text-gray-700">
                   <li>1. 네이버·카카오·당근·숨고·크몽 등에서 <b>내 리뷰 목록 화면</b>을 엽니다.</li>
                   <li>2. 휴대폰은 <b>스크롤 캡처</b>(아이폰: 전체 페이지 → <b>이미지로 저장</b> · 삼성: 길게 캡처), PC는 아래 <b>스크롤 캡처 도우미</b>로 저희가 대신 찍어드려요.</li>
-                  <li>3. 캡처 1~5장을 올리면 끝. 붙여넣기(Ctrl+V)나 끌어다 놓기도 됩니다. 나머지는 저희가 정리합니다.</li>
+                  <li>3. 스크롤한 만큼 <b>한 번에</b> 올리면 끝(최대 {MAX_IMAGES}장). 붙여넣기(Ctrl+V)나 끌어다 놓기도 됩니다. 나머지는 저희가 정리합니다.</li>
                 </ol>
                 <p className="mt-3 text-xs leading-5 text-gray-500">
                   플랫폼마다 형식이 달라도 괜찮아요. 네이버·카카오·당근·숨고·크몽을 <b>섞어서 올려도</b> 각 리뷰가 어느 플랫폼인지 알아서 구분하고, 당근처럼 별점이 없는 후기는 별점 없이 그대로 가져옵니다.
@@ -197,7 +304,7 @@ export default function ImportPage() {
             </Card>
 
             <div className="mb-4">
-              <ScrollCaptureHelper onCaptured={addFiles} disabled={files.length >= 5} />
+              <ScrollCaptureHelper onCaptured={addFiles} disabled={files.length >= MAX_IMAGES} />
             </div>
 
             <Card>
@@ -212,7 +319,7 @@ export default function ImportPage() {
                   className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center transition hover:border-[#FF6B35] hover:bg-[#FF6B35]/5"
                 >
                   <p className="text-sm font-medium text-gray-800">캡처 이미지를 여기에 올려주세요</p>
-                  <p className="mt-1 text-xs text-gray-500">클릭하거나 끌어다 놓기 · 최대 5장</p>
+                  <p className="mt-1 text-xs text-gray-500">클릭하거나 끌어다 놓기 · 최대 {MAX_IMAGES}장</p>
                   <input
                     ref={fileRef}
                     type="file"
@@ -264,7 +371,24 @@ export default function ImportPage() {
             <CardContent className="flex min-h-[240px] flex-col items-center justify-center p-8 text-center">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#FF6B35]" />
               <p className="mt-4 text-sm font-medium text-gray-800">리뷰를 읽고 있어요…</p>
-              <p className="mt-1 text-xs text-gray-500">캡처 한 장에서 여러 리뷰를 한 번에 정리하는 중입니다.</p>
+              {progress.total > 1 ? (
+                <>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {progress.done}/{progress.total} 묶음 처리 · 리뷰 <b>{progress.reviews}건</b> 추출
+                  </p>
+                  <div className="mt-4 h-2 w-full max-w-xs overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="h-full rounded-full bg-[#FF6B35] transition-all duration-300"
+                      style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[11px] text-gray-400">
+                    캡처를 5장씩 나눠 자동으로 처리하는 중이에요. 창을 닫지 말고 잠시만 기다려 주세요.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-xs text-gray-500">캡처 한 장에서 여러 리뷰를 한 번에 정리하는 중입니다.</p>
+              )}
             </CardContent>
           </Card>
         )}

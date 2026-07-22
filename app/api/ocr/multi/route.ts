@@ -46,19 +46,36 @@ export async function POST(req: NextRequest) {
     }
 
     const images: VisionImage[] = []
+    let skipped = 0
     for (const file of files) {
-      const input = Buffer.from(await file.arrayBuffer())
-      // Normalize to PNG and bound the long edge so Claude vision sees a clean,
-      // reasonably-sized image regardless of the phone's capture format.
-      const normalized = await sharp(input)
-        .rotate()
-        .resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
-        .png()
-        .toBuffer()
-      images.push({ base64: normalized.toString('base64'), mediaType: 'image/png' })
+      try {
+        const input = Buffer.from(await file.arrayBuffer())
+        // Normalize to PNG and bound the long edge so Claude vision sees a clean,
+        // reasonably-sized image regardless of the phone's capture format.
+        const normalized = await sharp(input)
+          .rotate()
+          .resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
+          .png()
+          .toBuffer()
+        images.push({ base64: normalized.toString('base64'), mediaType: 'image/png' })
+      } catch {
+        // One unreadable frame (e.g. HEIC, truncated capture) must not sink the
+        // other good images in the same batch — skip it and keep going.
+        skipped++
+      }
+    }
+
+    if (images.length === 0) {
+      return NextResponse.json(
+        { success: false, error: '이미지를 읽을 수 없어요. PNG·JPG로 캡처해 다시 올려주세요.' },
+        { status: 400 }
+      )
     }
 
     const { reviews, engine, model, usage } = await extractReviewsFromImages(images)
+    if (skipped > 0) {
+      console.log(`multi OCR: skipped ${skipped} unreadable image(s), processed ${images.length}`)
+    }
 
     if (usage) {
       console.log(
