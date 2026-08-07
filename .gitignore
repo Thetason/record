@@ -91,3 +91,6 @@ tmp/
 cookies.txt
 *.cookies
 .env*
+
+# synthetic benchmark fixtures — regenerate with scripts/make-scale-fixtures.mjs
+fixtures/scale/

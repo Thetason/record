@@ -18,12 +18,15 @@ import { Button } from '@/components/ui/button'
 // Generous safety bound (memory) — the user scrolls as much as they want and
 // we keep capturing new screens; the import page then processes them in
 // 5-image batches. Not a "5 at a time" limit anymore.
-const MAX_FRAMES = 60
-const SAMPLE_MS = 500
-const GRID = 24
-// Mean absolute grayscale difference (0-255 scale) thresholds:
-const STABLE_BELOW = 2.5 // current vs previous sample → view has settled
-const NEW_CONTENT_ABOVE = 10 // current vs captured frames → scrolled far enough
+const MAX_FRAMES = 120
+const SAMPLE_MS = 300
+const GRID = 32
+// Mean absolute grayscale difference (0-255 scale). We capture WHILE the user
+// scrolls (no pause required): whenever the current frame has advanced past
+// every already-captured frame by this much, grab it. Tuned for roughly one
+// capture per viewport of scroll — dense enough for full coverage (with slight
+// overlap that OCR dedupes) without burning the 120-frame budget too fast.
+const NEW_CONTENT_ABOVE = 8
 
 type HelperState = 'hidden' | 'idle' | 'capturing' | 'done'
 
@@ -108,6 +111,35 @@ export function ScrollCaptureHelper({
   const finish = useCallback(() => {
     if (finishedRef.current) return
     finishedRef.current = true
+
+    // Grab the final resting screen before stopping the stream, so the very
+    // bottom of the scroll is always included even if the last bit of movement
+    // didn't cross the capture threshold. (A near-duplicate here is harmless —
+    // OCR dedupes on the extracted reviews.)
+    const video = videoRef.current
+    if (video && video.videoWidth > 0 && framesRef.current.length < MAX_FRAMES) {
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.drawImage(video, 0, 0)
+        const gen = genRef.current
+        canvas.toBlob(
+          (blob) => {
+            if (blob && gen === genRef.current) {
+              framesRef.current = [
+                ...framesRef.current,
+                new File([blob], `scroll-capture-final.jpg`, { type: 'image/jpeg' }),
+              ]
+            }
+          },
+          'image/jpeg',
+          0.85
+        )
+      }
+    }
+
     cleanup()
     // JPEG encoding (toBlob) is async — give in-flight frames a beat to land.
     finishTimerRef.current = window.setTimeout(() => {
@@ -118,9 +150,9 @@ export function ScrollCaptureHelper({
         setNote(`캡처 ${frames.length}장을 업로드 목록으로 보냈어요. 아래에서 "리뷰 인식하기"를 누르면 끝!`)
       } else {
         setState('idle')
-        setNote('캡처된 화면이 없어요. 공유를 시작한 뒤, 리뷰 화면을 한 화면씩 멈추며 내려주세요.')
+        setNote('캡처된 화면이 없어요. 공유를 시작한 뒤 리뷰 화면을 천천히 끝까지 내려주세요.')
       }
-    }, 400)
+    }, 450)
   }, [cleanup, onCaptured])
 
   const captureFrame = useCallback((video: HTMLVideoElement, sig: Float32Array, gen: number) => {
@@ -207,14 +239,11 @@ export function ScrollCaptureHelper({
 
       const sig = frameSignature(video, work)
       if (!sig) return
-
-      const prev = prevSigRef.current
       prevSigRef.current = sig
-      if (!prev) return
 
-      const isStable = meanDiff(sig, prev) < STABLE_BELOW
-      if (!isStable) return
-
+      // Capture whenever the view has advanced past everything we've grabbed —
+      // this fires continuously as the user scrolls, no pause needed, and also
+      // skips re-capturing content when they scroll back up (matches an old sig).
       const isNewContent =
         capturedSigsRef.current.length === 0 ||
         capturedSigsRef.current.every((c) => meanDiff(sig, c) > NEW_CONTENT_ABOVE)
@@ -235,8 +264,8 @@ export function ScrollCaptureHelper({
         PC로 보고 계시다면 — 캡처도 저희가 찍어드려요
       </p>
       <p className="mt-1 text-xs leading-5 text-gray-600">
-        리뷰가 열린 <b>브라우저 탭(또는 창)을 공유</b>하고, <b>한 화면씩 잠깐 멈추며</b> 끝까지 내려주세요.
-        멈출 때마다 자동으로 찍고 겹치는 장면은 걸러냅니다. 리뷰가 수백 개라도 <b>스크롤만</b> 하면 돼요.
+        리뷰가 열린 <b>브라우저 탭(또는 창)을 공유</b>하고, <b>천천히 끝까지 스크롤</b>만 하세요.
+        내려가는 동안 자동으로 찍고 겹치는 장면은 걸러냅니다. 리뷰가 수백 개라도 스크롤만 하면 돼요.
       </p>
 
       {state !== 'capturing' && (
@@ -262,7 +291,7 @@ export function ScrollCaptureHelper({
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
             </span>
             <p className="text-sm font-medium text-gray-800">
-              지켜보는 중 — 한 화면씩 멈추며 끝까지 내려주세요 (지금까지 {frameCount}장)
+              찍는 중 — 천천히 끝까지 스크롤하세요 (지금까지 {frameCount}장)
             </p>
           </div>
           <Button type="button" onClick={finish} variant="outline" size="sm" className="mt-3">

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 export const runtime = 'nodejs'
-export const maxDuration = 60
+// Vision on several dense captures can run long; give it headroom (clamped to
+// the plan's max — 300 on Pro, 60 on Hobby — so this is safe either way).
+export const maxDuration = 300
 
 import { getServerSession } from 'next-auth'
 import sharp from 'sharp'

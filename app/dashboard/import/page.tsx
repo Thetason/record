@@ -29,7 +29,10 @@ const PLATFORMS = ["네이버", "카카오", "당근", "숨고", "크몽", "인�
 // them 5-at-a-time (the OCR route's per-request cap, kept for accuracy) with
 // a small concurrency pool, dedupe boundary repeats, and save in 100-chunks.
 const MAX_IMAGES = 60
-const OCR_BATCH = 5
+// 3 images per OCR request keeps each Claude vision call well under the
+// function timeout even on dense captures (~30 reviews/5-img request tips
+// past 60s; ~18/3-img request finishes comfortably).
+const OCR_BATCH = 3
 const OCR_CONCURRENCY = 3
 const SAVE_CHUNK = 100
 
