@@ -19,6 +19,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        {/* PWA manifest — enables the Android share-sheet shortcut (캡처 → 공유 → Re:cord) */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#191f28" />
         {/* Pretendard was already referenced in CSS but never actually loaded */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link

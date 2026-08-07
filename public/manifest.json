@@ -1,0 +1,26 @@
+{
+  "name": "Re:cord — 리뷰 신뢰 포트폴리오",
+  "short_name": "Re:cord",
+  "description": "흩어진 리뷰를 한 줄의 링크로",
+  "start_url": "/dashboard/import",
+  "display": "standalone",
+  "background_color": "#f2f4f6",
+  "theme_color": "#191f28",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "share_target": {
+    "action": "/api/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "images",
+          "accept": ["image/png", "image/jpeg", "image/webp", "image/*"]
+        }
+      ]
+    }
+  }
+}

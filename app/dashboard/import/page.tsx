@@ -23,7 +23,7 @@ type ExtractedReview = {
 
 type Row = ExtractedReview & { include: boolean }
 
-const PLATFORMS = ["네이버", "카카오", "당근", "숨고", "크몽", "인스타그램", "기타"]
+const PLATFORMS = ["네이버", "카카오", "당근", "숨고", "크몽", "구글", "인스타그램", "기타"]
 
 // Batch pipeline: capture as many screens as the user scrolls, then process
 // them 5-at-a-time (the OCR route's per-request cap, kept for accuracy) with
@@ -71,6 +71,81 @@ export default function ImportPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [error, setError] = useState("")
   const [progress, setProgress] = useState({ done: 0, total: 0, reviews: 0 })
+  const [googleReady, setGoogleReady] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  // The one-click Google card renders only when the server has OAuth env —
+  // harmless to ship before the Business Profile API application is approved.
+  useEffect(() => {
+    fetch("/api/google/status")
+      .then((r) => r.json())
+      .then((d) => setGoogleReady(Boolean(d.configured)))
+      .catch(() => {})
+  }, [])
+
+  // Android share-sheet arrival (?shared=<id>): claim the images the share
+  // target stashed in Blob, load them into the upload list, then purge.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("shared")
+    if (!id) return
+    window.history.replaceState({}, "", "/dashboard/import")
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/share-target?id=${id}`)
+        const data = await res.json()
+        const urls: string[] = Array.isArray(data.urls) ? data.urls : []
+        if (urls.length === 0) return
+        const fetched = await Promise.all(
+          urls.map(async (u, i) => {
+            const blob = await (await fetch(u)).blob()
+            const ext = blob.type.split("/")[1] || "png"
+            return new File([blob], `shared-${i + 1}.${ext}`, { type: blob.type })
+          })
+        )
+        addFiles(fetched)
+        toast({ title: `공유받은 캡처 ${fetched.length}장을 담았어요`, description: "아래에서 \"리뷰 인식하기\"를 누르면 끝!" })
+      } catch {
+        setError("공유받은 이미지를 불러오지 못했어요. 갤러리에서 직접 올려주세요.")
+      } finally {
+        fetch(`/api/share-target?id=${id}`, { method: "DELETE" }).catch(() => {})
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Returning from Google OAuth (?google=connected) → pull everything via the
+  // official API and drop straight into the same review/edit/save flow.
+  useEffect(() => {
+    const g = new URLSearchParams(window.location.search).get("google")
+    if (!g) return
+    window.history.replaceState({}, "", "/dashboard/import")
+    if (g !== "connected") {
+      setError(
+        g === "denied"
+          ? "구글 연결이 취소됐어요. 다시 시도하려면 버튼을 눌러주세요."
+          : "구글 연결에 실패했어요. 잠시 후 다시 시도해 주세요."
+      )
+      return
+    }
+    setGoogleLoading(true)
+    setStatus("analyzing")
+    fetch("/api/google/reviews")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.reviews) && d.reviews.length > 0) {
+          setRows(d.reviews.map((r: ExtractedReview) => ({ ...r, include: true })))
+          setStatus("review")
+        } else {
+          setError(d.error || "가져올 구글 리뷰를 찾지 못했어요.")
+          setStatus("idle")
+        }
+      })
+      .catch(() => {
+        setError("구글 리뷰를 불러오지 못했어요. 다시 연결해 주세요.")
+        setStatus("idle")
+      })
+      .finally(() => setGoogleLoading(false))
+  }, [])
 
   // Every input path (picker, drag-drop, paste, scroll-capture helper)
   // appends into one list, capped at MAX_IMAGES (60). The 5-image limit is
@@ -306,6 +381,24 @@ export default function ImportPage() {
               </CardContent>
             </Card>
 
+            {googleReady && (
+              <div className="mb-4 rounded-2xl border border-emerald-600/20 bg-emerald-50 p-5">
+                <p className="text-sm font-semibold text-gray-900">구글 리뷰는 캡처 없이 원클릭</p>
+                <p className="mt-1 text-xs leading-5 text-gray-600">
+                  내 구글 비즈니스 프로필을 연결하면 공식 API로 전체 리뷰를 한 번에 가져와요.
+                  휴대폰에서도 똑같이 됩니다.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-3 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => window.location.assign("/api/google/connect")}
+                >
+                  구글로 한 번에 가져오기
+                </Button>
+              </div>
+            )}
+
             <div className="mb-4">
               <ScrollCaptureHelper onCaptured={addFiles} disabled={files.length >= MAX_IMAGES} />
             </div>
@@ -373,8 +466,12 @@ export default function ImportPage() {
           <Card>
             <CardContent className="flex min-h-[240px] flex-col items-center justify-center p-8 text-center">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#FF6B35]" />
-              <p className="mt-4 text-sm font-medium text-gray-800">리뷰를 읽고 있어요…</p>
-              {progress.total > 1 ? (
+              <p className="mt-4 text-sm font-medium text-gray-800">
+                {googleLoading ? "구글에서 리뷰를 불러오는 중…" : "리뷰를 읽고 있어요…"}
+              </p>
+              {googleLoading ? (
+                <p className="mt-1 text-xs text-gray-500">공식 API로 전체 리뷰를 가져오고 있어요. 캡처는 필요 없습니다.</p>
+              ) : progress.total > 1 ? (
                 <>
                   <p className="mt-1 text-xs text-gray-500">
                     {progress.done}/{progress.total} 묶음 처리 · 리뷰 <b>{progress.reviews}건</b> 추출
