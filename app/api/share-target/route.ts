@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto'
 import { put, list, del } from '@vercel/blob'
 import { hasBlobToken } from '@/lib/blob-storage'
 import { baseUrl } from '@/lib/google-business'
+import { rateLimit, getIP, rateLimitResponse, apiLimits } from '@/lib/rate-limit'
 
 // Android PWA share target: "스크린샷 캡처 → 공유 → Re:cord" lands here as a
 // multipart POST from the OS share sheet. We stash the images briefly in Blob
@@ -16,10 +17,36 @@ import { baseUrl } from '@/lib/google-business'
 
 const MAX_SHARE_FILES = 20
 const PREFIX = 'record/share'
+const STALE_MS = 60 * 60 * 1000 // stashes older than an hour are abandoned
+
+const limiter = rateLimit({ interval: 60 * 1000, uniqueTokenPerInterval: 500 })
+
+// Best-effort GC: the normal path purges via DELETE once the import page has
+// claimed the files, but an abandoned (or hostile) stash would otherwise live
+// forever. Sweep old objects opportunistically on each share.
+async function sweepStale() {
+  try {
+    const { blobs } = await list({ prefix: `${PREFIX}/` })
+    const cutoff = Date.now() - STALE_MS
+    const stale = blobs.filter((b) => new Date(b.uploadedAt).getTime() < cutoff)
+    if (stale.length > 0) await del(stale.map((b) => b.url))
+  } catch {
+    // GC must never break the share flow
+  }
+}
 
 export async function POST(req: NextRequest) {
   const importUrl = `${baseUrl()}/dashboard/import`
   if (!hasBlobToken()) return NextResponse.redirect(importUrl, 303)
+
+  // Unauthenticated by necessity (the OS share sheet posts before we can see a
+  // session), so the per-IP cap is what stops cost-shaped abuse.
+  const clientIp = getIP(req) || 'unknown'
+  try {
+    await limiter.check(req, apiLimits.upload, `share_target_${clientIp}`)
+  } catch {
+    return rateLimitResponse(60)
+  }
 
   let form: FormData
   try {
@@ -49,6 +76,8 @@ export async function POST(req: NextRequest) {
       // skip the frame that failed; the rest still import
     }
   }
+
+  await sweepStale()
 
   if (stored === 0) return NextResponse.redirect(importUrl, 303)
   return NextResponse.redirect(`${importUrl}?shared=${id}`, 303)

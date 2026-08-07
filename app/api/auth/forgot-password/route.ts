@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { rateLimit, getIP, rateLimitResponse, apiLimits } from '@/lib/rate-limit'
 import crypto from 'crypto'
+
+const limiter = rateLimit({ interval: 60 * 1000, uniqueTokenPerInterval: 500 })
 
 export async function POST(req: NextRequest) {
   try {
+    // Without this, one known address can be mail-bombed and its reset token
+    // rotated on every call — which also invalidates the link the real owner
+    // is holding, blocking account recovery.
+    const clientIp = getIP(req) || 'unknown'
+    try {
+      await limiter.check(req, apiLimits.resetPassword, `forgot_pw_${clientIp}`)
+    } catch {
+      return rateLimitResponse(60)
+    }
+
     const { email } = await req.json()
 
     if (!email) {

@@ -13,6 +13,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Same policy as signup — otherwise a reset is a way around it.
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/
+    if (typeof password !== 'string' || !passwordRegex.test(password)) {
+      return NextResponse.json(
+        { error: '비밀번호는 영문과 숫자를 포함해 8자 이상이어야 합니다' },
+        { status: 400 }
+      )
+    }
+
     // 토큰으로 사용자 찾기
     const user = await prisma.user.findFirst({
       where: {
