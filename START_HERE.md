@@ -13,8 +13,14 @@
 
 - **애플급 랜딩 리디자인**(스캔 시네마) + Pretendard 실로드 수정 + JS-사망 대비 ld-safety 안전망
 - **가져오기 파이프라인 완성**: 스크롤 캡처 도우미(화면공유·스크롤 중 연속 캡처·최대 120장) + 자동 배치(3장/OCR요청·동시3·순서유지·중복제거·진행바) + 붙여넣기/드래그 + 전역 토스트 버그 수리 + 대시보드 라우팅 수정
-- **300건 합성 벤치마크**(scripts/make-scale-fixtures.mjs + bench-import.mjs): 추출 18/18/배치, 정밀도 95%, 함정 누출 0, ~40초/배치, 리뷰당 ~$0.0135(Fable 5)
-- **🚨 블로커: Anthropic API 크레딧 소진** — 충전 후 ① 300건 벤치 재실행 ② Fable 5 vs Sonnet 5 대결 → 손실 없으면 lib/claude-vision.ts 기본 모델을 claude-sonnet-5로 전환(원가 3~5배 절감). 선명 캡처에선 Fable=Opus 동률이었으므로 다운시프트 근거 충분.
+- **300건 합성 벤치마크**(scripts/make-scale-fixtures.mjs + bench-import.mjs): 추출 18/18/배치, 정밀도 95%, 함정 누출 0, ~40초/배치, 리뷰당 ~$0.0135(당시 Fable 5)
+- **기본 모델 = `claude-sonnet-5`** — 2026-08-10 창업자 비용 판정으로 fable-5에서 전환. 리뷰당 ~$0.0027, 2026-09-01부터 ~$0.0041. Sonnet 5의 $2/$10는 **도입가**이고 2026-08-31에 $3/$15로 오르니 절감폭은 5배가 아니라 **3.33배로 잡을 것**. 되돌리기는 `ANTHROPIC_VISION_MODEL=claude-fable-5` **+ 재배포**(모듈 스코프 const라 env만 바꾸면 실행 중 람다엔 안 먹음).
+- **🚨 이 전환은 미측정이다** — Sonnet 5의 열화 캡처 원문 보존은 한 번도 측정된 적이 없다(전환 근거는 비용). 크레딧 충전 후 ① 아래를 모델별로 돌려 본문을 눈으로 대조 ② 300건 벤치 재실행.
+  ```
+  npm run vision:ab -- --model claude-sonnet-5 fixtures/vision-captures/naver-scroll-degraded.jpg
+  npm run vision:ab -- --model claude-fable-5  fixtures/vision-captures/naver-scroll-degraded.jpg
+  ```
+  주의: ground-truth.json은 `contentHint` 부분문자열만 갖고 있어 **재현율은 채점해도 원문 보존은 채점 못 한다**. 열화 픽스처는 ground-truth 항목 자체가 없고 `make-vision-fixtures.mjs`로 재생성되지도 않는 수제 파일이다. 자동 판정을 원하면 문자 단위 diff 채점을 따로 만들어야 한다.
 - 테스트 계정 rc-import-test(pro 무제한) 살아있음 — 테스트 후 삭제해 런치오퍼 카운트 복구
 - 구글 원클릭 가져오기 절차: docs/GOOGLE_REVIEWS_ONE_CLICK_2026-07-22.md (창업자 폼 제출 대기)
 
@@ -28,7 +34,7 @@
 2026-07-03 세션에서 추가/수정된 코드(미커밋·미배포):
 - 가입 크래시 버그 수정(avatar 이니셜→next/image), Lemon USD 체크아웃 기본 비활성화(컨시어지 라우팅), metadataBase, 취약점 축소.
 - 리뷰 한 번에 가져오기: `lib/claude-vision.ts`(Claude 비전 다중 추출) · `lib/review-platforms.ts`(플랫폼별 해부 프로필: 네이버·카카오·당근·숨고·크몽·DM) · `app/api/ocr/multi` · `app/api/reviews/import` · `app/dashboard/import/page.tsx`.
-- 2026-07-20 모델 실측(상세: AUTO_IMPORT_STRATEGY): 기본 모델 = **claude-fable-5**(열화 캡처에서 본문 정합 100%, opus는 81~84%로 환각). haiku는 한글 붕괴로 금지. 폴백: refusal→opus 서버사이드, 조직 400→opus 클라이언트 재시도. 재검증은 `scripts/test-vision-extract.ts`.
+- 2026-07-20 모델 실측(상세: AUTO_IMPORT_STRATEGY): 열화 캡처에서 fable-5 본문 정합 100%, opus는 81~84%로 환각. haiku는 한글 붕괴로 금지(유효). **기본 모델은 2026-08-10 비용 판정으로 claude-sonnet-5로 바뀌었다 — 위 0-1절 참조.** 폴백: 조직 400→opus 클라이언트 재시도, refusal→opus 재시도(fable은 서버사이드, 그 외는 클라이언트). 재검증은 `npm run vision:ab`.
 - 배포 전 필수: 프로덕션에 `ANTHROPIC_API_KEY` 세팅, prod DB에 `scripts/fix-legacy-avatar-initials.ts` 실행.
 
 ---

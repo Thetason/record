@@ -89,7 +89,7 @@
 
 착지 파일:
 - `lib/review-platforms.ts` — 플랫폼 프로필(해부 지식·별점 유무·별칭 정규화·프롬프트 가이드 생성).
-- `lib/claude-vision.ts` — Claude 비전 다중 리뷰 추출(`claude-opus-4-8` 기본, `ANTHROPIC_VISION_MODEL`로 `claude-haiku-4-5` 등 저비용 교체 가능). 키 없으면 dev는 mock·prod는 503.
+- `lib/claude-vision.ts` — Claude 비전 다중 리뷰 추출(`claude-sonnet-5` 기본, `ANTHROPIC_VISION_MODEL`로 교체 가능 — 단 `claude-haiku-4-5`는 한글 붕괴로 금지). 키 없으면 dev는 mock·prod는 503.
 - `app/api/ocr/multi/route.ts` — 이미지 1~5장 → 구조화 리뷰 배열(sharp로 정규화).
 - `app/api/reviews/import/route.ts` — 확인된 리뷰 JSON 일괄 저장(비공개·owner_import·플랜 한도 적용).
 - `app/dashboard/import/page.tsx` — 캡처 안내 → 인식 → 신뢰도 배지 확인 그리드 → "전부 추가".
@@ -99,7 +99,9 @@
 
 **배포 전 필수:** 프로덕션에 `ANTHROPIC_API_KEY` 세팅(없으면 503).
 
-**모델 실측 비교(2026-07-20) — 기본값 = `claude-fable-5` (2라운드 승자):**
+> **2026-08-10 갱신 — 기본값은 이제 `claude-sonnet-5`다.** 아래 2026-07-20 실측은 그대로 유효하고 결론도 틀리지 않았지만, 창업자가 **비용을 이유로 판정을 뒤집었다**(당시 "비용 차이는 온보딩 1회당 수백 원"이라 기각했던 그 판단). fable-5 대비 3.33배 저렴($3/$15 vs $10/$50; 2026-08-31까지는 도입가 $2/$10라 5배). **Sonnet 5는 아래 2라운드(열화 캡처 원문 보존)를 한 번도 치르지 않았다** — 크레딧 충전 후 `npm run vision:ab`으로 반드시 측정할 것. 되돌리기는 `ANTHROPIC_VISION_MODEL=claude-fable-5` + 재배포.
+
+**모델 실측 비교(2026-07-20) — 당시 기본값 = `claude-fable-5` (2라운드 승자):**
 
 1라운드(깨끗한 캡처 3장, 함정 23개 체크):
 - `claude-fable-5` 23/23 · `claude-opus-4-8` 23/23 — 동점
@@ -111,7 +113,9 @@
 
 판정 근거: 리뷰 **원문 보존이 제품의 신뢰 약속**이고 실사용 캡처는 자주 열화됨 → 충실도 우선. 비용 차이는 온보딩 1회당 수백 원 수준. 폴백 사슬: fable 거부(refusal) 시 서버사이드로 opus 자동 재시도 + 조직 설정 400(ZDR 등) 시 클라이언트가 opus로 1회 재시도 → 어떤 조직 설정에서도 동작.
 
-재검증: `ANTHROPIC_API_KEY=... npx tsx scripts/test-vision-extract.ts [--model ...]` (픽스처 재생성: `node scripts/make-vision-fixtures.mjs`)
+재검증: `ANTHROPIC_API_KEY=... npm run vision:ab -- [--model ...] [이미지...]`
+
+⚠️ 이 하네스의 한계(2026-08-10 확인): `ground-truth.json`은 `contentHint` **부분문자열**만 갖고 있어 재현율과 함정 회피는 채점해도 **원문 보존은 채점하지 못한다**. 위 2라운드의 "정합 100% vs 81~84%" 수치는 이 파일에서 나온 게 아니라 수동 대조 결과다. 게다가 결정적 픽스처인 `naver-scroll-degraded.jpg`는 ground-truth 항목이 없고 `make-vision-fixtures.mjs`가 재생성하지도 않는 수제 파일이라, 재생성 명령을 돌리면 ground-truth만 덮어쓴다. 모델 비교는 출력된 본문을 사람이 직접 대조해야 한다.
 
 남은 개선(후순위): 짧은 화면 녹화 → 프레임 추출 파싱(v2), 기존 Google Vision 단건 경로와의 통합/정리.
 

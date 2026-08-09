@@ -3,7 +3,14 @@
 // capture images — use this to verify accuracy before/after model changes.
 //
 // Usage:
-//   ANTHROPIC_API_KEY=sk-... npx tsx scripts/test-vision-extract.ts [--model claude-fable-5] [image.png ...]
+//   ANTHROPIC_API_KEY=sk-... npm run vision:ab -- [--model claude-sonnet-5] [image.png ...]
+//
+// Model A/B: run it once per model and diff the printed bodies. The decisive
+// image is fixtures/vision-captures/naver-scroll-degraded.jpg — clean captures
+// have never separated models, degraded ones have.
+// NOTE: ground-truth.json has no entry for the degraded fixture and stores only
+// `contentHint` substrings, so it verifies recall and trap avoidance, NOT
+// verbatim fidelity. Comparing fidelity is still a human read of the bodies.
 //
 // With no image args, runs the bundled fixtures in fixtures/vision-captures/
 // and prints results next to their ground truth.
@@ -72,7 +79,9 @@ async function main() {
         `  [${r.platform}/${r.reviewType || '-'}] rating=${r.rating ?? 'null'} date=${r.date ?? 'null'} ` +
           `author=${JSON.stringify(r.author)} conf=${r.confidence.toFixed(2)}`
       )
-      console.log(`    ${r.content.slice(0, 72)}${r.content.length > 72 ? '…' : ''}`)
+      // Full body, not a preview: the point of a model A/B here is catching
+      // paraphrase, and truncating hides exactly the divergence being looked for.
+      console.log(`    ${r.content}`)
     }
 
     const gt = groundTruth?.[basename(imagePath)]

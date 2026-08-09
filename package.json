@@ -25,6 +25,7 @@
     "lint": "next lint",
     "typecheck": "next typegen && tsc --noEmit",
     "ocr:fixtures": "tsx scripts/run-ocr-fixtures.ts",
+    "vision:ab": "tsx scripts/test-vision-extract.ts",
     "verify": "npm run lint && npm run build && npm run typecheck && npm run ocr:fixtures",
     "smoke:local": "tsx scripts/smoke-local.ts",
     "smoke:remote": "tsx scripts/smoke-remote.ts",

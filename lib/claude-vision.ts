@@ -24,13 +24,33 @@ export type ExtractedReview = {
   confidence: number // 0..1
 }
 
-// Default measured on fixtures/vision-captures (2026-07-20): clean captures
-// fable=opus 23/23, but on degraded captures (blur+jpeg, i.e. real messenger
-// re-compression) fable kept 100% content fidelity while opus paraphrased
-// blurred text (81~84% match). Review wording is the product's trust promise,
-// so fable-5 is the default; opus-4-8 is the automatic fallback.
-const VISION_MODEL = process.env.ANTHROPIC_VISION_MODEL || 'claude-fable-5'
+// Default is sonnet-5 by founder cost decision (2026-08-10): 3.33x cheaper than
+// fable-5 ($3/$15 vs $10/$50 per MTok; 5x while sonnet's $2/$10 introductory
+// rate runs, through 2026-08-31). The ratio is identical on input and output,
+// so this workload's image-heavy mix doesn't change the multiple.
+//
+// UNMEASURED RISK, stated so nobody mistakes this for a validated choice: the
+// 2026-07-20 comparison (fixtures/vision-captures) found clean captures
+// fable=opus 23/23, but on DEGRADED captures (blur+jpeg — a screenshot that has
+// been through a messenger) fable held 100% content fidelity while opus
+// paraphrased blurred text into different words (81~84% match). Verbatim review
+// wording is the product's trust promise. Sonnet 5 has never been measured on
+// that axis. When credits are back:
+//   npm run vision:ab -- --model claude-sonnet-5 fixtures/vision-captures/naver-scroll-degraded.jpg
+//   npm run vision:ab -- --model claude-fable-5   fixtures/vision-captures/naver-scroll-degraded.jpg
+// and diff the printed bodies by hand — the fixtures score recall, not wording.
+//
+// Revert: set ANTHROPIC_VISION_MODEL=claude-fable-5 AND redeploy — this is a
+// module-scope const read at cold start, so a Vercel env change alone does not
+// reach running lambdas.
+const VISION_MODEL = process.env.ANTHROPIC_VISION_MODEL || 'claude-sonnet-5'
 const FALLBACK_MODEL = 'claude-opus-4-8'
+
+// Fable/Mythos carry safety classifiers that can decline a request, and their
+// beta branch below rescues that in-request. Any other model needs the retry
+// done client-side — see the refusal handling in extractReviewsFromImages.
+const usesServerFallback = (m: string) =>
+  m.startsWith('claude-fable') || m.startsWith('claude-mythos')
 
 // json_schema structured output — guarantees a parseable shape back.
 // (Range/length limits aren't expressible here, so they're enforced below.)
@@ -218,7 +238,7 @@ export async function extractReviewsFromImages(
   // decline with stop_reason "refusal" — opt into the server-side fallback so a
   // false-positive decline retries on Opus 4.8 within the same request.
   const callModel = (m: string) => {
-    const isFable = m.startsWith('claude-fable') || m.startsWith('claude-mythos')
+    const isFable = usesServerFallback(m)
     const base = {
       model: m,
       max_tokens: 16000,
@@ -235,24 +255,42 @@ export async function extractReviewsFromImages(
       : anthropic.messages.create(base)
   }
 
+  // A model override pins the model (the A/B harness measures one model, not a
+  // chain), and the fallback can't fall back to itself.
+  const canFallback = !modelOverride && model !== FALLBACK_MODEL
+  let triedFallback = false
+
   let response
   try {
     response = await callModel(model)
   } catch (error) {
     // Org-level 400s (e.g. fable requires 30-day retention; ZDR orgs are
     // rejected) shouldn't kill the feature — retry once on the fallback model.
-    const canFallback = !modelOverride && model !== FALLBACK_MODEL
     if (canFallback && error instanceof Anthropic.BadRequestError) {
       console.warn(`vision model ${model} rejected (400); retrying with ${FALLBACK_MODEL}`)
+      triedFallback = true
       response = await callModel(FALLBACK_MODEL)
     } else {
       throw error
     }
   }
 
+  // Only the beta branch rescues a classifier false positive inside the request.
+  // Every other model needs the same rescue done here, or switching the default
+  // away from fable would silently delete it.
+  if (
+    response.stop_reason === 'refusal' &&
+    canFallback &&
+    !triedFallback &&
+    !usesServerFallback(model)
+  ) {
+    console.warn(`vision model ${model} refused; retrying with ${FALLBACK_MODEL}`)
+    response = await callModel(FALLBACK_MODEL)
+  }
+
   if (response.stop_reason === 'refusal') {
-    // Whole fallback chain declined (or non-fable model refused) — surface as
-    // a retryable condition instead of silently returning zero reviews.
+    // Declined by the primary and by the fallback — surface as a retryable
+    // condition instead of silently returning zero reviews.
     throw new Error('VISION_REFUSED')
   }
 
