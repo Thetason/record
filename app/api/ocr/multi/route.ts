@@ -100,6 +100,15 @@ export async function POST(req: NextRequest) {
         { status: 422 }
       )
     }
+    if (message === 'VISION_TRUNCATED') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '한 번에 읽기엔 리뷰가 너무 많았어요. 캡처를 더 짧게 잘라서 올리면 전부 가져올 수 있어요.',
+        },
+        { status: 422 }
+      )
+    }
     console.error('multi OCR failed:', error)
     return NextResponse.json(
       { success: false, error: '리뷰 인식 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' },

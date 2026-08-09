@@ -193,6 +193,17 @@ function mockReviews(): ExtractedReview[] {
       content: '결과물 만족도, 상담 모두 최고예요. 커리큘럼이 체계적이고 피드백이 구체적이라 좋았습니다.',
       confidence: 0.79,
     },
+    {
+      // A blurred read — the case the confirm grid must not auto-check.
+      platform: '네이버',
+      reviewType: '방문자리뷰',
+      business: '세타쓴 보컬레슨',
+      author: '이**',
+      rating: 4,
+      date: null,
+      content: '음역대가 좁아서 고민이었는데 두 달 만에 편하게 올라갑니다. 설명이 쉬워요.',
+      confidence: 0.41,
+    },
   ]
 }
 
@@ -292,6 +303,16 @@ export async function extractReviewsFromImages(
     // Declined by the primary and by the fallback — surface as a retryable
     // condition instead of silently returning zero reviews.
     throw new Error('VISION_REFUSED')
+  }
+
+  // max_tokens caps thinking + JSON together, so a dense capture can get cut
+  // off mid-object. The parse below would swallow that into an empty list and
+  // the route would answer 200 {success:true, count:0} — reviews lost while the
+  // user is told their capture had none. Truncated output is never complete, so
+  // fail loudly and let them split the capture.
+  if (response.stop_reason === 'max_tokens') {
+    console.warn(`vision output truncated at max_tokens (model=${response.model})`)
+    throw new Error('VISION_TRUNCATED')
   }
 
   const textBlock = response.content.find((b) => b.type === 'text')

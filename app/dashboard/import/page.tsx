@@ -55,9 +55,21 @@ const dedupeKey = (r: ExtractedReview) =>
 // correct, not a miss.
 const NO_RATING_PLATFORMS = new Set(["당근", "인스타그램"])
 
+// Below this the model is telling us it couldn't read the text cleanly, which
+// is exactly where a blurred capture gets rewritten into plausible-but-wrong
+// wording. Verbatim review text is the product's trust promise, so these start
+// unchecked — the user opts them in after reading, instead of opting out of a
+// misread they never looked at. Same threshold as the red "확인 필요" badge.
+const AUTO_INCLUDE_MIN_CONFIDENCE = 0.6
+
+const toRow = (r: ExtractedReview): Row => ({
+  ...r,
+  include: r.confidence >= AUTO_INCLUDE_MIN_CONFIDENCE,
+})
+
 function confidenceLabel(c: number): { text: string; className: string } {
   if (c >= 0.8) return { text: "높음", className: "bg-emerald-100 text-emerald-700" }
-  if (c >= 0.6) return { text: "보통", className: "bg-amber-100 text-amber-700" }
+  if (c >= AUTO_INCLUDE_MIN_CONFIDENCE) return { text: "보통", className: "bg-amber-100 text-amber-700" }
   return { text: "확인 필요", className: "bg-rose-100 text-rose-700" }
 }
 
@@ -143,7 +155,7 @@ export default function ImportPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.success && Array.isArray(d.reviews) && d.reviews.length > 0) {
-          setRows(d.reviews.map((r: ExtractedReview) => ({ ...r, include: true })))
+          setRows(d.reviews.map(toRow))
           setStatus("review")
         } else {
           setError(d.error || "가져올 구글 리뷰를 찾지 못했어요.")
@@ -227,6 +239,10 @@ export default function ImportPage() {
     let failed = 0
     let liveCount = 0
     let cursor = 0
+    // The route explains WHY a batch failed (refused, truncated, key missing) —
+    // keep the first one. Discarding it left the user with "try again later"
+    // for failures that retrying can never fix.
+    let reason = ""
 
     const runOne = async (idx: number) => {
       try {
@@ -239,6 +255,7 @@ export default function ImportPage() {
           liveCount += data.reviews.length
         } else {
           failed++
+          if (!reason && typeof data?.error === "string") reason = data.error
         }
       } catch {
         failed++
@@ -273,17 +290,17 @@ export default function ImportPage() {
     if (collected.length === 0) {
       setError(
         failed > 0
-          ? "리뷰 인식에 실패했어요. 잠시 후 다시 시도하거나 리뷰 화면이 잘 보이게 다시 캡처해 주세요."
+          ? reason || "리뷰 인식에 실패했어요. 잠시 후 다시 시도하거나 리뷰 화면이 잘 보이게 다시 캡처해 주세요."
           : "이미지에서 리뷰를 찾지 못했어요. 리뷰 목록이 잘 보이게 다시 캡처해 주세요."
       )
       setStatus("idle")
       return
     }
 
-    setRows(collected.map((r) => ({ ...r, include: true })))
+    setRows(collected.map(toRow))
     setError(
       failed > 0
-        ? `${failed}개 묶음은 인식에 실패했어요. 확인된 ${collected.length}건은 아래에서 검토하세요.`
+        ? `${failed}개 묶음은 인식에 실패했어요.${reason ? ` ${reason}` : ""} 확인된 ${collected.length}건은 아래에서 검토하세요.`
         : ""
     )
     setStatus("review")
@@ -294,6 +311,7 @@ export default function ImportPage() {
   }
 
   const selectedCount = rows.filter((r) => r.include).length
+  const uncertainCount = rows.filter((r) => r.confidence < AUTO_INCLUDE_MIN_CONFIDENCE).length
 
   const save = async () => {
     const chosen = rows.filter((r) => r.include && r.content.trim().length >= 4)
@@ -534,6 +552,13 @@ export default function ImportPage() {
                 전체 선택
               </button>
             </div>
+
+            {uncertainCount > 0 && (
+              <p className="mb-4 rounded-xl bg-amber-50 px-3.5 py-3 text-xs leading-5 text-amber-900">
+                글자가 흐릿해 <b>잘못 읽었을 수 있는 {uncertainCount}건</b>은 체크를 풀어뒀어요. 원문과
+                같은지 확인하고, 맞으면 직접 체크해 주세요.
+              </p>
+            )}
 
             <div className="space-y-3">
               {rows.map((r, idx) => {
