@@ -177,7 +177,7 @@ export default function SignupPage() {
         return
       }
 
-      router.push("/dashboard/profile?from=signup")
+      router.push("/dashboard/import?welcome=1")
     } catch (error) {
       console.error("Signup error:", error)
       const message = error instanceof Error ? error.message : "회원가입 중 오류가 발생했습니다"
@@ -246,7 +246,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-6 md:py-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#f2f4f6] px-4 py-6 md:py-8">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-4 md:mb-6">
@@ -259,9 +259,9 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <div className="border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-lg p-5 sm:p-6">
+        <div className="rounded-3xl bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="space-y-1 pb-4 md:pb-6">
-            <h1 className="text-xl sm:text-2xl font-semibold text-center">
+            <h1 className="text-2xl font-extrabold tracking-[-0.04em] text-[#191f28] text-center">
               회원가입
             </h1>
             <p className="text-center text-sm sm:text-base text-gray-600">
@@ -284,7 +284,7 @@ export default function SignupPage() {
           <div className="space-y-3 mb-6">
             <button
               type="button"
-              onClick={() => signIn('google', { callbackUrl: '/dashboard/profile?from=signup' })}
+              onClick={() => signIn('google', { callbackUrl: '/dashboard/import?welcome=1' })}
               className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors"
               disabled={isLoading}
             >
@@ -301,7 +301,7 @@ export default function SignupPage() {
             {false && (
               <button
                 type="button"
-                onClick={() => signIn('kakao', { callbackUrl: '/dashboard/profile?from=signup' })}
+                onClick={() => signIn('kakao', { callbackUrl: '/dashboard/import?welcome=1' })}
                 className="w-full flex items-center justify-center gap-3 bg-[#FEE500] hover:bg-[#FADA0A] text-[#191919] py-3 px-4 rounded-lg font-medium transition-colors"
                 disabled={isLoading}
               >
@@ -414,7 +414,7 @@ export default function SignupPage() {
                   className="absolute right-3 top-3 text-gray-500"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword ? "숨기기" : "보기"}
                 </button>
               </div>
               {fieldErrors.password && (
@@ -444,7 +444,7 @@ export default function SignupPage() {
                   className="absolute right-3 top-3 text-gray-500"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword ? "숨기기" : "보기"}
                 </button>
               </div>
               {fieldErrors.confirmPassword && (
@@ -681,7 +681,7 @@ export default function SignupPage() {
             </div>
 
             {/* 부드러운 안내 메시지 */}
-            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-4">
+            <div className="rounded-2xl border border-[#FFD9CF] bg-[#FFF4EF] p-4">
               <p className="text-xs text-gray-700 text-center">
                 💡 <strong>리코드는 신뢰를 기반으로 합니다</strong><br/>
                 <span className="text-gray-600">
@@ -692,7 +692,7 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              className="w-full bg-[#FF6B35] hover:bg-[#E55A2B] text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="w-full rounded-full bg-[#FF6B35] px-4 py-3.5 font-bold text-white shadow-[0_10px_28px_rgba(255,107,53,0.28)] transition hover:bg-[#E55A2B] disabled:opacity-50"
               disabled={isLoading}
             >
               {isLoading ? "계정 생성 중..." : "계정 만들기"}

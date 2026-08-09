@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
+  DownloadIcon,
   HomeIcon,
   PersonIcon,
   BarChartIcon,
@@ -136,6 +137,7 @@ export default function DashboardPage() {
 
   const checklist = useMemo(() => {
     const featuredReviews = stats?.overview.featuredReviews || 0
+    const totalReviews = stats?.overview.totalReviews || 0
 
     return [
       {
@@ -143,6 +145,12 @@ export default function DashboardPage() {
         done: Boolean(profile?.username),
         href: "/dashboard/profile",
         button: "사용자명 확인",
+      },
+      {
+        label: "기존 플랫폼 리뷰를 옮겨왔다",
+        done: totalReviews > 0,
+        href: "/dashboard/import",
+        button: "리뷰 가져오기",
       },
       {
         label: "소개 문장이 3초 안에 읽힌다",
@@ -182,10 +190,15 @@ export default function DashboardPage() {
 
   const sendActions = [
     {
+      title: "리뷰 가져오기",
+      description: "네이버·카카오·당근 캡처를 올리면 AI가 리뷰를 정리해 넣어드립니다.",
+      href: "/dashboard/import",
+      primary: true,
+    },
+    {
       title: "내 링크 복사",
       description: "상담 전 문자, 카톡, DM에 바로 보낼 링크를 복사합니다.",
       onClick: handleCopyProfileLink,
-      primary: true,
     },
     {
       title: "공유 화면 열기",
@@ -250,6 +263,7 @@ export default function DashboardPage() {
 
           <nav className="flex-1 space-y-2 px-4 py-6">
             <NavItem icon={<HomeIcon />} label="작업실" href="/dashboard" active />
+            <NavItem icon={<DownloadIcon />} label="리뷰 가져오기" href="/dashboard/import" />
             <NavItem icon={<PersonIcon />} label="내 링크" href="/dashboard/profile" />
             <NavItem icon={<BarChartIcon />} label="대표 후기" href="/dashboard/reviews" />
             <NavItem icon={<Share2Icon />} label="공유하기" href="/dashboard/share" />
@@ -416,13 +430,18 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-[#eadfd7] bg-[#fcfaf8] p-6 text-center">
-                      <p className="text-sm font-medium text-slate-900">아직 대표 후기가 없습니다.</p>
+                      <p className="text-sm font-medium text-slate-900">아직 후기가 없습니다.</p>
                       <p className="mt-2 text-sm leading-6 text-slate-600">
-                        먼저 3개만 정리해도 링크의 설득력이 확 달라집니다.
+                        네이버·카카오·당근에 흩어진 기존 리뷰를 먼저 옮겨오세요. 캡처만 올리면 AI가 정리해 드립니다.
                       </p>
-                      <Button className="mt-4 bg-[#FF6B35] hover:bg-[#E55A2B]" asChild>
-                        <Link href="/dashboard/share">리뷰 요청 링크 보내기</Link>
-                      </Button>
+                      <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                        <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]" asChild>
+                          <Link href="/dashboard/import">기존 리뷰 가져오기</Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                          <Link href="/dashboard/share">후기 요청 링크 보내기</Link>
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>

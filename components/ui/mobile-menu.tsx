@@ -74,7 +74,7 @@ export function MobileMenu({ session, status }: MobileMenuProps) {
                   <button
                     className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     onClick={() => {
-                      const section = document.getElementById('how-it-works')
+                      const section = document.getElementById('setup')
                       section?.scrollIntoView({ behavior: 'smooth' })
                       closeMenu()
                     }}

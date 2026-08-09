@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import Navigation from '@/components/Navigation'
+import { LandingNav } from '@/components/landing/LandingNav'
 import { Check, Loader2, ShieldCheck, Sparkles, Wrench } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -154,8 +154,8 @@ export default function PricingPage() {
 
   return (
     <>
-      <Navigation />
-      <div className="min-h-screen bg-[#F6F7F9] py-16 pt-24">
+      <LandingNav />
+      <div className="min-h-screen bg-[#f2f4f6] py-16 pt-28">
         <div className="mx-auto max-w-6xl px-4">
           <div className="rounded-3xl bg-white p-8 shadow-md md:p-12">
             <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -202,7 +202,7 @@ export default function PricingPage() {
                       남은 {launchOffer.remaining}자리 · 기존 플랫폼 리뷰는 스크린샷으로 최대 {launchOffer.ocrImportLimit}개까지 빠르게 가져와 첫 링크를 열 수 있습니다.
                     </p>
                   </div>
-                  <Link href={session ? '/dashboard/bulk-upload' : '/signup'}>
+                  <Link href={session ? '/dashboard/import' : '/signup'}>
                     <Button className="bg-[#FF6B35] hover:bg-[#E55A2B]">
                       {session ? '혜택으로 리뷰 옮기기' : '혜택으로 시작하기'}
                     </Button>

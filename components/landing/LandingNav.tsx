@@ -3,18 +3,24 @@
 import Link from 'next/link'
 import { motion, useMotionValueEvent, useScroll, useSpring } from 'framer-motion'
 import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 import type { Session } from 'next-auth'
 import { Button } from '@/components/ui/button'
 import { MobileMenu } from '@/components/ui/mobile-menu'
 import { SPRING } from './motion'
 
 type LandingNavProps = {
-  session: Session | null
-  status: 'authenticated' | 'loading' | 'unauthenticated'
-  onJumpTo: (id: string) => void
+  session?: Session | null
+  status?: 'authenticated' | 'loading' | 'unauthenticated'
+  // Present on the landing page (smooth-scrolls to a section). Off-landing the
+  // same items render as links back to the landing anchors.
+  onJumpTo?: (id: string) => void
 }
 
-export function LandingNav({ session, status, onJumpTo }: LandingNavProps) {
+export function LandingNav({ session: sessionProp, status: statusProp, onJumpTo }: LandingNavProps) {
+  const own = useSession()
+  const session = sessionProp !== undefined ? sessionProp : own.data
+  const status = statusProp ?? own.status
   const { scrollY, scrollYProgress } = useScroll()
   const progress = useSpring(scrollYProgress, { stiffness: 100, damping: 30 })
   const [hidden, setHidden] = useState(false)
@@ -53,20 +59,33 @@ export function LandingNav({ session, status, onJumpTo }: LandingNavProps) {
               <Link href="/pricing" className="text-[0.92rem] font-medium text-gray-600 transition-colors hover:text-gray-900">
                 요금 안내
               </Link>
-              <button
-                type="button"
-                className="text-[0.92rem] font-medium text-gray-600 transition-colors hover:text-gray-900"
-                onClick={() => onJumpTo('live-demo')}
-              >
-                실제 사용 화면
-              </button>
-              <button
-                type="button"
-                className="text-[0.92rem] font-medium text-gray-600 transition-colors hover:text-gray-900"
-                onClick={() => onJumpTo('setup')}
-              >
-                시작 방법
-              </button>
+              {onJumpTo ? (
+                <>
+                  <button
+                    type="button"
+                    className="text-[0.92rem] font-medium text-gray-600 transition-colors hover:text-gray-900"
+                    onClick={() => onJumpTo('live-demo')}
+                  >
+                    실제 사용 화면
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[0.92rem] font-medium text-gray-600 transition-colors hover:text-gray-900"
+                    onClick={() => onJumpTo('setup')}
+                  >
+                    시작 방법
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/#live-demo" className="text-[0.92rem] font-medium text-gray-600 transition-colors hover:text-gray-900">
+                    실제 사용 화면
+                  </Link>
+                  <Link href="/#setup" className="text-[0.92rem] font-medium text-gray-600 transition-colors hover:text-gray-900">
+                    시작 방법
+                  </Link>
+                </>
+              )}
             </div>
 
             <div className="hidden gap-2.5 md:flex">

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import Navigation from '@/components/Navigation'
+import { LandingNav } from '@/components/landing/LandingNav'
 import {
   BookOpenCheck,
   PlayCircle,
@@ -118,8 +118,8 @@ const launchBlocks = [
 export default function GuidePage() {
   return (
     <>
-      <Navigation />
-      <div className="min-h-screen bg-[#F6F7F9] py-16 pt-24">
+      <LandingNav />
+      <div className="min-h-screen bg-[#f2f4f6] py-16 pt-28">
         <div className="max-w-6xl mx-auto px-4 space-y-12">
         <section className="bg-white rounded-3xl shadow-md p-8 md:p-12">
           <Badge className="mb-4 w-fit bg-[#FF6B35]/10 text-[#FF6B35]">사용 가이드</Badge>

@@ -73,6 +73,16 @@ export default function ImportPage() {
   const [progress, setProgress] = useState({ done: 0, total: 0, reviews: 0 })
   const [googleReady, setGoogleReady] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [welcome, setWelcome] = useState(false)
+
+  // Signup lands here (?welcome=1) — first win is importing existing reviews,
+  // not filling out the profile form.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("welcome") === "1") {
+      setWelcome(true)
+      window.history.replaceState({}, "", "/dashboard/import")
+    }
+  }, [])
 
   // The one-click Google card renders only when the server has OAuth env —
   // harmless to ship before the Business Profile API application is approved.
@@ -353,17 +363,35 @@ export default function ImportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] px-4 py-8 md:px-8">
+    <div className="min-h-screen bg-[#f2f4f6] px-4 py-8 md:px-8">
       <div className="mx-auto max-w-3xl">
         <div className="mb-6">
-          <Link href="/dashboard/reviews" className="text-sm text-gray-500 hover:text-gray-700">
-            ← 대표 후기로 돌아가기
+          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700">
+            ← 작업실로 돌아가기
           </Link>
           <h1 className="mt-2 text-2xl font-bold text-gray-900">리뷰 한 번에 가져오기</h1>
           <p className="mt-1 text-sm text-gray-600">
             리뷰를 하나씩 찍지 마세요. 리뷰 화면을 쭉 스크롤 캡처해서 올리면, 여러 개를 한 번에 정리해 드려요.
           </p>
         </div>
+
+        {welcome && status === "idle" && (
+          <Card className="mb-4 border-[#FF6B35]/20 bg-[#FF6B35]/5">
+            <CardContent className="p-5">
+              <p className="text-sm font-bold text-gray-900">가입을 환영합니다 🎉</p>
+              <p className="mt-1.5 text-sm leading-6 text-gray-700">
+                첫 단계는 <b>흩어져 있던 기존 리뷰를 옮겨오는 것</b>이에요. 캡처만 올리면 AI가 작성자·별점·날짜까지
+                정리해 드립니다. 5분이면 프로필이 채워져요.
+              </p>
+              <Link
+                href="/dashboard/profile"
+                className="mt-3 inline-block text-xs font-semibold text-gray-500 underline hover:text-gray-700"
+              >
+                나중에 하고 프로필 먼저 꾸미기
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {status === "idle" && (
           <>
@@ -440,7 +468,7 @@ export default function ImportPage() {
                             type="button"
                             aria-label={`${f.name} 제거`}
                             onClick={() => removeFile(i)}
-                            className="rounded-full text-gray-400 transition hover:text-rose-500"
+                            className="-mr-1 rounded-full p-1.5 text-gray-400 transition hover:text-rose-500"
                           >
                             ✕
                           </button>
@@ -501,7 +529,7 @@ export default function ImportPage() {
               </p>
               <button
                 onClick={() => setRows((prev) => prev.map((r) => ({ ...r, include: true })))}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="rounded-lg px-3 py-2 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700"
               >
                 전체 선택
               </button>
@@ -514,12 +542,12 @@ export default function ImportPage() {
                   <Card key={idx} className={r.include ? "" : "opacity-50"}>
                     <CardContent className="p-4">
                       <div className="mb-3 flex items-center justify-between gap-2">
-                        <label className="flex items-center gap-2 text-sm">
+                        <label className="flex cursor-pointer items-center gap-2 py-2 text-sm">
                           <input
                             type="checkbox"
                             checked={r.include}
                             onChange={(e) => update(idx, { include: e.target.checked })}
-                            className="h-4 w-4 accent-[#FF6B35]"
+                            className="h-5 w-5 accent-[#FF6B35]"
                           />
                           <span className="text-gray-600">가져오기</span>
                         </label>
@@ -539,7 +567,7 @@ export default function ImportPage() {
                         <select
                           value={r.platform}
                           onChange={(e) => update(idx, { platform: e.target.value })}
-                          className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+                          className="rounded-lg border border-gray-200 px-2 py-2 text-base"
                         >
                           {PLATFORMS.map((p) => (
                             <option key={p} value={p}>
@@ -551,14 +579,14 @@ export default function ImportPage() {
                           value={r.author}
                           placeholder="작성자"
                           onChange={(e) => update(idx, { author: e.target.value })}
-                          className="h-9 text-sm"
+                          className="h-11 text-base"
                         />
                         <select
                           value={r.rating ?? ""}
                           onChange={(e) =>
                             update(idx, { rating: e.target.value ? Number(e.target.value) : null })
                           }
-                          className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+                          className="rounded-lg border border-gray-200 px-2 py-2 text-base"
                         >
                           <option value="">
                             {NO_RATING_PLATFORMS.has(r.platform) ? "별점 없음 (정상)" : "별점 없음"}
@@ -573,7 +601,7 @@ export default function ImportPage() {
                           value={r.date ?? ""}
                           placeholder="YYYY-MM-DD"
                           onChange={(e) => update(idx, { date: e.target.value || null })}
-                          className="h-9 text-sm"
+                          className="h-11 text-base"
                         />
                       </div>
 
@@ -581,7 +609,7 @@ export default function ImportPage() {
                         value={r.content}
                         onChange={(e) => update(idx, { content: e.target.value })}
                         rows={3}
-                        className="mt-2 text-sm"
+                        className="mt-2 text-base"
                       />
                     </CardContent>
                   </Card>

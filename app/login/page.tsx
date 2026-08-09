@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getProviders, signIn, type ClientSafeProvider } from "next-auth/react"
 import Link from "next/link"
@@ -13,8 +13,8 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 
 function LoginFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white/80 p-6 text-center text-sm text-gray-600 shadow-xl backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center bg-[#f2f4f6] px-4 py-8">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center text-sm text-gray-600 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
         로그인 화면을 불러오는 중입니다.
       </div>
     </div>
@@ -51,6 +51,14 @@ function LoginPageContent() {
     }
   }, [])
 
+  // Only ever redirect to an internal path — never to an attacker-supplied
+  // absolute URL (open-redirect).
+  const callbackUrl = useMemo(() => {
+    const raw = searchParams?.get('callbackUrl')
+    if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw
+    return '/dashboard'
+  }, [searchParams])
+
   useEffect(() => {
     if (!searchParams) return
 
@@ -84,7 +92,7 @@ function LoginPageContent() {
       if (result?.error) {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.')
       } else if (result?.ok) {
-        router.push('/dashboard')
+        router.push(callbackUrl)
       } else {
         setError('로그인 중 오류가 발생했습니다.')
       }
@@ -106,7 +114,7 @@ function LoginPageContent() {
     setInfo('')
     setOauthInFlight(true)
     try {
-      const response = await signIn(provider, { callbackUrl: '/dashboard' })
+      const response = await signIn(provider, { callbackUrl })
       if (response?.error) {
         const mapped = OAUTH_ERROR_MESSAGES[response.error] || '소셜 로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
         setError(mapped)
@@ -120,7 +128,7 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#f2f4f6] px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-4 md:mb-6">
           <Link href="/" className="inline-flex items-center gap-1 md:gap-2">
@@ -130,9 +138,9 @@ function LoginPageContent() {
           <p className="text-gray-600 mt-2 text-sm md:text-base">내 신뢰 페이지에 로그인하세요</p>
         </div>
 
-        <div className="border-0 shadow-xl bg-white/80 backdrop-blur-sm rounded-lg p-5 sm:p-6">
+        <div className="rounded-3xl bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="space-y-1 pb-4 md:pb-6 text-center">
-            <h1 className="text-xl sm:text-2xl font-semibold">로그인</h1>
+            <h1 className="text-2xl font-extrabold tracking-[-0.04em] text-[#191f28]">로그인</h1>
             <p className="text-sm sm:text-base text-gray-600">계정에 로그인하여 후기 자산과 공개 페이지를 관리하세요</p>
           </div>
 
@@ -144,7 +152,7 @@ function LoginPageContent() {
                 name="username"
                 type="text"
                 placeholder="아이디를 입력하세요"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                className="w-full rounded-xl border border-gray-200 bg-[#fbfbfc] p-3.5 text-base transition focus:border-[#FF6B35] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/20"
                 value={formData.username}
                 onChange={handleChange}
                 autoComplete="username"
@@ -161,7 +169,7 @@ function LoginPageContent() {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="비밀번호를 입력하세요"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-[#FF6B35]"
+                  className="w-full rounded-xl border border-gray-200 bg-[#fbfbfc] p-3.5 text-base transition focus:border-[#FF6B35] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/20"
                   value={formData.password}
                   onChange={handleChange}
                   autoComplete="current-password"
@@ -174,7 +182,7 @@ function LoginPageContent() {
                   onClick={() => setShowPassword((prev) => !prev)}
                   disabled={disableActions}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? '숨기기' : '보기'}
                 </button>
               </div>
             </div>
@@ -187,7 +195,7 @@ function LoginPageContent() {
 
             <button
               type="submit"
-              className="w-full bg-[#FF6B35] hover:bg-[#E55A2B] text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="w-full rounded-full bg-[#FF6B35] px-4 py-3.5 font-bold text-white shadow-[0_10px_28px_rgba(255,107,53,0.28)] transition hover:bg-[#E55A2B] disabled:opacity-50"
               disabled={disableActions}
             >
               {isLoading ? '로그인 중...' : '로그인'}
@@ -223,7 +231,7 @@ function LoginPageContent() {
             {hasGoogle && (
               <button
                 onClick={() => handleOAuthSignIn('google')}
-                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-3.5 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
                 disabled={disableActions}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -240,7 +248,7 @@ function LoginPageContent() {
             {false && hasKakao && (
               <button
                 onClick={() => handleOAuthSignIn('kakao')}
-                className="w-full flex items-center justify-center gap-3 bg-[#FEE500] hover:bg-[#FADA0A] text-[#191919] py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-3 rounded-full bg-[#FEE500] px-4 py-3.5 font-semibold text-[#191919] transition hover:bg-[#FADA0A] disabled:opacity-50"
                 disabled={disableActions}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

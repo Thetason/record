@@ -6,7 +6,8 @@ import {
   HomeIcon,
   PersonIcon,
   BarChartIcon,
-  Share1Icon
+  Share1Icon,
+  DownloadIcon,
 } from "@radix-ui/react-icons"
 
 export function MobileBottomNav() {
@@ -18,6 +19,11 @@ export function MobileBottomNav() {
       label: "홈",
       icon: HomeIcon,
       exact: true
+    },
+    {
+      href: "/dashboard/import",
+      label: "가져오기",
+      icon: DownloadIcon
     },
     {
       href: "/dashboard/profile",

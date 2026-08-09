@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { DEMO_PROFILE_BUILDERS } from "@/lib/demo-profiles"
 import { cache } from "react"
 import ProfileClient from "./ProfileClient"
 import { fetchPublicProfile, type FetchPublicProfileResult } from "@/lib/profile"
@@ -61,6 +62,17 @@ const getProfileResult = cache(async (username: string, incrementView: boolean):
     incrementView,
     includeDemoFallback: false
   })
+
+  // The landing links to /stylist-demo and /pilates-demo; serve the same demo
+  // data the landing renders so those links can't 404 when the seeded account
+  // is absent or private in an environment.
+  if (!result.ok && result.status === 404) {
+    const buildDemo = DEMO_PROFILE_BUILDERS[username.toLowerCase()]
+    if (buildDemo) {
+      const demo = buildDemo()
+      return { ok: true, profile: demo, normalizedUsername: demo.username, truncated: false }
+    }
+  }
 
   if (!result.ok && result.status === 404 && shouldUseLivePublicProfile(username)) {
     const liveProfile = await fetchLivePublicProfile(username)

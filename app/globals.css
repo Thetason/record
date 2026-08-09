@@ -377,7 +377,10 @@ body {
 .rc-rev-proof { margin-left: auto; display: inline-flex; gap: 12px; }
 .rc-rev-proof button, .rc-rev-proof a {
   font-size: 12px; font-weight: 600; color: var(--rc-accent);
-  background: none; border: none; cursor: pointer; text-decoration: none; padding: 0;
+  background: none; border: none; cursor: pointer; text-decoration: none;
+  /* These prove a review is real and are tapped on phones — keep the visual
+     density but give them a real 44px touch target. */
+  padding: 12px 4px; min-height: 44px; display: inline-flex; align-items: center;
 }
 .rc-rev-proof button:focus-visible, .rc-rev-proof a:focus-visible { outline: 2px solid var(--rc-accent); outline-offset: 2px; }
 

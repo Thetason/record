@@ -737,7 +737,7 @@ export default function ReviewsPage() {
                         <Link href="/dashboard/import">한 번에 가져오기</Link>
                       </Button>
                       <Button asChild size="sm" variant="outline" className="h-8 px-3 text-xs">
-                        <Link href="/dashboard/bulk-upload">한 장씩 / CSV</Link>
+                        <Link href="/dashboard/import">한 장씩 올리기</Link>
                       </Button>
                     </div>
                   </div>

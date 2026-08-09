@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Star } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PublicProfile } from '@/lib/profile'
 import { Button } from '@/components/ui/button'
 import { CountUp, Reveal, SPRING } from './motion'
@@ -65,7 +65,16 @@ export function LiveDemoSection({ profiles, activeAudience, onAudienceChange, on
   const platforms = useMemo(() => countPlatforms(profile.reviews), [profile])
   const verifiedCount = profile.reviews.filter((r) => r.verified).length
   const [showAll, setShowAll] = useState(false)
+  const [deckWidth, setDeckWidth] = useState(0)
   const deckRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = deckRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([entry]) => setDeckWidth(entry.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const visibleDesktop = reviews.slice(0, 6)
   const visibleMobile = showAll ? reviews : reviews.slice(0, 4)
@@ -189,8 +198,17 @@ export function LiveDemoSection({ profiles, activeAudience, onAudienceChange, on
                     <motion.div
                       className="flex gap-3"
                       drag="x"
-                      dragConstraints={{ left: -(visibleMobile.length - 1) * 264, right: 0 }}
-                      dragElastic={0.12}
+                      // Card width (248) + flex gap (12). Measuring the
+                      // container keeps the last card flush instead of letting
+                      // it overscroll into empty space as the deck grows.
+                      dragConstraints={{
+                        left: -Math.max(
+                          0,
+                          visibleMobile.length * 260 - 12 - (deckWidth || 311)
+                        ),
+                        right: 0,
+                      }}
+                      dragElastic={0.08}
                     >
                       {visibleMobile.map((review) => (
                         <div key={review.id} className="w-[248px] shrink-0">
