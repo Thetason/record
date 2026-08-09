@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
 import "./globals.css";
 import AuthProvider from "@/components/providers/AuthProvider";
 import { ToastContainer } from "@/components/ui/toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { SiteFooter } from "@/components/ui/site-footer";
 
 const SITE_TITLE = "Re:cord - 상담 전에 보내는 신뢰 포트폴리오";
 const SITE_DESC =
@@ -69,26 +69,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <ToastContainer />
-            <footer className="border-t border-gray-100 bg-white">
-              <div className="container mx-auto flex flex-col items-center gap-4 px-4 py-10 text-center md:flex-row md:justify-between md:text-left">
-                <div>
-                  <div className="flex items-center justify-center gap-1 md:justify-start">
-                    <span className="text-lg font-extrabold tracking-[-0.04em] text-[#191f28]">Re:cord</span>
-                    <span className="text-[#FF6B35]">*</span>
-                  </div>
-                  <p className="mt-1.5 text-xs text-gray-400">
-                    © {new Date().getFullYear()} Re:cord · 흩어진 리뷰를 한 줄의 링크로
-                  </p>
-                </div>
-                <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-gray-500">
-                  <Link href="/guide" className="hover:text-gray-900">사용 가이드</Link>
-                  <Link href="/pricing" className="hover:text-gray-900">요금 안내</Link>
-                  <Link href="/terms" className="hover:text-gray-900">이용약관</Link>
-                  <Link href="/privacy" className="hover:text-gray-900">개인정보처리방침</Link>
-                  <a className="hover:text-gray-900" href="mailto:support@record.kr">문의</a>
-                </nav>
-              </div>
-            </footer>
+            <SiteFooter />
           </AuthProvider>
         </ErrorBoundary>
       </body>

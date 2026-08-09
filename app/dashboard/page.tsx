@@ -214,7 +214,7 @@ export default function DashboardPage() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#f2f4f6]">
         <div className="hidden md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-64 md:bg-white md:border-r md:border-gray-200 md:block" />
         <div className="md:pl-64 p-4 md:p-8">
           <div className="h-10 w-64 animate-pulse rounded-xl bg-gray-200" />
@@ -230,7 +230,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#f2f4f6] flex items-center justify-center px-4">
         <Card className="w-full max-w-md rounded-3xl border border-red-100 shadow-sm">
           <CardContent className="p-6 text-center">
             <h2 className="text-lg font-semibold text-slate-900">작업 공간을 불러오지 못했습니다</h2>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf8f6]">
+    <div className="min-h-screen bg-[#f2f4f6]">
       <div className="hidden md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-64 md:bg-white md:border-r md:border-gray-200 md:block">
         <div className="flex h-full flex-col">
           <div className="border-b border-gray-200 p-6">

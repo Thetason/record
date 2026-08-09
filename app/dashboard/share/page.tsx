@@ -195,7 +195,7 @@ export default function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf8f6] pb-20 md:pb-8">
+    <div className="min-h-screen bg-[#f2f4f6] pb-20 md:pb-8">
       <div className="mx-auto max-w-6xl p-4 md:p-8">
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl font-bold tracking-[-0.04em] text-slate-900 md:text-3xl">
