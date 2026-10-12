@@ -29,10 +29,8 @@ export default function PayPage() {
           <div className="mt-4 rounded-3xl bg-white p-8 shadow-md md:p-10">
             <p className="text-sm font-semibold text-[#FF6B35]">결제 안내</p>
             <h1 className="mt-2 text-3xl font-bold text-gray-900">{SETUP_PACKAGE.name}</h1>
-            <p className="mt-2 text-4xl font-bold text-gray-900">
-              {formatWon(SETUP_PACKAGE.price)}
-              <span className="ml-1 text-base font-medium text-gray-500">1회 · 자동 결제 없음</span>
-            </p>
+            <p className="mt-2 text-4xl font-bold text-gray-900">{formatWon(SETUP_PACKAGE.price)}</p>
+            <p className="mt-1 text-sm text-gray-500">1회 결제 · 자동 결제 없음</p>
             <ul className="mt-6 space-y-2 text-sm text-gray-700">
               {SETUP_PACKAGE.bullets.map((item) => (
                 <li key={item} className="flex items-start gap-2">
