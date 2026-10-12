@@ -252,6 +252,17 @@ export default function ProfileClient({
   const phoneHref = profile.phone ? `tel:${profile.phone.replace(/[^\d+]/g, "")}` : null
   const reviewRequestHref = `/${profile.username}/review-request`
 
+  // 상담·문의 버튼 클릭을 대시보드 통계로 보낸다. 페이지를 떠나도 전송되도록 sendBeacon.
+  const trackContactClick = () => {
+    if (typeof navigator === "undefined" || !navigator.sendBeacon) return
+    try {
+      const payload = JSON.stringify({ username: profile.username, event: "cta" })
+      navigator.sendBeacon("/api/public/track", new Blob([payload], { type: "application/json" }))
+    } catch {
+      // 통계 실패는 무시한다
+    }
+  }
+
   const journeyTags = [
     profile.experience,
     profile.location,
@@ -323,6 +334,7 @@ export default function ProfileClient({
     href?: string
     external?: boolean
     primary?: boolean
+    onClick?: () => void
   }) => {
     const chev = opts.expandable ? (
       <span className="rc-link-chev">{Icon.chev}</span>
@@ -351,6 +363,7 @@ export default function ProfileClient({
       <a
         className={cls}
         href={opts.href}
+        onClick={opts.onClick}
         {...(opts.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       >
         {inner}
@@ -445,12 +458,12 @@ export default function ProfileClient({
           {(instaUrl || phoneHref) && (
             <div className="rc-icons">
               {instaUrl && (
-                <a className="rc-icon" href={instaUrl} target="_blank" rel="noopener noreferrer" aria-label="인스타그램">
+                <a className="rc-icon" href={instaUrl} target="_blank" rel="noopener noreferrer" aria-label="인스타그램" onClick={trackContactClick}>
                   {Icon.insta}
                 </a>
               )}
               {phoneHref && (
-                <a className="rc-icon" href={phoneHref} aria-label="전화 걸기">
+                <a className="rc-icon" href={phoneHref} aria-label="전화 걸기" onClick={trackContactClick}>
                   {Icon.phone}
                 </a>
               )}
@@ -461,9 +474,9 @@ export default function ProfileClient({
         {/* link stack */}
         <div className="rc-stack rc-rise">
           {bookingUrl
-            ? linkButton({ key: "cta", icon: Icon.ext, label: "상담·예약 문의하기", href: bookingUrl, external: true, primary: true })
+            ? linkButton({ key: "cta", icon: Icon.ext, label: "상담·예약 문의하기", href: bookingUrl, external: true, primary: true, onClick: trackContactClick })
             : phoneHref
-              ? linkButton({ key: "cta", icon: Icon.phone, label: "전화로 상담하기", href: phoneHref, primary: true })
+              ? linkButton({ key: "cta", icon: Icon.phone, label: "전화로 상담하기", href: phoneHref, primary: true, onClick: trackContactClick })
               : linkButton({ key: "cta", icon: Icon.pen, label: "후기 남기기", href: reviewRequestHref, primary: true })}
 
           {prioritizedAll.length > 0 && (

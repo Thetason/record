@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { validateAndNormalizeUsername } from '@/lib/validators/username';
+import { recordProfileEvent } from '@/lib/profile-stats';
 import { toImageSrc } from '@/lib/utils';
 
 const POSSIBLE_ID_LENGTH = 16;
@@ -101,6 +102,7 @@ async function buildSuccessResult(
       .catch(error => {
         console.warn('Public profile view increment failed', { userId: user.id, error });
       });
+    void recordProfileEvent(user.id, 'view');
   }
 
   const profile = buildProfilePayload(user, Boolean(options.includeDemoFallback));
