@@ -90,7 +90,10 @@ async function buildSuccessResult(
   fallbackUsername?: string
 ): Promise<FetchPublicProfileSuccess> {
   if (incrementView) {
-    prisma.user
+    // Await both writes: on serverless the invocation can be frozen as soon as
+    // the response is returned, dropping fire-and-forget queries. Both swallow
+    // their own errors, so a stats failure never blocks the page.
+    const legacyIncrement = prisma.user
       .update({
         where: { id: user.id },
         data: {
@@ -102,7 +105,7 @@ async function buildSuccessResult(
       .catch(error => {
         console.warn('Public profile view increment failed', { userId: user.id, error });
       });
-    void recordProfileEvent(user.id, 'view');
+    await Promise.all([legacyIncrement, recordProfileEvent(user.id, 'view')]);
   }
 
   const profile = buildProfilePayload(user, Boolean(options.includeDemoFallback));
