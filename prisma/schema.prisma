@@ -67,6 +67,7 @@ model User {
   payments  Payment[]
   tickets   Ticket[]
   notifications Notification[]
+  dailyStats ProfileDailyStat[]
   
   @@map("users")
 }
@@ -304,4 +305,17 @@ model Payment {
   updatedAt     DateTime @updatedAt
   
   @@map("payments")
+}
+
+// 공개 페이지 일별 통계. day는 KST 기준 YYYY-MM-DD (sqlite/postgres 공통으로 문자열)
+model ProfileDailyStat {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       String
+  views     Int    @default(0)
+  ctaClicks Int    @default(0)
+
+  @@unique([userId, day])
+  @@map("profile_daily_stats")
 }

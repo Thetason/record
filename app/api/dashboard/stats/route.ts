@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { checkUserPlan, PLAN_LIMITS } from '@/lib/subscription'
+import { getProfileStats } from '@/lib/profile-stats'
 
 // GET /api/dashboard/stats - 대시보드 통계 조회
 export async function GET() {
@@ -72,6 +73,9 @@ export async function GET() {
     // 플랜 확인 (만료 체크 포함)
     const currentPlan = await checkUserPlan(userId)
 
+    // 공개 페이지 조회·상담 클릭 (최근 7/30일)
+    const traffic = await getProfileStats(userId, now)
+
     // 월별 리뷰 트렌드 (최근 6개월)
     const monthlyTrend = []
     for (let i = 5; i >= 0; i--) {
@@ -117,6 +121,7 @@ export async function GET() {
       distribution: {
         platforms: platformStats
       },
+      traffic,
       recent: {
         reviews: reviews.slice(0, 5).map(review => ({
           id: review.id,

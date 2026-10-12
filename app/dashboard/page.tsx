@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav"
+import type { ProfileStatsSummary } from "@/lib/profile-stats"
 
 interface Review {
   id: string
@@ -37,6 +38,7 @@ interface DashboardStats {
     thisMonth: number
     profileViews: number
   }
+  traffic?: ProfileStatsSummary
   recent: {
     reviews: Review[]
   }
@@ -482,6 +484,8 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
+              <TrafficCard traffic={stats?.traffic} />
+
               <Card className="rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
                 <CardHeader>
                   <CardTitle>현재 링크 상태</CardTitle>
@@ -548,5 +552,42 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
       <p className="mt-2 text-2xl font-bold tracking-[-0.04em] text-slate-900">{value}</p>
     </div>
+  )
+}
+
+function TrafficCard({ traffic }: { traffic?: ProfileStatsSummary }) {
+  const daily = traffic?.daily ?? []
+  const peak = Math.max(1, ...daily.map((d) => d.views))
+
+  return (
+    <Card className="rounded-[28px] border border-[#eadfd7] bg-white shadow-sm">
+      <CardHeader>
+        <CardTitle>내 링크 성과</CardTitle>
+        <CardDescription>링크가 몇 번 열렸고, 몇 번 상담·문의 버튼이 눌렸는지 보여줍니다.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <MetricCard label="최근 7일 조회" value={`${traffic?.last7.views ?? 0}회`} />
+          <MetricCard label="최근 7일 상담 클릭" value={`${traffic?.last7.ctaClicks ?? 0}회`} />
+        </div>
+        {daily.length > 0 && (
+          <div>
+            <div className="flex h-16 items-end gap-1" aria-label="최근 14일 일별 조회수">
+              {daily.map((d) => (
+                <div
+                  key={d.day}
+                  title={`${d.day} · 조회 ${d.views} · 상담 클릭 ${d.ctaClicks}`}
+                  className="flex-1 rounded-t bg-[#FF6B35]/70"
+                  style={{ height: `${Math.max(4, (d.views / peak) * 100)}%` }}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              최근 14일 일별 조회 · 30일 합계 조회 {traffic?.last30.views ?? 0}회, 상담 클릭 {traffic?.last30.ctaClicks ?? 0}회
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

@@ -7,12 +7,10 @@ import {
   PLANS,
   PUBLIC_PLAN_ORDER,
   PRICING_FEATURE_MATRIX,
-  formatCurrency,
   getFeatureValue,
-  getPlanPrice,
-  getYearlySavings,
   hasFeature,
 } from '@/lib/plan-limits'
+import { SETUP_PACKAGE, formatWon } from '@/lib/setup-package'
 
 export default function PricingGuidePage() {
   const publicPlans = PUBLIC_PLAN_ORDER
@@ -27,93 +25,33 @@ export default function PricingGuidePage() {
           <h1 className="text-3xl font-bold text-gray-900">요금제·이용정책 안내</h1>
           <p className="max-w-3xl text-gray-600">
             Re:cord는 리뷰를 얼마나 많이 저장하느냐보다, 얼마나 빨리 신뢰를 만들고 얼마나 잘 문의로 이어지게 하느냐에 맞춰 설계됩니다.
-            무료는 퍼지기 위한 플랜이고, 프로는 실제 영업용 링크를 운영하기 위한 플랜입니다.
+            링크는 무료로 직접 만들 수 있고, 맡기고 싶다면 세팅 패키지를 한 번 결제하면 됩니다.
           </p>
         </header>
 
         <section className="space-y-6">
-          <h2 className="text-2xl font-semibold text-gray-900">공개 플랜 구성</h2>
-          <div className="grid gap-6 md:grid-cols-2">
-            {publicPlans.map((planId) => {
-              const plan = PLANS[planId]
-              const monthly = getPlanPrice(planId, 'monthly')
-              const yearly = getPlanPrice(planId, 'yearly')
-              const savings = getYearlySavings(planId)
-
-              return (
-                <div key={planId} className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-gray-900">{plan.name}</h3>
-                    {plan.badge && (
-                      <span className="rounded-full bg-[#FF6B35] px-2 py-1 text-xs font-medium text-white">
-                        {plan.badge}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500">{plan.description}</p>
-                  <div className="mt-4 text-sm text-gray-600">
-                    <div className="flex justify-between">
-                      <span>월간</span>
-                      <strong>{monthly === 0 ? '무료' : `₩${formatCurrency(monthly)}`}</strong>
-                    </div>
-                    <div className="mt-1 flex justify-between">
-                      <span>연간</span>
-                      <strong>
-                        {yearly === 0 ? '무료' : `₩${formatCurrency(yearly)}`}
-                        {savings > 0 && <span className="ml-2 text-xs text-green-600">(₩{formatCurrency(savings)} 절약)</span>}
-                      </strong>
-                    </div>
-                  </div>
-                  <div className="mt-4 rounded-xl bg-white p-4 text-sm text-gray-700">
-                    <div className="font-semibold text-gray-900">{plan.highlight}</div>
-                    <p className="mt-1 text-xs text-gray-500">{plan.bestFor}</p>
-                  </div>
-                  <ul className="mt-4 space-y-2 text-sm text-gray-600">
-                    {plan.marketingHighlights.map((item) => (
-                      <li key={item} className="flex items-start gap-2">
-                        <Check className="mt-0.5 h-4 w-4 text-[#FF6B35]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-4 text-xs text-gray-500">지원 범위: {plan.supportLevel}</p>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className="space-y-6">
           <div className="flex items-center gap-2">
             <Wrench className="h-5 w-5 text-[#FF6B35]" />
-            <h2 className="text-2xl font-semibold text-gray-900">1회성 세팅 서비스</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">판매 상품은 하나입니다</h2>
           </div>
           <div className="rounded-2xl border border-[#FF6B35]/20 bg-[#FFF7F3] p-6">
-            <h3 className="text-xl font-semibold text-gray-900">리뷰 옮겨드림</h3>
-            <p className="mt-2 max-w-3xl text-sm text-gray-600">
-              초기에 가입자 부족보다 더 큰 문제는 세팅 귀찮음입니다. 그래서 Re:cord는 OCR이나 업로드 기능을 메인 상품으로 전면에 내세우기보다,
-              기존 플랫폼 리뷰를 빠르게 정리해 첫 링크를 여는 1회성 서비스도 함께 제공합니다.
-            </p>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl bg-white p-5 shadow-sm">
-                <div className="text-sm font-semibold text-gray-500">기본 세팅</div>
-                <div className="mt-2 text-2xl font-bold text-gray-900">₩79,000</div>
-                <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                  <li>후기 정리와 대표 3개 큐레이션</li>
-                  <li>프로필 기본 세팅과 포트폴리오 정리</li>
-                  <li>카톡으로 바로 보낼 링크 열기</li>
-                </ul>
-              </div>
-              <div className="rounded-2xl bg-white p-5 shadow-sm">
-                <div className="text-sm font-semibold text-gray-500">빠른 세팅 / 대량 이전</div>
-                <div className="mt-2 text-2xl font-bold text-gray-900">₩149,000</div>
-                <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                  <li>후기 수가 많거나 급하게 공개해야 하는 경우</li>
-                  <li>대량 이전과 소개 문구 정리</li>
-                  <li>우선 대응 기반의 빠른 오픈</li>
-                </ul>
-              </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-xl font-semibold text-gray-900">{SETUP_PACKAGE.name}</h3>
+              <div className="text-2xl font-bold text-gray-900">{formatWon(SETUP_PACKAGE.price)} <span className="text-sm font-medium text-gray-500">1회</span></div>
             </div>
+            <p className="mt-2 max-w-3xl text-sm text-gray-600">{SETUP_PACKAGE.summary}</p>
+            <ul className="mt-4 space-y-2 text-sm text-gray-700">
+              {SETUP_PACKAGE.bullets.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 text-[#FF6B35]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-xs text-gray-500">
+              월 구독과 자동 결제는 없습니다. 프로 {SETUP_PACKAGE.includedProMonths}개월이 끝나면 무료 플랜으로 돌아가고, 후기와 링크는 그대로 유지됩니다.
+              직접 만들고 싶다면 무료로 시작할 수 있습니다.
+            </p>
           </div>
         </section>
 
@@ -175,9 +113,6 @@ export default function PricingGuidePage() {
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-gray-500">
-            운영 베타 플랜(19,900원)은 팀/스튜디오 사용 패턴이 확인된 뒤 별도 문의형으로 열고 있습니다.
-          </p>
         </section>
 
         <section className="space-y-6">
@@ -205,9 +140,9 @@ export default function PricingGuidePage() {
             <div className="rounded-2xl border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-900">환불과 해지는 복잡하지 않게</h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                <li>언제든 해지할 수 있고, 해지 후에는 결제 기간 종료 시점까지 사용합니다.</li>
-                <li>첫 유료 결제 후 초기 문의는 실제 사용 이력과 결제 공급자 정책을 함께 보고 안내합니다.</li>
-                <li>1회성 세팅 서비스는 작업 시작 이후 환불이 제한될 수 있습니다.</li>
+                <li>자동 결제가 없으니 따로 해지할 필요가 없습니다.</li>
+                <li>세팅 작업을 시작하기 전에는 전액 환불합니다.</li>
+                <li>세팅 작업을 시작한 뒤에는 진행 정도에 따라 환불이 제한될 수 있습니다.</li>
               </ul>
             </div>
             <div className="rounded-2xl border border-gray-200 p-6">
