@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { SETUP_PACKAGE, formatWon } from '@/lib/setup-package'
 
 const platformOptions = ['네이버', '카카오맵', '당근', '크몽', '프립', '솜씨당', '기타']
 const audienceOptions = ['헤어디자이너', 'PT 트레이너', '크몽 프리랜서', '강사', '기타']
@@ -269,8 +270,8 @@ export function MigrationRequestClient({
             </CardDescription>
             {formData.source === 'pricing' && (
               <div className="mt-3 rounded-xl bg-[#FF6B35]/10 px-4 py-3 text-sm leading-6 text-gray-700">
-                베타 기간에는 프로 결제를 세팅 요청과 함께 직접 안내드립니다. 요청을 남겨주시면
-                결제 방법과 세팅 일정까지 한 번에 정리해드릴게요.
+                {SETUP_PACKAGE.name} {formatWon(SETUP_PACKAGE.price)}(1회, 프로 {SETUP_PACKAGE.includedProMonths}개월 포함) 신청입니다.
+                요청을 남겨주시면 결제 방법과 세팅 일정까지 한 번에 정리해드릴게요.
               </div>
             )}
           </CardHeader>
