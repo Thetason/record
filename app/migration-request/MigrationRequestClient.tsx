@@ -164,6 +164,13 @@ export function MigrationRequestClient({
                 접수 후에는 1) 자료 확인 2) 대표 후기와 작업 선정 3) 소개 페이지 초안 정리 순서로 진행합니다. 필요하면 리뷰 스크린샷과 포트폴리오 링크부터 먼저 받습니다.
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                {formData.source.startsWith('pricing') && (
+                  <Link href="/pricing/pay">
+                    <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B] sm:w-auto">
+                      결제 안내 보기
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/signup">
                   <Button className="w-full bg-[#FF6B35] hover:bg-[#E55A2B] sm:w-auto">
                     지금 계정 만들기

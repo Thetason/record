@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { SETUP_PACKAGE, formatWon } from '@/lib/setup-package'
 import type { LaunchOfferSnapshot } from '@/lib/launch-offer-config'
 
-const SETUP_PACKAGE_HREF = '/migration-request?from=pricing'
+const SETUP_PACKAGE_HREF = '/pricing/pay'
 
 const FREE_BULLETS = [
   '공개 신뢰 페이지 1개',
@@ -146,7 +146,7 @@ export default function PricingPage() {
                 </CardContent>
                 <CardFooter className="flex-col items-start pt-0">
                   <Button asChild className="w-full bg-[#FF6B35] hover:bg-[#E55A2B]">
-                    <Link href={SETUP_PACKAGE_HREF}>세팅 패키지 신청하기</Link>
+                    <Link href={SETUP_PACKAGE_HREF}>세팅 패키지 결제하기</Link>
                   </Button>
                   <p className="mt-4 w-full border-t border-gray-100 pt-4 text-xs text-gray-500">
                     자동 결제 없음 · 프로 {SETUP_PACKAGE.includedProMonths}개월이 끝나면 무료 플랜으로 그대로 유지됩니다.
@@ -222,7 +222,7 @@ export default function PricingPage() {
                   <div>
                     <dt className="mb-1 font-semibold text-gray-900">결제는 어떻게 하나요?</dt>
                     <dd>
-                      신청서를 남기시면 계좌이체 안내를 드립니다. 입금이 확인되면 바로 세팅을 시작합니다.
+                      계좌이체로 결제하고 카카오톡이나 이메일로 알려주시면, 확인 즉시 세팅을 시작합니다.
                     </dd>
                   </div>
                 </dl>
