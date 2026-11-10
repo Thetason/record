@@ -94,3 +94,7 @@ cookies.txt
 
 # synthetic benchmark fixtures — regenerate with scripts/make-scale-fixtures.mjs
 fixtures/scale/
+
+# 영업 작전 개인 정보 (실명 후보·추적표·DM 큐) — 공개 리포에 올리지 않는다
+/ops/private/*
+!/ops/private/README.md
