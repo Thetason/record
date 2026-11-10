@@ -6,6 +6,7 @@
 
 ## 먼저 읽기
 
+- **`ops/README.md` — 지금 최우선: 2026-11-24 판정까지의 영업 작전과 데일리 루틴 (`ops/DAILY_ROUTINE.md`). 판정 전 새 기능 개발 금지.**
 - `START_HERE.md` — 문서 지도와 최신 상태 (여기부터)
 - `AUTO_IMPORT_STRATEGY_2026-07-03.md` — 리뷰 가져오기의 법률·기술 확정 (서버 크롤링 금지 판례 포함)
 - `VIABILITY_VERDICT_2026-07-03.md` — 사업 판정과 30일 플랜
